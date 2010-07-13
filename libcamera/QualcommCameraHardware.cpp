@@ -775,6 +775,7 @@ static String8 iso_values;
 static String8 picture_format_values;
 static String8 scenemode_values;
 //static String8 continuous_af_values;
+static String8 zoom_ratio_values;
 static String8 preview_frame_rate_values;
 static String8 frame_rate_mode_values;
 static String8 scenedetect_values;
@@ -841,6 +842,23 @@ static String8 create_values_range_str(int min, int max){
     }
     return str;
 }
+
+static String8 create_str(int16_t *arr, int length){
+    String8 str;
+    char buffer[32];
+
+    if(length > 0){
+        snprintf(buffer, sizeof(buffer), "%d", arr[0]);
+        str.append(buffer);
+    }
+
+    for (int i =1;i<length;i++){
+        snprintf(buffer, sizeof(buffer), ",%d",arr[i]);
+        str.append(buffer);
+    }
+    return str;
+}
+
 
 extern "C" {
 //------------------------------------------------------------------------
@@ -990,7 +1008,9 @@ static void receive_shutter_callback(common_crop_t *crop);
 static void receive_camframetimeout_callback(void);
 static int fb_fd = -1;
 static int32_t mMaxZoom = 0;
+static bool zoomSupported = false;
 static bool native_get_maxzoom(int camfd, void *pZm);
+static bool native_get_zoomratios(int camfd, void *pZr, int maxZoomLevel);
 
 static int dstOffset = 0;
 
@@ -1259,6 +1279,32 @@ void QualcommCameraHardware::initDefaultParameters()
                 selectable_zone_af, sizeof(selectable_zone_af) / sizeof(str_map));
         }
 
+        if(native_get_maxzoom(mCameraControlFd,
+                (void *)&mMaxZoom) == true){
+            ALOGD("Maximum zoom value is %d", mMaxZoom);
+            zoomSupported = true;
+            if(mMaxZoom > 0){
+                //if max zoom is available find the zoom ratios
+                int16_t * zoomRatios = new int16_t[mMaxZoom+1];
+                if(zoomRatios != NULL){
+                    if(native_get_zoomratios(mCameraControlFd,
+                            (void *)zoomRatios, mMaxZoom + 1) == true){
+                        zoom_ratio_values =
+                                create_str(zoomRatios, mMaxZoom + 1);
+                    }else {
+                        ALOGE("Failed to get zoomratios...");
+                    }
+                    delete zoomRatios;
+                } else {
+                    ALOGE("zoom ratios failed to acquire memory");
+                }
+            }
+        } else {
+            zoomSupported = false;
+            ALOGE("Failed to get maximum zoom value...setting max "
+                    "zoom to zero");
+            mMaxZoom = 0;
+        }
         parameter_string_initialized = true;
     }
 
@@ -1299,6 +1345,16 @@ void QualcommCameraHardware::initDefaultParameters()
      String8 valuesStr = create_sizes_str(jpeg_thumbnail_sizes, JPEG_THUMBNAIL_SIZE_COUNT);
     mParameters.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,
                 valuesStr.string());
+
+    if(zoomSupported){
+        mParameters.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
+        ALOGV("max zoom is %d", mMaxZoom);
+        mParameters.set("max-zoom",mMaxZoom);
+        mParameters.set(CameraParameters::KEY_ZOOM_RATIOS,
+                            zoom_ratio_values);
+    } else {
+        mParameters.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
+    }
 
     mParameters.set(CameraParameters::KEY_ANTIBANDING,
                     CameraParameters::ANTIBANDING_OFF);
@@ -1393,8 +1449,6 @@ void QualcommCameraHardware::initDefaultParameters()
     mParameters.set("luma-adaptation", "3");
     mParameters.set("skinToneEnhancement", "0");
     mParameters.set("zoom-supported", "true");
-    mParameters.set("zoom-ratios", "100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200");
-    mParameters.set("max-zoom", MAX_ZOOM_LEVEL);
     mParameters.set("zoom", 0);
     mParameters.set(CameraParameters::KEY_PICTURE_FORMAT,
                     CameraParameters::PIXEL_FORMAT_JPEG);
@@ -1726,6 +1780,32 @@ static bool native_get_maxzoom(int camfd, void *pZm)
     ALOGV("native_get_maxzoom X");
     return true;
 }
+
+static bool native_get_zoomratios(int camfd, void *pZr, int maxZoomSize)
+{
+    ALOGV("native_get_zoomratios E");
+    struct msm_ctrl_cmd ctrlCmd;
+    int16_t *zoomRatios = (int16_t *)pZr;
+
+    if(maxZoomSize <= 0)
+        return false;
+
+    ctrlCmd.type       = CAMERA_GET_PARM_ZOOMRATIOS;
+    ctrlCmd.timeout_ms = 5000;
+    ctrlCmd.length     = sizeof(int16_t)* (maxZoomSize);
+    ctrlCmd.value      = zoomRatios;
+    ctrlCmd.resp_fd    = camfd;
+
+    if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
+        ALOGE("native_get_zoomratios: ioctl fd %d error %s",
+             camfd,
+             strerror(errno));
+        return false;
+    }
+    ALOGV("native_get_zoomratios X");
+    return true;
+}
+
 
 static bool native_set_afmode(int camfd, isp3a_af_mode_t af_type)
 {
@@ -3187,16 +3267,6 @@ status_t QualcommCameraHardware::startPreviewInternal()
 
     //Reset the Gps Information
     exif_table_numEntries = 0;
-
-    if(native_get_maxzoom(mCameraControlFd, (void *)&mMaxZoom) == true){
-        ALOGD("Maximum zoom value is %d", mMaxZoom);
-        mParameters.set("zoom-supported", "true");
-    } else {
-        ALOGV("Failed to get maximum zoom value...setting max zoom to zero");
-        mParameters.set("zoom-supported", "false");
-        mMaxZoom = 0;
-    }
-    mParameters.set("max-zoom",mMaxZoom);
 
     ALOGV("startPreviewInternal X");
     return NO_ERROR;
