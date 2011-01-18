@@ -112,6 +112,16 @@ typedef enum {
   CAMERA_YUV_422_NV61
 } cam_format_t;
 
+typedef struct {
+  int  modes_supported;
+  int8_t camera_id;
+  int position;
+  int orientation;
+  uint32_t sensor_mount_angle;
+  //uint32_t sensor_Orientation;
+  //struct fih_parameters_data parameters_data;
+} camera_info_t;
+
 /* Values originally in proprietary headers */
 
 #define MSM_CAMERA_CONTROL "/dev/msm_camera/control0"
@@ -437,6 +447,10 @@ typedef struct {
 	int otherval;
 } rat_t;
 
+typedef enum {
+  BACK_CAMERA,
+  FRONT_CAMERA,
+} cam_position_t;
 
 typedef union {
         char * _ascii; /* At byte 16 relative to exif_tag_entry_t */
