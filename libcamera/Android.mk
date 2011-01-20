@@ -16,9 +16,11 @@ LOCAL_SRC_FILES:= QualcommCameraHardware.cpp
 
 LOCAL_CFLAGS:= -DDLOPEN_LIBMMCAMERA=$(DLOPEN_LIBMMCAMERA)
 
-## Can be raised to 6 to improve framerate, at the cost of allocating
-## more ADSP memory. Use 0xa68000 as pool size in kernel to test
+ifeq "$(findstring msm7627,$(QCOM_TARGET_PRODUCT))" "msm7627"
+LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=6 -D_ANDROID_
+else
 LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=2 -D_ANDROID_
+endif
 
 LOCAL_C_INCLUDES+= \
     $(TARGET_OUT_HEADERS)/mm-camera \
