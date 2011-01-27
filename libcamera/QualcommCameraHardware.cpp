@@ -179,8 +179,8 @@ union zoomimage
 } zoomImage;
 
 //Default to QVGA
-#define DEFAULT_PREVIEW_WIDTH 320
-#define DEFAULT_PREVIEW_HEIGHT 240
+#define DEFAULT_PREVIEW_WIDTH 480
+#define DEFAULT_PREVIEW_HEIGHT 320
 
 /*
  * Modifying preview size requires modification
@@ -1026,6 +1026,10 @@ QualcommCameraHardware::QualcommCameraHardware()
       strTexturesOn(false)
 {
     ALOGI("QualcommCameraHardware constructor E");
+
+    mMMCameraDLRef = MMCameraDL::getInstance();
+    libmmcamera = mMMCameraDLRef->pointer();
+
     // Start opening camera device in a separate thread/ Since this
     // initializes the sensor hardware, this can take a long time. So,
     // start the process here so it will be ready by the time it's
@@ -1453,8 +1457,6 @@ bool QualcommCameraHardware::startCamera()
         return false;
     }
 #if DLOPEN_LIBMMCAMERA
-    libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
-    ALOGV("loading liboemcamera at %p", libmmcamera);
     if (!libmmcamera) {
         ALOGV("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
         return false;
@@ -2369,18 +2371,7 @@ void QualcommCameraHardware::runFrameThread(void *data)
 
     int cnt;
 
-#if DLOPEN_LIBMMCAMERA
-    // We need to maintain a reference to libqcamera.so for the duration of the
-    // frame thread, because we do not know when it will exit relative to the
-    // lifetime of this object.  We do not want to dlclose() libqcamera while
-    // LINK_cam_frame is still running.
-    void *libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
-    ALOGV("FRAME: loading libqcamera at %p", libhandle);
-    if (!libhandle) {
-        ALOGV("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
-    }
-    if (libhandle)
-#endif
+    if(libmmcamera)
     {
         LINK_cam_frame(data);
     }
@@ -2388,13 +2379,6 @@ void QualcommCameraHardware::runFrameThread(void *data)
     mPreviewHeap.clear();
     if(( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660))
          mRecordHeap.clear();
-
-#if DLOPEN_LIBMMCAMERA
-    if (libhandle) {
-        ::dlclose(libhandle);
-        ALOGV("FRAME: dlclose(libqcamera)");
-    }
-#endif
 
     mFrameThreadWaitLock.lock();
     mFrameThreadRunning = false;
@@ -3002,14 +2986,13 @@ void QualcommCameraHardware::release()
     ALOGI("release E");
     Mutex::Autolock l(&mLock);
 
-#if DLOPEN_LIBMMCAMERA
-    if (libmmcamera == NULL) {
-        ALOGV("ERROR: multiple release!");
-        return;
+   {
+        Mutex::Autolock checkLock(&singleton_lock);
+        if(singleton_releasing){
+            ALOGE("ERROR: multiple release!");
+            return;
+        }
     }
-#else
-#warning "Cannot detect multiple release when not dlopen()ing libqcamera!"
-#endif
 
     int cnt, rc;
     struct msm_ctrl_cmd ctrlCmd;
@@ -3074,13 +3057,6 @@ void QualcommCameraHardware::release()
         close(fb_fd);
         fb_fd = -1;
     }
-#if DLOPEN_LIBMMCAMERA
-    if (libmmcamera) {
-        ::dlclose(libmmcamera);
-        ALOGV("dlclose(libqcamera)");
-        libmmcamera = NULL;
-    }
-#endif
 
     singleton_lock.lock();
     singleton_releasing = true;
@@ -3095,6 +3071,10 @@ void QualcommCameraHardware::release()
 QualcommCameraHardware::~QualcommCameraHardware()
 {
     ALOGD("~QualcommCameraHardware E");
+
+    libmmcamera = NULL;
+    mMMCameraDLRef.clear();
+
     singleton_lock.lock();
 
     if( mCurrentTarget == TARGET_MSM7630 || mCurrentTarget == TARGET_QSD8250 || mCurrentTarget == TARGET_MSM8660 ) {
@@ -3283,14 +3263,7 @@ void QualcommCameraHardware::runAutoFocus()
         return;
     }
 
-#if DLOPEN_LIBMMCAMERA
-    // We need to maintain a reference to libqcamera.so for the duration of the
-    // AF thread, because we do not know when it will exit relative to the
-    // lifetime of this object.  We do not want to dlclose() libqcamera while
-    // LINK_cam_frame is still running.
-    libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
-    ALOGV("AF: loading libqcamera at %p", libhandle);
-    if (!libhandle) {
+    if(!libmmcamera){
         ALOGV("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
         close(mAutoFocusFd);
         mAutoFocusFd = -1;
@@ -3298,7 +3271,6 @@ void QualcommCameraHardware::runAutoFocus()
         mAutoFocusThreadLock.unlock();
         return;
     }
-#endif
 
     afMode = (isp3a_af_mode_t)attr_lookup(focus_modes,
                                 sizeof(focus_modes) / sizeof(str_map),
@@ -3344,13 +3316,6 @@ done:
     mCallbackLock.unlock();
     if (autoFocusEnabled)
         cb(CAMERA_MSG_FOCUS, status, 0, data);
-
-#if DLOPEN_LIBMMCAMERA
-    if (libhandle) {
-        ::dlclose(libhandle);
-        ALOGV("AF: dlclose(libqcamera)");
-    }
-#endif
 }
 
 status_t QualcommCameraHardware::cancelAutoFocusInternal()
@@ -3465,18 +3430,12 @@ status_t QualcommCameraHardware::cancelAutoFocus()
 void QualcommCameraHardware::runSnapshotThread(void *data)
 {
     bool ret = true;
+    CAMERA_HAL_UNUSED(data);
     ALOGV("runSnapshotThread E");
-#if DLOPEN_LIBMMCAMERA
-    // We need to maintain a reference to libqcamera.so for the duration of the
-    // Snapshot thread, because we do not know when it will exit relative to the
-    // lifetime of this object.  We do not want to dlclose() libqcamera while
-    // LINK_cam_frame is still running.
-    void *libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
-    ALOGV("SNAPSHOT: loading libqcamera at %p", libhandle);
-    if (!libhandle) {
+
+    if(!libmmcamera){
         ALOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
     }
-#endif
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
         if (native_start_snapshot(mCameraControlFd))
@@ -3508,9 +3467,7 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
         }
         mJpegThreadWaitLock.unlock();
         //clear the resources
-#if DLOPEN_LIBMMCAMERA
-        if(libhandle)
-#endif
+        if(libmmcamera != NULL)
         {
             LINK_jpeg_encoder_join();
         }
@@ -3521,12 +3478,6 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
     mSnapshotThreadRunning = false;
     mSnapshotThreadWait.signal();
     mSnapshotThreadWaitLock.unlock();
-#if DLOPEN_LIBMMCAMERA
-    if (libhandle) {
-        ::dlclose(libhandle);
-        ALOGV("SNAPSHOT: dlclose(libqcamera)");
-    }
-#endif
 
     if( (ret == false) && mDataCallback
         && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
@@ -5561,6 +5512,44 @@ status_t QualcommCameraHardware::setPictureFormat(const CameraParameters& params
     return NO_ERROR;
 }
 
+QualcommCameraHardware::MMCameraDL::MMCameraDL(){
+    ALOGV("MMCameraDL: E");
+    libmmcamera = NULL;
+#if DLOPEN_LIBMMCAMERA
+    libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
+#endif
+    ALOGV("Open MM camera DL libeomcamera loaded at %p ", libmmcamera);
+    ALOGV("MMCameraDL: X");
+}
+
+void * QualcommCameraHardware::MMCameraDL::pointer(){
+    return libmmcamera;
+}
+
+QualcommCameraHardware::MMCameraDL::~MMCameraDL(){
+    ALOGV("~MMCameraDL: E");
+    if (libmmcamera != NULL) {
+        ::dlclose(libmmcamera);
+        ALOGV("closed MM Camera DL ");
+    }
+    libmmcamera = NULL;
+    ALOGV("~MMCameraDL: X");
+}
+
+wp<QualcommCameraHardware::MMCameraDL> QualcommCameraHardware::MMCameraDL::instance;
+Mutex QualcommCameraHardware::MMCameraDL::singletonLock;
+
+
+sp<QualcommCameraHardware::MMCameraDL> QualcommCameraHardware::MMCameraDL::getInstance(){
+    Mutex::Autolock instanceLock(singletonLock);
+    sp<MMCameraDL> mmCamera = instance.promote();
+    if(mmCamera == NULL){
+        mmCamera = new MMCameraDL();
+        instance = mmCamera;
+    }
+    return mmCamera;
+}
+
 QualcommCameraHardware::MemPool::MemPool(int buffer_size, int num_buffers,
                                          int frame_size,
                                          const char *name) :
@@ -5651,6 +5640,8 @@ QualcommCameraHardware::PmemPool::PmemPool(const char *pmem_pool,
     ALOGV("%s: duplicating control fd %d --> %d",
          __FUNCTION__,
          camera_control_fd, mCameraControlFd);
+
+    mMMCameraDLRef = QualcommCameraHardware::MMCameraDL::getInstance();
 
     // Make a new mmap'ed heap that can be shared across processes.
     // mAlignedBufferSize is already in 4k aligned. (do we need total size necessary to be in power of 2??)
@@ -5749,6 +5740,7 @@ QualcommCameraHardware::PmemPool::~PmemPool()
          mName,
          mCameraControlFd);
     close(mCameraControlFd);
+    mMMCameraDLRef.clear();
     ALOGI("%s: %s X", __FUNCTION__, mName);
 }
 
