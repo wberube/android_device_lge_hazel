@@ -210,7 +210,9 @@ static unsigned int previewSizeCount;
 board_property boardProperties[] = {
         {TARGET_MSM7227, 0x00000fff, false, false},
         {TARGET_MSM7625, 0x00000fff, false, false},
+        {TARGET_MSM7625A, 0x00000fff, false, false},
         {TARGET_MSM7627, 0x000006ff, false, false},
+        {TARGET_MSM7627A, 0x000006ff, false, false},
         {TARGET_MSM7630, 0x00000fff, true, true},
         {TARGET_MSM8660, 0x00001fff, true, true},
         {TARGET_QSD8250, 0x00000fff, false, false}
@@ -262,7 +264,9 @@ static int supportedPictureSizesCount;
 static const target_map targetList [] = {
     { "msm7227", TARGET_MSM7227 },
     { "msm7625", TARGET_MSM7625 },
+    { "msm7625a", TARGET_MSM7625A },
     { "msm7627", TARGET_MSM7627 },
+    { "msm7627a", TARGET_MSM7627A },
     { "qsd8250", TARGET_QSD8250 },
     { "msm7630", TARGET_MSM7630 },
     { "msm8660", TARGET_MSM8660 }
@@ -948,6 +952,14 @@ void QualcommCameraHardware::storeTargetType(void) {
     for( int i = 0; i < TARGET_MAX ; i++) {
         if( !strncmp(mDeviceName, targetList[i].targetStr, 7)) {
             mCurrentTarget = targetList[i].targetEnum;
+            if(mCurrentTarget == TARGET_MSM7625) {
+                if(!strncmp(mDeviceName, "msm7625a" , 8))
+                    mCurrentTarget = TARGET_MSM7625A;
+            }
+            if(mCurrentTarget == TARGET_MSM7627) {
+                if(!strncmp(mDeviceName, "msm7627a" , 8))
+                    mCurrentTarget = TARGET_MSM7627A;
+            }
             break;
         }
     }
@@ -1070,6 +1082,7 @@ QualcommCameraHardware::QualcommCameraHardware()
 
     switch(mCurrentTarget){
         case TARGET_MSM7227:
+        case TARGET_MSM7627A:
             jpegPadding = 0; // to be checked.
             break;
         case TARGET_QSD8250:
@@ -3617,7 +3630,9 @@ status_t QualcommCameraHardware::cancelPicture()
 {
     status_t rc;
     ALOGV("cancelPicture: E");
-    if (mCurrentTarget == TARGET_MSM7227) {
+    if (mCurrentTarget == TARGET_MSM7227 ||
+       (mCurrentTarget == TARGET_MSM7625A ||
+        mCurrentTarget == TARGET_MSM7627A)) {
         mSnapshotDone = TRUE;
         mSnapshotThreadWaitLock.lock();
         while (mSnapshotThreadRunning) {
@@ -4097,7 +4112,9 @@ void QualcommCameraHardware::receivePreviewFrame(struct msm_frame *frame)
                 offset = offset_addr / mPreviewHeap->mAlignedBufferSize;
 	        }
         }
-        if (mCurrentTarget == TARGET_MSM7227) {
+        if (mCurrentTarget == TARGET_MSM7227  ||
+               (mCurrentTarget == TARGET_MSM7625A ||
+                mCurrentTarget == TARGET_MSM7627A)) {
             mLastQueuedFrame = (void *)mPreviewHeap->mBuffers[offset]->pointer();
         }
     }
