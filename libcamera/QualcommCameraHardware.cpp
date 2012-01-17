@@ -343,7 +343,7 @@ static mm_camera_config mCfgControl;
 
 static int HAL_numOfCameras = 0;
 static camera_info_t HAL_cameraInfo[MSM_MAX_CAMERA_SENSORS];
-static int HAL_currentCameraId;
+static int HAL_currentCameraId = 0;
 
 namespace android {
 
@@ -5556,10 +5556,13 @@ status_t QualcommCameraHardware::setGpsLocation(const CameraParameters& params)
 status_t QualcommCameraHardware::setRotation(const CameraParameters& params)
 {
     status_t rc = NO_ERROR;
+    ALOGV("%s E", __FUNCTION__);
+    int sensor_mount_angle = HAL_cameraInfo[HAL_currentCameraId].sensor_mount_angle;
     int rotation = params.getInt(CameraParameters::KEY_ROTATION);
     if (rotation != NOT_FOUND) {
         if (rotation == 0 || rotation == 90 || rotation == 180
             || rotation == 270) {
+          rotation = (rotation + sensor_mount_angle)%360;
           mParameters.set(CameraParameters::KEY_ROTATION, rotation);
         } else {
             ALOGV("Invalid rotation value: %d", rotation);
