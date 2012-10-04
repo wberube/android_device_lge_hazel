@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
- * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +20,6 @@
 
 #include <cutils/ashmem.h>
 #include <cutils/log.h>
-#include <cutils/properties.h>
 
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
@@ -31,7 +29,6 @@
 #include <sys/ioctl.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include <cutils/log.h>
 #include <cutils/atomic.h>
@@ -39,23 +36,14 @@
 #include <linux/fb.h>
 #include <linux/msm_mdp.h>
 
-#include <GLES/gl.h>
-
 #include "gralloc_priv.h"
 #include "gr.h"
-#ifdef NO_SURFACEFLINGER_SWAPINTERVAL
-#include <cutils/properties.h>
-#endif
 
 /*****************************************************************************/
 
-enum {
-    MDDI_PANEL = '1',
-    EBI2_PANEL = '2',
-    LCDC_PANEL = '3',
-    EXT_MDDI_PANEL = '4',
-    TV_PANEL = '5'
-};
+// numbers of buffers for page flipping
+#define NUM_BUFFERS 2
+
 
 enum {
     PAGE_FLIP = 0x00000001,
@@ -66,24 +54,19 @@ struct fb_context_t {
     framebuffer_device_t  device;
 };
 
-static int neworientation;
 /*****************************************************************************/
 
 static void
-msm_copy_buffer(buffer_handle_t handle, int fd,
-                int width, int height, int format,
+msm_copy_buffer(buffer_handle_t handle, int fd, int width, int height,
                 int x, int y, int w, int h);
 
 static int fb_setSwapInterval(struct framebuffer_device_t* dev,
             int interval)
 {
     fb_context_t* ctx = (fb_context_t*)dev;
-    private_module_t* m = reinterpret_cast<private_module_t*>(
-            dev->common.module);
     if (interval < dev->minSwapInterval || interval > dev->maxSwapInterval)
         return -EINVAL;
-
-    m->swapInterval = interval;
+    // FIXME: implement fb_setSwapInterval
     return 0;
 }
 
@@ -102,128 +85,32 @@ static int fb_setUpdateRect(struct framebuffer_device_t* dev,
     return 0;
 }
 
-static void *disp_loop(void *ptr)
-{
-    struct qbuf_t nxtBuf;
-    static int cur_buf=-1;
-    private_module_t *m = reinterpret_cast<private_module_t*>(ptr);
-
-    while (1) {
-        pthread_mutex_lock(&(m->qlock));
-
-        // wait (sleep) while display queue is empty;
-        if (m->disp.isEmpty()) {
-            pthread_cond_wait(&(m->qpost),&(m->qlock));
-        }
-
-        // dequeue next buff to display and lock it
-        nxtBuf = m->disp.getHeadValue();
-        m->disp.pop();
-        pthread_mutex_unlock(&(m->qlock));
-
-        // post buf out to display synchronously
-        private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>
-                                                (nxtBuf.buf);
-        const size_t offset = hnd->base - m->framebuffer->base;
-        m->info.activate = FB_ACTIVATE_VBL;
-        m->info.yoffset = offset / m->finfo.line_length;
-
-        if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
-            LOGE("ERROR FBIOPUT_VSCREENINFO failed; frame not displayed");
-        }
-
-        if (cur_buf == -1) {
-            pthread_mutex_lock(&(m->avail[nxtBuf.idx].lock));
-            m->avail[nxtBuf.idx].is_avail = true;
-            pthread_cond_signal(&(m->avail[nxtBuf.idx].cond));
-            pthread_mutex_unlock(&(m->avail[nxtBuf.idx].lock));
-        } else {
-            pthread_mutex_lock(&(m->avail[cur_buf].lock));
-            m->avail[cur_buf].is_avail = true;
-            pthread_cond_signal(&(m->avail[cur_buf].cond));
-            pthread_mutex_unlock(&(m->avail[cur_buf].lock));
-
-        }
-        cur_buf = nxtBuf.idx;
-    }
-    return NULL;
-}
-
 static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 {
     if (private_handle_t::validate(buffer) < 0)
         return -EINVAL;
 
-    int nxtIdx;
-    bool reuse;
-    struct qbuf_t qb;
     fb_context_t* ctx = (fb_context_t*)dev;
 
     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(buffer);
     private_module_t* m = reinterpret_cast<private_module_t*>(
             dev->common.module);
-
+    
     if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER) {
-
-        reuse = false;
-        nxtIdx = (m->currentIdx + 1) % NUM_BUFFERS;
-
-        if (m->swapInterval == 0) {
-            // if SwapInterval = 0 and no buffers available then reuse
-            // current buf for next rendering so don't post new buffer
-            if (pthread_mutex_trylock(&(m->avail[nxtIdx].lock))) {
-                reuse = true;
-            } else {
-                if (! m->avail[nxtIdx].is_avail)
-                    reuse = true;
-                pthread_mutex_unlock(&(m->avail[nxtIdx].lock));
-            }
+        const size_t offset = hnd->base - m->framebuffer->base;
+        m->info.activate = FB_ACTIVATE_VBL;
+        m->info.yoffset = offset / m->finfo.line_length;
+        if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
+            LOGE("FBIOPUT_VSCREENINFO failed");
+            m->base.unlock(&m->base, buffer); 
+            return -errno;
         }
-
-        if(!reuse){
-            // unlock previous ("current") Buffer and lock the new buffer
-            m->base.lock(&m->base, buffer,
-                    private_module_t::PRIV_USAGE_LOCKED_FOR_POST,
-                    0,0, m->info.xres, m->info.yres, NULL);
-
-            // post/queue the new buffer
-            pthread_mutex_lock(&(m->avail[nxtIdx].lock));
-            m->avail[nxtIdx].is_avail = false;
-            pthread_mutex_unlock(&(m->avail[nxtIdx].lock));
-
-            qb.idx = nxtIdx;
-            qb.buf = buffer;
-            pthread_mutex_lock(&(m->qlock));
-            m->disp.push(qb);
-            pthread_cond_signal(&(m->qpost));
-            pthread_mutex_unlock(&(m->qlock));
-
-            // LCDC: after new buffer grabbed by MDP can unlock previous
-            // (current) buffer
-            if (m->currentBuffer) {
-                if (m->swapInterval != 0) {
-                    pthread_mutex_lock(&(m->avail[m->currentIdx].lock));
-                    if (! m->avail[m->currentIdx].is_avail) {
-                        pthread_cond_wait(&(m->avail[m->currentIdx].cond),
-                                         &(m->avail[m->currentIdx].lock));
-                        m->avail[m->currentIdx].is_avail = true;
-                    }
-                    pthread_mutex_unlock(&(m->avail[m->currentIdx].lock));
-                }
-                m->base.unlock(&m->base, m->currentBuffer);
-            }
-            m->currentBuffer = buffer;
-            m->currentIdx = nxtIdx;
-        } else {
-            if (m->currentBuffer)
-                m->base.unlock(&m->base, m->currentBuffer);
-            m->base.lock(&m->base, buffer,
-                         private_module_t::PRIV_USAGE_LOCKED_FOR_POST,
-                         0,0, m->info.xres, m->info.yres, NULL);
-            m->currentBuffer = buffer;
-        }
-
+        m->currentBuffer = buffer;
+        
     } else {
+        // If we can't do the page_flip, just copy the buffer to the front 
+        // FIXME: use copybit HAL instead of memcpy
+        
         void* fb_vaddr;
         void* buffer_vaddr;
         
@@ -239,24 +126,15 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 
         //memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
 
-        msm_copy_buffer(
-                m->framebuffer, m->framebuffer->fd,
-                m->info.xres, m->info.yres, m->fbFormat,
+        msm_copy_buffer(m->framebuffer, m->framebuffer->fd,
+                m->info.xres, m->info.yres,
                 m->info.xoffset, m->info.yoffset,
                 m->info.width, m->info.height);
-
+        
         m->base.unlock(&m->base, buffer); 
         m->base.unlock(&m->base, m->framebuffer); 
     }
-
-    return 0;
-}
-
-static int fb_compositionComplete(struct framebuffer_device_t* dev)
-{
-    // TODO: Properly implement composition complete callback
-    glFinish();
-
+    
     return 0;
 }
 
@@ -301,52 +179,19 @@ int mapFrameBufferLocked(struct private_module_t* module)
     info.yoffset = 0;
     info.activate = FB_ACTIVATE_NOW;
 
-    /* Interpretation of offset for color fields: All offsets are from the right,
-    * inside a "pixel" value, which is exactly 'bits_per_pixel' wide (means: you
-    * can use the offset as right argument to <<). A pixel afterwards is a bit
-    * stream and is written to video memory as that unmodified. This implies
-    * big-endian byte order if bits_per_pixel is greater than 8.
-    */
+    /*
+     * Explicitly request 5/6/5
+     */
+    info.bits_per_pixel = 16;
+    info.red.offset     = 11;
+    info.red.length     = 5;
+    info.green.offset   = 5;
+    info.green.length   = 6;
+    info.blue.offset    = 0;
+    info.blue.length    = 5;
+    info.transp.offset  = 0;
+    info.transp.length  = 0;
 
-    if(info.bits_per_pixel == 32) {
-	/*
-	* Explicitly request RGBA_8888
-	*/
-	info.bits_per_pixel = 32;
-	info.red.offset     = 24;
-	info.red.length     = 8;
-	info.green.offset   = 16;
-	info.green.length   = 8;
-	info.blue.offset    = 8;
-	info.blue.length    = 8;
-	info.transp.offset  = 0;
-	info.transp.length  = 8;
-
-	/* Note: the GL driver does not have a r=8 g=8 b=8 a=0 config, so if we do
-	* not use the MDP for composition (i.e. hw composition == 0), ask for
-	* RGBA instead of RGBX. */
-	char property[PROPERTY_VALUE_MAX];
-	if (property_get("debug.sf.hw", property, NULL) > 0 && atoi(property) == 0)
-		module->fbFormat = HAL_PIXEL_FORMAT_RGBX_8888;
-	else if(property_get("debug.composition.type", property, NULL) > 0 && (strncmp(property, "mdp", 3) == 0))
-		module->fbFormat = HAL_PIXEL_FORMAT_RGBX_8888;
-	else
-		module->fbFormat = HAL_PIXEL_FORMAT_RGBA_8888;
-    } else {
-	/*
-	* Explicitly request 5/6/5
-	*/
-	info.bits_per_pixel = 16;
-	info.red.offset     = 11;
-	info.red.length     = 5;
-	info.green.offset   = 5;
-	info.green.length   = 6;
-	info.blue.offset    = 0;
-	info.blue.length    = 5;
-	info.transp.offset  = 0;
-	info.transp.length  = 0;
-	module->fbFormat = HAL_PIXEL_FORMAT_RGB_565;
-    }
     /*
      * Request NUM_BUFFERS screens (at lest 2 for page flipping)
      */
@@ -371,12 +216,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
     if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
         return -errno;
 
-    int refreshRate = 1000000000000000LLU /
-    (
-            uint64_t( info.upper_margin + info.lower_margin + info.yres )
-            * ( info.left_margin  + info.right_margin + info.xres )
-            * info.pixclock
-    );
+    int refreshRate = 0;
 
     if (refreshRate == 0) {
         // bleagh, bad info from the driver
@@ -439,45 +279,13 @@ int mapFrameBufferLocked(struct private_module_t* module)
     module->ydpi = ydpi;
     module->fps = fps;
 
-#ifdef NO_SURFACEFLINGER_SWAPINTERVAL
-    char pval[PROPERTY_VALUE_MAX];
-    property_get("debug.gr.swapinterval", pval, "1");
-    module->swapInterval = atoi(pval);
-    if (module->swapInterval < private_module_t::PRIV_MIN_SWAP_INTERVAL ||
-        module->swapInterval > private_module_t::PRIV_MAX_SWAP_INTERVAL) {
-        module->swapInterval = 1;
-        LOGW("Out of range (%d to %d) value for debug.gr.swapinterval, using 1",
-             private_module_t::PRIV_MIN_SWAP_INTERVAL,
-             private_module_t::PRIV_MAX_SWAP_INTERVAL);
-    }
-
-#else
-    /* when surfaceflinger supports swapInterval then can just do this */
-    module->swapInterval = 1;
-#endif
-
-    module->currentIdx = -1;
-    pthread_cond_init(&(module->qpost), NULL);
-    pthread_mutex_init(&(module->qlock), NULL);
-    for (i = 0; i < NUM_BUFFERS; i++) {
-        pthread_mutex_init(&(module->avail[i].lock), NULL);
-        pthread_cond_init(&(module->avail[i].cond), NULL);
-        module->avail[i].is_avail = true;
-    }    
-
-    /* create display update thread */
-    pthread_t thread1;
-    if (pthread_create(&thread1, NULL, &disp_loop, (void *) module)) {
-         return -errno;
-    }
-
     /*
      * map the framebuffer
      */
 
     int err;
     size_t fbSize = roundUpToPageSize(finfo.line_length * info.yres_virtual);
-    module->framebuffer = new private_handle_t(dup(fd), fbSize,
+    module->framebuffer = new private_handle_t(fd, fbSize,
             private_handle_t::PRIV_FLAGS_USES_PMEM);
 
     module->numBuffers = info.yres_virtual / info.yres;
@@ -489,8 +297,8 @@ int mapFrameBufferLocked(struct private_module_t* module)
         return -errno;
     }
     module->framebuffer->base = intptr_t(vaddr);
-    memset(vaddr, 0, fbSize);
 
+    memset(vaddr, 0, fbSize);
     return 0;
 }
 
@@ -535,7 +343,6 @@ int fb_device_open(hw_module_t const* module, const char* name,
         dev->device.setSwapInterval = fb_setSwapInterval;
         dev->device.post            = fb_post;
         dev->device.setUpdateRect = 0;
-        dev->device.compositionComplete = fb_compositionComplete;
 
         private_module_t* m = (private_module_t*)module;
         status = mapFrameBuffer(m);
@@ -545,12 +352,12 @@ int fb_device_open(hw_module_t const* module, const char* name,
             const_cast<uint32_t&>(dev->device.width) = m->info.xres;
             const_cast<uint32_t&>(dev->device.height) = m->info.yres;
             const_cast<int&>(dev->device.stride) = stride;
-            const_cast<int&>(dev->device.format) = m->fbFormat;
+            const_cast<int&>(dev->device.format) = HAL_PIXEL_FORMAT_RGB_565;
             const_cast<float&>(dev->device.xdpi) = m->xdpi;
             const_cast<float&>(dev->device.ydpi) = m->ydpi;
             const_cast<float&>(dev->device.fps) = m->fps;
-            const_cast<int&>(dev->device.minSwapInterval) = private_module_t::PRIV_MIN_SWAP_INTERVAL;
-            const_cast<int&>(dev->device.maxSwapInterval) = private_module_t::PRIV_MAX_SWAP_INTERVAL;
+            const_cast<int&>(dev->device.minSwapInterval) = 1;
+            const_cast<int&>(dev->device.maxSwapInterval) = 1;
 
             if (m->finfo.reserved[0] == 0x5444 &&
                     m->finfo.reserved[1] == 0x5055) {
@@ -561,8 +368,8 @@ int fb_device_open(hw_module_t const* module, const char* name,
             *device = &dev->device.common;
         }
 
-        // Close the gralloc module
-        gralloc_close(gralloc_device);
+	// Close the gralloc module
+	gralloc_close(gralloc_device);
     }
     return status;
 }
@@ -570,8 +377,7 @@ int fb_device_open(hw_module_t const* module, const char* name,
 /* Copy a pmem buffer to the framebuffer */
 
 static void
-msm_copy_buffer(buffer_handle_t handle, int fd,
-                int width, int height, int format,
+msm_copy_buffer(buffer_handle_t handle, int fd, int width, int height,
                 int x, int y, int w, int h)
 {
     struct {
@@ -596,7 +402,7 @@ msm_copy_buffer(buffer_handle_t handle, int fd,
     blit.req.dst.height = height;
     blit.req.dst.offset = 0;
     blit.req.dst.memory_id = fd; 
-    blit.req.dst.format = format;
+    blit.req.dst.format = MDP_RGB_565;
 
     blit.req.src_rect.x = blit.req.dst_rect.x = x;
     blit.req.src_rect.y = blit.req.dst_rect.y = y;

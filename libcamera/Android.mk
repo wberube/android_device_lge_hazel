@@ -1,33 +1,31 @@
-ifeq ($(TARGET_BOOTLOADER_BOARD_NAME),p350)
-
-# When zero we link against libmmcamera; when 1, we dlopen libmmcamera.
-DLOPEN_LIBMMCAMERA:=1
-
-LOCAL_PATH:= $(call my-dir)
+LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES:= QualcommCameraHardware.cpp
+ifneq (,$(findstring $(TARGET_BOARD_PLATFORM),qsd8k msm7k))
 
-LOCAL_CFLAGS:= -DDLOPEN_LIBMMCAMERA=$(DLOPEN_LIBMMCAMERA)
+LOCAL_C_FLAGS          += -O3
+LOCAL_MODULE_TAGS      := optional
+LOCAL_MODULE_PATH      := $(TARGET_OUT_SHARED_LIBRARIES)/hw
+LOCAL_MODULE           := camera.$(TARGET_BOOTLOADER_BOARD_NAME)
 
-LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=4 -D_ANDROID_
+LOCAL_SRC_FILES        := QcomCamera.cpp
 
-LOCAL_C_INCLUDES+= \
-    $(TARGET_OUT_HEADERS)/mm-camera \
-    $(TARGET_OUT_HEADERS)/mm-still/jpeg \
+LOCAL_SHARED_LIBRARIES := liblog libdl libutils libcamera_client libbinder \
+                          libcutils libhardware libui libcamera
 
-LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils
-
-LOCAL_SHARED_LIBRARIES+= libbinder
-ifneq ($(DLOPEN_LIBMMCAMERA),1)
-LOCAL_SHARED_LIBRARIES+= liboemcamera
+LOCAL_C_INCLUDES       := frameworks/base/services \
+                          frameworks/base/include \
+                          hardware/libhardware/include
+ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
+LOCAL_C_INCLUDES       += hardware/libhardware/modules/gralloc
+LOCAL_CFLAGS           := -DPREVIEW_MSM7K
 else
-LOCAL_SHARED_LIBRARIES+= libdl
+LOCAL_C_INCLUDES       += hardware/qcom/display/libgralloc
 endif
 
-LOCAL_MODULE:= libcamera
+LOCAL_PRELINK_MODULE   := false
+
 include $(BUILD_SHARED_LIBRARY)
 
 endif

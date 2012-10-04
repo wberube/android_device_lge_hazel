@@ -1,86 +1,107 @@
 USE_CAMERA_STUB := false
-BOARD_USE_FROYO_LIBCAMERA := true
 
 # inherit from the proprietary version
 -include vendor/lge/p350/BoardConfigVendor.mk
 
+# Camera
+# http://r.cyanogenmod.com/#/c/13317/
+COMMON_GLOBAL_CFLAGS += -DBINDER_COMPAT
+BOARD_CAMERA_USE_GETBUFFERINFO := true
+#BOARD_USE_CAF_LIBCAMERA := true
+# This is needed by libcamera.so
+BOARD_USE_NASTY_PTHREAD_CREATE_HACK := true
+
 TARGET_NO_BOOTLOADER := true
 TARGET_NO_RADIOIMAGE := true
-
 TARGET_BOARD_PLATFORM := msm7k
 TARGET_ARCH_VARIANT := armv6-vfp
 TARGET_CPU_ABI := armeabi-v6l
 TARGET_CPU_ABI2 := armeabi
 TARGET_BOOTLOADER_BOARD_NAME := p350
-
+TARGET_OTA_ASSERT_DEVICE := pecan,p350
 TARGET_BOARD_PLATFORM_GPU := qcom-adreno200
 
+# Kernel
+TARGET_KERNEL_SOURCE := kernel/lge/p350
+TARGET_KERNEL_CONFIG := cyanogenmod_pecan_defconfig
 BOARD_KERNEL_CMDLINE := mem=215M console=ttyMSM2,115200n8 androidboot.hardware=pecan
 BOARD_KERNEL_BASE := 0x02808000
-BOARD_PAGE_SIZE := 0x00000800
+BOARD_KERNEL_PAGESIZE := 2048
 
 # fix this up by examining /proc/mtd on a running device
 BOARD_BOOTIMAGE_PARTITION_SIZE := 0x00440000
-BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x00500000
+BOARD_RECOVERYIMAGE_PARTITION_SIZE := 0x00600000
 BOARD_SYSTEMIMAGE_PARTITION_SIZE := 0x0c800000
 BOARD_USERDATAIMAGE_PARTITION_SIZE := 0x0bd80000
 BOARD_FLASH_BLOCK_SIZE := 131072
 
-TARGET_PREBUILT_KERNEL := device/lge/p350/kernel
-
 TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
 BOARD_NO_RGBX_8888 := true
 BOARD_USE_NASTY_PTHREAD_CREATE_HACK := true
+BOARD_USE_SKIA_LCDTEXT := true
 
 BOARD_EGL_CFG := device/lge/p350/configs/egl.cfg
 TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 
-TARGET_PROVIDES_INIT_TARGET_RC := true
-
+# Sensors
 TARGET_USES_OLD_LIBSENSORS_HAL:=true
 
-TARGET_OTA_ASSERT_DEVICE := pecan,p350
-
+# Recovery
 BOARD_LDPI_RECOVERY := true
 BOARD_HAS_JANKY_BACKBUFFER := true
-BOARD_CUSTOM_GRAPHICS           := ../../../device/lge/p350/recovery/graphics.c
 
-BOARD_USES_QCOM_HARDWARE := true
-BOARD_USES_QCOM_LIBS := true
-BOARD_USES_QCOM_LIBRPC := true
+#BOARD_USES_QCOM_HARDWARE := true
+#BOARD_USES_QCOM_LIBS := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_BCM := true
 
+# Audio
 TARGET_PROVIDES_LIBAUDIO := true
+BOARD_USES_AUDIO_LEGACY := true
+BOARD_USES_QCOM_AUDIO_SPEECH := true
+BOARD_COMBO_DEVICE_SUPPORTED := true
 TARGET_PROVIDES_LIBRIL := true
 
+# Enable the GPS HAL & AMSS version to use for GPS
 BOARD_GPS_LIBRARIES := libgps librpc
+BOARD_USES_QCOM_LIBRPC := true
 BOARD_USES_QCOM_GPS := true
-BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE := p350
+BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE := default
 BOARD_VENDOR_QCOM_GPS_LOC_API_AMSS_VERSION := 50000
 
+# USB mass storage
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 BOARD_CUSTOM_USB_CONTROLLER := ../../device/lge/p350/UsbController.cpp
+BOARD_UMS_LUNFILE := /sys/devices/platform/msm_hsusb/gadget/lun0/file
 BOARD_UMS_LUNFILE := "/sys/devices/platform/msm_hsusb/gadget/lun0/file"
 
-BOARD_WLAN_DEVICE := bcm4329
-WIFI_DRIVER_FW_STA_PATH         := "/system/etc/wl/rtecdc.bin"
-WIFI_DRIVER_FW_AP_PATH          := "/system/etc/wl/rtecdc-apsta.bin"
-WIFI_DRIVER_MODULE_NAME         := "wireless"
+# Nedeed for LGP350 sensors 
+COMMON_GLOBAL_CFLAGS += -DUSE_LGE_ALS_DUMMY
+
+# Wi-Fi & Wi-Fi HotSpot
+WPA_SUPPLICANT_VERSION          := VER_0_6_X
+BOARD_WLAN_DEVICE               := bcm4329
+BOARD_WEXT_NO_COMBO_SCAN        := true
+BOARD_WPA_SUPPLICANT_DRIVER     := WEXT
+WIFI_DRIVER_HAS_LGE_SOFTAP      := true
 WIFI_DRIVER_MODULE_PATH         := "/system/lib/modules/wireless.ko"
 WIFI_DRIVER_MODULE_ARG          := "firmware_path=/etc/wl/rtecdc.bin nvram_path=/etc/wl/nvram.txt config_path=/data/misc/wifi/config"
-WPA_SUPPLICANT_VERSION          := VER_0_5_X
-WIFI_DRIVER_HAS_LGE_SOFTAP      := true
-BOARD_WPA_SUPPLICANT_DRIVER := WEXT
+WIFI_DRIVER_MODULE_NAME         := "wireless"
+WIFI_DRIVER_FW_PATH_STA         := "/system/etc/wl/rtecdc.bin"
+WIFI_DRIVER_FW_PATH_AP          := "/system/etc/wl/rtecdc-apsta.bin"
 
-WITH_JIT := true
-ENABLE_JSC_JIT := true
+# Browser
 JS_ENGINE := v8
+HTTP := chrome
+WITH_JIT := true
+TARGET_WEBKIT_USE_MORE_MEMORY := true
 
-BOARD_HAVE_FM_RADIO := true
-BOARD_GLOBAL_CFLAGS += -DHAVE_FM_RADIO
-TARGET_SF_NEEDS_REAL_DIMENSIONS := true
+# Touch screen compatibility for ICS
+BOARD_USE_LEGACY_TOUCHSCREEN := true
 
 BOARD_HAS_NO_SELECT_BUTTON := true
 
-BOARD_GLOBAL_CFLAGS += -DCHARGERMODE_CMDLINE_NAME='"lge.reboot"' -DCHARGERMODE_CMDLINE_VALUE='"pwroff"'
+# Command line for charging mode
+BOARD_CHARGING_CMDLINE_NAME := "lge.reboot"
+BOARD_CHARGING_CMDLINE_VALUE := "pwroff"
+BOARD_USES_RECOVERY_CHARGEMODE := false
