@@ -23,7 +23,7 @@ TARGET_BOARD_PLATFORM_GPU := qcom-adreno200
 
 # Kernel
 TARGET_KERNEL_SOURCE := kernel/lge/p350
-TARGET_KERNEL_CONFIG := cyanogenmod_pecan_defconfig
+TARGET_KERNEL_CONFIG := team_kernel_defconfig
 BOARD_KERNEL_CMDLINE := mem=215M console=ttyMSM2,115200n8 androidboot.hardware=pecan
 BOARD_KERNEL_BASE := 0x02808000
 BOARD_KERNEL_PAGESIZE := 2048

@@ -1,6 +1,6 @@
 [
  {
-   "repository": "lge-kernel-msm7x27",
+   "repository": "android_kernel_pecan",
    "target_path": "kernel/lge/p350",
    "branch": "ics"
  }
