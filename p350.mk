@@ -80,7 +80,7 @@ PRODUCT_PACKAGES += \
    hwcomposer.default \
    libQcomUI \
    libgralloc \
-   copybit.p350  \
+   libcopybit \
 
 # Audio
 PRODUCT_PACKAGES += \

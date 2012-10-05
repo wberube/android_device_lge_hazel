@@ -1,0 +1,7 @@
+[
+ {
+   "repository": "lge-kernel-msm7x27",
+   "target_path": "kernel/lge/p350",
+   "branch": "ics"
+ }
+]
