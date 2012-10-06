@@ -2,12 +2,12 @@
 $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
 $(call inherit-product-if-exists, vendor/lge/p350/p350-vendor.mk)
-$(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendor-blobs.mk)
 
 # The gps config appropriate for this device
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
+DEVICE_PACKAGE_OVERLAYS += device/lge/p350/ldpi
 
 
 # Board-specific init
