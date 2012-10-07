@@ -140,12 +140,6 @@ on fs
   chmod 0666 /dev/graphics/fb0
 
 
-
-service chargerlogo /charger
-    class charger
-    user root
-
-
 service qmuxd /system/bin/qmuxd
     class core
     user radio

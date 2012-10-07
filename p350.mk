@@ -121,11 +121,6 @@ PRODUCT_PACKAGES += \
     hciconfig \
     hwaddrs
 
-# Offmode charging
-PRODUCT_PACKAGES += \
-    charger \
-    charger_res_images
-
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.product.camera=p350 \
     debug.camcorder.disablemeta=1 \
