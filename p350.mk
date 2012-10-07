@@ -10,6 +10,8 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
 DEVICE_PACKAGE_OVERLAYS += device/lge/p350/ldpi
 
+PRODUCT_AAPT_CONFIG := normal mdpi ldpi
+PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 # Board-specific init
 PRODUCT_COPY_FILES += \
