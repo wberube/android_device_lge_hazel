@@ -1,7 +1,7 @@
 [
  {
-   "repository": "android_kernel_pecan",
-   "target_path": "kernel/lge/p350",
+   "repository": "Team-Pecan-kernel",
+   "target_path": "kernel/lge/msm7x27",
    "branch": "ics"
  }
 ]
