@@ -50,7 +50,7 @@ Another small wait time and we're ready!
 - Push ZIP to SD Card and install
 - Install Google Apps
 
-7. Update Source:
+8. Update Source:
 --------------------------------
 If you want to update your build, you have to do only this:
 - cd CM9
