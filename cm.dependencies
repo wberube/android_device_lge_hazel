@@ -1,7 +1,0 @@
-[
- {
-   "repository": "Team-Pecan-kernel",
-   "target_path": "kernel/lge/msm7x27",
-   "branch": "ics"
- }
-]
