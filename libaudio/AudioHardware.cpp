@@ -104,6 +104,7 @@ static uint32_t SND_DEVICE_BT_EC_OFF=-1;
 static uint32_t SND_DEVICE_HEADSET=-1;
 static uint32_t SND_DEVICE_HEADSET_STEREO=-1;
 static uint32_t SND_DEVICE_HEADSET_AND_SPEAKER=-1;
+static uint32_t SND_DEVICE_HEADPHONE=-1;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_HANDSET=-1;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_SPEAKER_PHONE=-1;
 static uint32_t SND_DEVICE_TTY_HEADSET=-1;
@@ -114,7 +115,6 @@ static uint32_t SND_DEVICE_CARKIT=-1;
 static uint32_t SND_DEVICE_FM_SPEAKER=-1;
 static uint32_t SND_DEVICE_FM_HEADSET=-1;
 #endif
-static uint32_t SND_DEVICE_NO_MIC_HEADSET=-1;
 // ----------------------------------------------------------------------------
 
 AudioHardware::AudioHardware() :
@@ -151,6 +151,7 @@ AudioHardware::AudioHardware() :
                 CHECK_FOR(HEADSET);
                 CHECK_FOR(HEADSET_STEREO);
                 CHECK_FOR(HEADSET_AND_SPEAKER);
+                CHECK_FOR(HEADPHONE);
                 CHECK_FOR(IN_S_SADC_OUT_HANDSET);
                 CHECK_FOR(IN_S_SADC_OUT_SPEAKER_PHONE);
                 CHECK_FOR(TTY_HEADSET);
@@ -498,6 +499,7 @@ int check_and_set_audpp_parameters(char *buf, int size)
         if(buf[1] == '1') device_id=0;
         if(buf[1] == '2') device_id=1;
         if(buf[1] == '3') device_id=2;
+        if(buf[1] == '4') device_id=3;
         if (!(p = strtok(buf, ",")))
             goto token_err;
 
@@ -524,6 +526,7 @@ int check_and_set_audpp_parameters(char *buf, int size)
         if(buf[1] == '1') device_id=0;
         if(buf[1] == '2') device_id=1;
         if(buf[1] == '3') device_id=2;
+        if(buf[1] == '4') device_id=3;
         adrc_filter_exists[device_id] = true;
         if (!(p = strtok(buf, ",")))
             goto token_err;
@@ -578,6 +581,7 @@ int check_and_set_audpp_parameters(char *buf, int size)
         if(buf[1] == '1') device_id=0;
         if(buf[1] == '2') device_id=1;
         if(buf[1] == '3') device_id=2;
+        if(buf[1] == '4') device_id=3;
         if (!(p = strtok(buf, ",")))
             goto token_err;
 
@@ -956,6 +960,11 @@ static int msm72xx_enable_postproc(bool state)
         device_id = 2;
         LOGI("set device to SND_DEVICE_HEADSET_STEREO/SND_DEVICE_HEADSET device_id=2");
     }
+     if(snd_device == SND_DEVICE_HEADPHONE)
+    {
+        device_id = 2;
+        LOGI("set device to SND_DEVICE_HEADPHONE device_id=3");
+    }
 
     fd = open(PCM_CTL_DEVICE, O_RDWR);
     if (fd < 0) {
@@ -1177,8 +1186,9 @@ status_t AudioHardware::setMasterVolume(float v)
     set_volume_rpc(SND_DEVICE_SPEAKER, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_SPEAKER_IN_CALL, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_BT,      SND_METHOD_VOICE, vol, m7xsnddriverfd);
-    set_volume_rpc(SND_DEVICE_HEADSET, SND_METHOD_VOICE, vol, m7xsnddriverfd);
-    set_volume_rpc(SND_DEVICE_HEADSET_STEREO, SND_METHOD_VOICE, vol, m7xsnddriverfd);
+    set_volume_rpc(SND_DEVICE_HEADSET, SND_METHOD_VOICE, 1, m7xsnddriverfd);
+    set_volume_rpc(SND_DEVICE_HEADSET_STEREO, SND_METHOD_VOICE, 1, m7xsnddriverfd);
+    set_volume_rpc(SND_DEVICE_HEADPHONE, SND_METHOD_VOICE, 1, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_IN_S_SADC_OUT_HANDSET, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_IN_S_SADC_OUT_SPEAKER_PHONE, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_TTY_HEADSET, SND_METHOD_VOICE, 1, m7xsnddriverfd);
