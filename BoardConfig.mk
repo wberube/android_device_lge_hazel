@@ -7,7 +7,7 @@ USE_CAMERA_STUB := false
 # http://r.cyanogenmod.com/#/c/13317/
 COMMON_GLOBAL_CFLAGS += -DBINDER_COMPAT
 BOARD_CAMERA_USE_GETBUFFERINFO := true
-BOARD_USE_FROYO_LIBCAMERA := true
+COMMON_GLOBAL_CFLAGS += -DFROYO_LIBCAMERA
 #BOARD_USE_CAF_LIBCAMERA := true
 # This is needed by libcamera.so
 BOARD_USE_NASTY_PTHREAD_CREATE_HACK := true
@@ -54,7 +54,7 @@ BOARD_EGL_CFG := device/lge/p350/configs/egl.cfg
 TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 
 # Sensors
-TARGET_USES_OLD_LIBSENSORS_HAL:=true
+TARGET_USES_OLD_LIBSENSORS_HAL:= true
 
 # Recovery
 BOARD_LDPI_RECOVERY := true
