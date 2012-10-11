@@ -67,8 +67,6 @@ PRODUCT_COPY_FILES += \
 
 $(call inherit-product, build/target/product/full_base.mk)
 
-PRODUCT_LOCALES := en_GB
-
 # Use dalvik parameters for a 512 MB device
 $(call inherit-product, frameworks/base/build/phone-hdpi-512-dalvik-heap.mk)
 
