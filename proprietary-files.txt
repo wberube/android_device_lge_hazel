@@ -41,14 +41,17 @@ lib/libaudioeq.so
 
 ## CAMERA
 lib/liboemcamera.so
-#lib/libcamera.so
+lib/libcamera.so
 lib/libmmjpeg.so
 lib/libmmipl.so
 
 ## BT & WiFi
+bin/BCM43291A0_003.001.013.0060.Pecan.hcd
 etc/firmware/BCM43291A0_003.001.013.0060.Pecan.hcd
+etc/wl/nvram.txt
 etc/wl/rtecdc.bin
 etc/wl/rtecdc-apsta.bin
+etc/wl/rtecdc-mfgtest.bin
 
 ## HAL
 bin/ami304d
@@ -66,4 +69,25 @@ lib/libgsl.so
 /lib/egl/egl.cfg
 etc/firmware/yamato_pfp.fw
 etc/firmware/yamato_pm4.fw
+
+## OMX Encoders/Decoders
+lib/libOmxAacDec.so
+lib/libOmxAacEnc.so
+lib/libOmxAdpcmDec.so
+lib/libOmxAmrDec.so
+lib/libOmxAmrEnc.so
+lib/libOmxAmrRtpDec.so
+lib/libOmxAmrwbDec.so
+lib/libOmxEvrcEnc.so
+lib/libOmxEvrcHwDec.so
+lib/libOmxH264Dec.so
+lib/libOmxMp3Dec.so
+lib/libOmxMpeg4Dec.so
+lib/libOmxOn2Dec.so
+lib/libOmxQcelp13Enc.so
+lib/libOmxQcelpHwDec.so
+lib/libOmxVidEnc.so
+lib/libOmxWmaDec.so
+lib/libOmxWmvDec.so
+lib/libmm-adspsvc.so
 
