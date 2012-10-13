@@ -74,7 +74,7 @@ TARGET_PROVIDES_LIBRIL := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_BCM := true
 
-# Enable OpenGL Hardware Acceleration
+# Enable OpenGL Hardware Acceleration On P350
 # msm7x27: no support for overlay, bypass, or c2d
 USE_OPENGL_RENDERER := true
 TARGET_USE_OVERLAY := false
