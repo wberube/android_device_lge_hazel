@@ -107,7 +107,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory \
     FM \
-    Gallery2
+    Gallery
 
 # Other
 PRODUCT_PACKAGES += \
