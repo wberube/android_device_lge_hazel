@@ -135,4 +135,4 @@ BOARD_CHARGING_CMDLINE_VALUE := "pwroff"
 BOARD_USES_RECOVERY_CHARGEMODE := false
 
 # OTA script For P350
-TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/lge/msm7x27-common/releasetools/ota_from_target_files
+TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/lge/p350/releasetools/ota_from_target_files
