@@ -8,16 +8,15 @@ $(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendo
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
-DEVICE_PACKAGE_OVERLAYS += device/lge/p350/ldpi
 
 PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 # Board-specific init
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/init.pecan.rc:root/init.pecan.rc \
-    $(LOCAL_PATH)/ueventd.pecan.rc:root/ueventd.pecan.rc \
-    $(LOCAL_PATH)/init.pecan.usb.rc:root/init.pecan.usb.rc \
+    $(LOCAL_PATH)/root/init.pecan.rc:root/init.pecan.rc \
+    $(LOCAL_PATH)/root/ueventd.pecan.rc:root/ueventd.pecan.rc \
+    $(LOCAL_PATH)/root/init.pecan.usb.rc:root/init.pecan.usb.rc \
 
 # Configs
 PRODUCT_COPY_FILES += \
@@ -32,7 +31,7 @@ PRODUCT_COPY_FILES += \
 
 # BT startup
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/prebuilt/init.qcom.bt.sh:system/bin/init.qcom.bt.sh
+    $(LOCAL_PATH)/configs/init.qcom.bt.sh:system/bin/init.qcom.bt.sh
 
 # Wifi
 PRODUCT_COPY_FILES += \
