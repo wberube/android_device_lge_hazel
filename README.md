@@ -35,7 +35,7 @@ Repo is the program that handles synchronization between our pc and the reposito
 5. Download Prebuilt files:
 --------------------------------
 There are some others files needed.
-- ~/CM9/vendor/cm/get-prebuilts
+- . ~/CM9/vendor/cm/get-prebuilts
 
 Another small wait time and we're ready!
 
