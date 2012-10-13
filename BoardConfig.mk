@@ -74,20 +74,15 @@ TARGET_PROVIDES_LIBRIL := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_BCM := true
 
-# Enable OpenGL Hardware Acceleration On P350
+# Enable OpenGL Hardware Acceleration
 # msm7x27: no support for overlay, bypass, or c2d
 USE_OPENGL_RENDERER := true
 TARGET_USE_OVERLAY := false
 TARGET_HAVE_BYPASS := false
-TARGET_USES_C2D_COMPOSITION := false
-TARGET_USES_GENLOCK := true
-TARGET_LIBAGL_USE_GRALLOC_COPYBITS := true
 #BOARD_USES_QCOM_HARDWARE := true
 #BOARD_USES_QCOM_LIBS := true
-BOARD_ADRENO_DECIDE_TEXTURE_TARGET := true
-BOARD_USE_SKIA_LCDTEXT := true
 BOARD_EGL_CFG := device/lge/p350/configs/egl.cfg
-COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE -DREFRESH_RATE=60
+COMMON_GLOBAL_CFLAGS += -DQCOM_HARDWARE
 
 # Enable the GPS HAL & AMSS version to use for GPS
 BOARD_GPS_LIBRARIES := libgps librpc
@@ -133,6 +128,3 @@ BOARD_HAS_NO_SELECT_BUTTON := true
 BOARD_CHARGING_CMDLINE_NAME := "lge.reboot"
 BOARD_CHARGING_CMDLINE_VALUE := "pwroff"
 BOARD_USES_RECOVERY_CHARGEMODE := false
-
-# OTA script For P350
-TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/lge/p350/releasetools/ota_from_target_files
