@@ -1,4 +1,4 @@
-TeamPecan Project
+PecanCM Project
 ========================
 Here LG Optimus Me device folder for build Cyanogenmod 9, Android 4.0.4
 
@@ -29,7 +29,7 @@ Repo is the program that handles synchronization between our pc and the reposito
 --------------------------------
 - mkdir CM9
 - cd CM9
-- repo init -u git://github.com/TeamPecan/android.git -b ics
+- repo init -u git://github.com/PecanCM/android.git -b ics
 - repo sync -j16
 
 5. Download Prebuilt files:

@@ -34,7 +34,7 @@ LOCAL_STATIC_LIBRARIES := \
     libmedia_helper  \
     libaudiohw_legacy
 
-LOCAL_MODULE := audio.primary.$(TARGET_BOOTLOADER_BOARD_NAME)
+LOCAL_MODULE := audio.primary.p350
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
@@ -77,7 +77,7 @@ LOCAL_STATIC_LIBRARIES := \
     libaudiopolicy_legacy \
     libmedia_helper
 
-LOCAL_MODULE := audio_policy.$(TARGET_BOOTLOADER_BOARD_NAME)
+LOCAL_MODULE := audio_policy.p350
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
