@@ -45,6 +45,7 @@ BOARD_USE_SKIA_LCDTEXT := true
 BOARD_USE_ADRENO_200_GPU := true
 TARGET_USES_C2D_COMPOSITION := false
 BOARD_AVOID_DRAW_TEXTURE_EXTENSION := true
+BOARD_EGL_CFG := device/lge/p350/configs/egl.cfg
 
 ## CFLAGS
 COMMON_GLOBAL_CFLAGS += -DNO_RGBX_8888
@@ -74,15 +75,6 @@ BOARD_COMBO_DEVICE_SUPPORTED := true
 BOARD_PROVIDES_LIBRIL := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_BCM := true
-
-# Enable OpenGL Hardware Acceleration
-# msm7x27: no support for overlay, bypass, or c2d
-USE_OPENGL_RENDERER := true
-TARGET_USE_OVERLAY := false
-TARGET_HAVE_BYPASS := false
-#BOARD_USES_QCOM_HARDWARE := true
-#BOARD_USES_QCOM_LIBS := true
-BOARD_EGL_CFG := device/lge/p350/configs/egl.cfg
 
 # Enable the GPS HAL & AMSS version to use for GPS
 BOARD_GPS_LIBRARIES := libgps librpc
