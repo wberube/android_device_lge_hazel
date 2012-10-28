@@ -180,6 +180,6 @@ const struct hw_module_t HAL_MODULE_INFO_SYM = {
     .version_minor = 0,
     .id = LIGHTS_HARDWARE_MODULE_ID,
     .name = "QCT MSM7K lights Module",
-    .author = "Google, Inc.",
+    .author = "Ron Gokhale",
     .methods = &lights_module_methods,
 };
