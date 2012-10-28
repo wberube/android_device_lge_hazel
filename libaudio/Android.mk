@@ -7,6 +7,14 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+ifeq ($(BOARD_USES_QCOM_LIBS),true)
+    LOCAL_CFLAGS += -DQCOM_HARDWARE
+    LOCAL_CFLAGS += -DQCOM_LIBS
+endif
+
+LOCAL_SRC_FILES := \
+    AudioHardware.cpp \
+    audio_hw_hal.cpp
 
 ifeq ($(BOARD_HAVE_BLUETOOTH),true)
     LOCAL_CFLAGS += -DWITH_A2DP
@@ -16,10 +24,9 @@ ifeq ($(BOARD_COMBO_DEVICE_SUPPORTED),true)
     LOCAL_CFLAGS += -DCOMBO_DEVICE_SUPPORTED
 endif
 
-
-LOCAL_SRC_FILES := \
-    AudioHardware.cpp \
-    audio_hw_hal.cpp
+ifeq ($(BOARD_HAVE_FM_RADIO),true)
+    LOCAL_CFLAGS += -DHAVE_FM_RADIO
+endif
 
 LOCAL_SHARED_LIBRARIES := \
     libcutils       \
@@ -54,6 +61,10 @@ include $(BUILD_SHARED_LIBRARY)
 # -------------------------------------------------------------
 include $(CLEAR_VARS)
 
+ifeq ($(BOARD_USES_QCOM_LIBS),true)
+    LOCAL_CFLAGS += -DQCOM_HARDWARE
+    LOCAL_CFLAGS += -DQCOM_LIBS
+endif
 
 ifeq ($(BOARD_HAVE_BLUETOOTH),true)
     LOCAL_CFLAGS += -DWITH_A2DP
@@ -61,6 +72,10 @@ endif
 
 ifeq ($(BOARD_COMBO_DEVICE_SUPPORTED),true)
     LOCAL_CFLAGS += -DCOMBO_DEVICE_SUPPORTED
+endif
+
+ifeq ($(BOARD_HAVE_FM_RADIO),true)
+    LOCAL_CFLAGS += -DHAVE_FM_RADIO
 endif
 
 
