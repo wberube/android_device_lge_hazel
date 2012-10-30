@@ -26,7 +26,7 @@ TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 
 # Kernel
 TARGET_KERNEL_SOURCE := kernel/lge/msm7x27
-TARGET_KERNEL_CONFIG := team_kernel_defconfig
+TARGET_KERNEL_CONFIG := cyanogenmod_pecan_defconfig
 BOARD_KERNEL_CMDLINE := mem=215M console=ttyMSM2,115200n8 androidboot.hardware=pecan
 BOARD_KERNEL_BASE := 0x02808000
 BOARD_KERNEL_PAGESIZE := 2048
@@ -127,11 +127,6 @@ TARGET_FORCE_CPU_UPLOAD := true
 
 # Touch screen compatibility for ICS
 BOARD_USE_LEGACY_TOUCHSCREEN := true
-
-# Command line for charging mode
-BOARD_CHARGING_CMDLINE_NAME := "lge.reboot"
-BOARD_CHARGING_CMDLINE_VALUE := "pwroff"
-BOARD_USES_RECOVERY_CHARGEMODE := false
 
 # OTA script
 TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/lge/p350/releasetools/ota_from_target_files
