@@ -19,9 +19,11 @@
 
 #define ASHMEM_NAME_DEF "dev/ashmem"
 
+/* Return values from ASHMEM_PIN: Was the mapping purged while unpinned? */
 #define ASHMEM_NOT_PURGED 0
 #define ASHMEM_WAS_PURGED 1
 
+/* Return values from ASHMEM_GET_PIN_STATUS: Is the mapping pinned? */
 #define ASHMEM_IS_UNPINNED 0
 #define ASHMEM_IS_PINNED 1
 
@@ -42,9 +44,11 @@ struct ashmem_pin {
 #define ASHMEM_UNPIN _IOW(__ASHMEMIOC, 8, struct ashmem_pin)
 #define ASHMEM_GET_PIN_STATUS _IO(__ASHMEMIOC, 9)
 #define ASHMEM_PURGE_ALL_CACHES _IO(__ASHMEMIOC, 10)
-
 #define ASHMEM_CACHE_FLUSH_RANGE _IO(__ASHMEMIOC, 11)
 #define ASHMEM_CACHE_CLEAN_RANGE _IO(__ASHMEMIOC, 12)
-#define ASHMEM_CACHE_INV_RANGE          _IO(__ASHMEMIOC, 13)
+
+int get_ashmem_file(int fd, struct file **filp, struct file **vm_file,
+	unsigned long *len);
+void put_ashmem_file(struct file *file);
 
 #endif
