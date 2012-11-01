@@ -456,11 +456,13 @@ CameraHAL_FixupParams(android::CameraParameters &settings)
    const char *preview_frame_rates  = "30,27,24,15";
    const char *preferred_frame_rate = "15";
    const char *frame_rate_range     = "(15,30)";
+   const char *preferred_horizontal_viewing_angle = "51.2";
+   const char *preferred_vertical_viewing_angle = "39.4";
 
    settings.set(android::CameraParameters::KEY_VIDEO_FRAME_FORMAT,
                 android::CameraParameters::PIXEL_FORMAT_YUV420SP);
 
-#if 0
+
    if (!settings.get(android::CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES)) {
       settings.set(android::CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES,
                    preview_sizes);
@@ -495,7 +497,16 @@ CameraHAL_FixupParams(android::CameraParameters &settings)
       settings.set(android::CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE,
                    frame_rate_range);
    }
-#endif
+   if (!settings.get(android::CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE)) {
+      LOGE("Setting KEY_HORIZONTAL_VIEW_ANGLE: %s\n", preferred_horizontal_viewing_angle);
+      settings.set(android::CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE,
+                   preferred_horizontal_viewing_angle);
+   }
+   if (!settings.get(android::CameraParameters::KEY_VERTICAL_VIEW_ANGLE)) {
+      LOGE("Setting KEY_VERTICAL_VIEW_ANGLE: %s\n", preferred_vertical_viewing_angle);
+      settings.set(android::CameraParameters::KEY_VERTICAL_VIEW_ANGLE,
+                   preferred_vertical_viewing_angle);
+   }
 }
 
 /* Hardware Camera interface handlers. */

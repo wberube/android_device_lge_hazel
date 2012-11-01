@@ -2,7 +2,7 @@
 #define _MSM_KGSL_H
 
 #define KGSL_VERSION_MAJOR        3
-#define KGSL_VERSION_MINOR        8
+#define KGSL_VERSION_MINOR        7
 
 /*context flags */
 #define KGSL_CONTEXT_SAVE_GMEM	1
@@ -25,18 +25,7 @@
 #define KGSL_FLAGS_RESERVED2   0x00000080
 #define KGSL_FLAGS_SOFT_RESET  0x00000100
 
-/* Clock flags to show which clocks should be controled by a given platform */
-#define KGSL_CLK_SRC	0x00000001
-#define KGSL_CLK_CORE	0x00000002
-#define KGSL_CLK_IFACE	0x00000004
-#define KGSL_CLK_MEM	0x00000008
-#define KGSL_CLK_MEM_IFACE 0x00000010
-#define KGSL_CLK_AXI	0x00000020
-
 #define KGSL_MAX_PWRLEVELS 5
-
-#define KGSL_CONVERT_TO_MBPS(val) \
-	(val*1000*1000U)
 
 /* device id */
 enum kgsl_deviceid {
@@ -50,7 +39,6 @@ enum kgsl_user_mem_type {
 	KGSL_USER_MEM_TYPE_PMEM		= 0x00000000,
 	KGSL_USER_MEM_TYPE_ASHMEM	= 0x00000001,
 	KGSL_USER_MEM_TYPE_ADDR		= 0x00000002,
-	KGSL_USER_MEM_TYPE_ION		= 0x00000003,
 };
 
 struct kgsl_devinfo {
@@ -62,11 +50,7 @@ struct kgsl_devinfo {
 	unsigned int chip_id;
 	unsigned int mmu_enabled;
 	unsigned int gmem_gpubaseaddr;
-	/*
-	* This field contains the adreno revision
-	* number 200, 205, 220, etc...
-	*/
-	unsigned int gpu_id;
+	unsigned int gmem_hostbaseaddr;
 	unsigned int gmem_sizebytes;
 };
 
@@ -119,7 +103,6 @@ struct kgsl_shadowprop {
 struct kgsl_pwrlevel {
 	unsigned int gpu_freq;
 	unsigned int bus_freq;
-	unsigned int io_fraction;
 };
 
 struct kgsl_version {
@@ -138,17 +121,30 @@ struct kgsl_version {
 #define KGSL_2D1_REG_MEMORY	"kgsl_2d1_reg_memory"
 #define KGSL_2D1_IRQ		"kgsl_2d1_irq"
 
-struct kgsl_device_platform_data {
+struct kgsl_grp_clk_name {
+  const char *clk;
+  const char *pclk;
+};
+struct kgsl_device_pwr_data {
 	struct kgsl_pwrlevel pwrlevel[KGSL_MAX_PWRLEVELS];
 	int init_level;
 	int num_levels;
 	int (*set_grp_async)(void);
 	unsigned int idle_timeout;
 	unsigned int nap_allowed;
-	unsigned int clk_map;
+	unsigned int idle_pass;
+};
+
+struct kgsl_clk_data {
+  struct kgsl_grp_clk_name name;
 	struct msm_bus_scale_pdata *bus_scale_table;
-	const char *iommu_user_ctx_name;
-	const char *iommu_priv_ctx_name;
+};
+
+struct kgsl_device_platform_data {
+  struct kgsl_device_pwr_data pwr_data;
+  struct kgsl_clk_data clk;
+  /* imem_clk_name is for 3d only, not used in 2d devices */
+  struct kgsl_grp_clk_name imem_clk_name;
 };
 
 #endif
@@ -420,29 +416,6 @@ struct kgsl_cff_syncmem {
 #define IOCTL_KGSL_CFF_SYNCMEM \
 	_IOW(KGSL_IOC_TYPE, 0x30, struct kgsl_cff_syncmem)
 
-/*
- * A timestamp event allows the user space to register an action following an
- * expired timestamp.
- */
-
-struct kgsl_timestamp_event {
-	int type;                /* Type of event (see list below) */
-	unsigned int timestamp;  /* Timestamp to trigger event on */
-	unsigned int context_id; /* Context for the timestamp */
-	void *priv;              /* Pointer to the event specific blob */
-	size_t len;              /* Size of the event specific blob */
-};
-
-#define IOCTL_KGSL_TIMESTAMP_EVENT \
-	_IOW(KGSL_IOC_TYPE, 0x31, struct kgsl_timestamp_event)
-
-/* A genlock timestamp event releases an existing lock on timestamp expire */
-
-#define KGSL_TIMESTAMP_EVENT_GENLOCK 1
-
-struct kgsl_timestamp_event_genlock {
-	int handle; /* Handle of the genlock lock to release */
-};
 
 #ifdef __KERNEL__
 #ifdef CONFIG_MSM_KGSL_DRM

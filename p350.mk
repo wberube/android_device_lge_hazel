@@ -15,7 +15,10 @@ DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
 PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
 
-PRODUCT_LOCALES := en_GB
+PRODUCT_LOCALES := \
+	en_GB \
+	ldpi \
+	mdpi
 
 # Permission files
 PRODUCT_COPY_FILES += \
@@ -74,15 +77,12 @@ PRODUCT_COPY_FILES += \
 
 # Display 
 PRODUCT_PACKAGES += \
-   libgenlock \
    libmemalloc \
    libstagefrighthw \
    libtilerenderer \
    libopencorehw \
    hwcomposer.default \
    libQcomUI \
-   libgralloc \
-   copybit.p350 \
 
 # Audio
 PRODUCT_PACKAGES += \
@@ -113,10 +113,9 @@ PRODUCT_PACKAGES += \
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    libcamera \
+    camera.msm7x27.so \
     lights.p350 \
     gps.p350 \
-    camera.p350 \
     lgapversion
 
 PRODUCT_PACKAGES += \
