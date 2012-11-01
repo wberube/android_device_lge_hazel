@@ -17,8 +17,6 @@ PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 PRODUCT_LOCALES := \
 	en_GB \
-	ldpi \
-	mdpi
 
 # Permission files
 PRODUCT_COPY_FILES += \
@@ -78,6 +76,9 @@ PRODUCT_COPY_FILES += \
 # Display 
 PRODUCT_PACKAGES += \
    libmemalloc \
+   liblgenlock \
+   gralloc.msm7x27 \
+   copybit.msm7x27 \
    libstagefrighthw \
    libtilerenderer \
    libopencorehw \
