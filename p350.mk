@@ -82,7 +82,7 @@ PRODUCT_PACKAGES += \
    libstagefrighthw \
    libtilerenderer \
    libopencorehw \
-   hwcomposer.default \
+   hwcomposer.msm7x27 \
    libQcomUI \
 
 # Audio
@@ -114,8 +114,8 @@ PRODUCT_PACKAGES += \
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    camera.msm7x27.so \
-    lights.p350 \
+    camera.msm7x27 \
+    lights.msm7x27 \
     gps.p350 \
     lgapversion
 
@@ -126,7 +126,7 @@ PRODUCT_PACKAGES += \
 
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.product.camera=p350 \
+    ro.product.camera=msm7x27 \
     debug.camcorder.disablemeta=1 \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1 \
