@@ -29,18 +29,11 @@
 extern "C" {
 #include <linux/msm_audio.h>
 #include <linux/msm_audio_voicememo.h>
-#include <linux/msm_audio_aac.h>
-#include <linux/msm_audio_amrnb.h>
-#include <linux/msm_audio_qcp.h>
 }
 
 namespace android_audio_legacy {
 using android::SortedVector;
 using android::Mutex;
-
-// p350 SPEAKER_IN_CALL fix
-#define AUDIO_DEVICE_OUT_SPEAKER_IN_CALL 0x4000
-
 
 // ----------------------------------------------------------------------------
 // Kernel driver interface
@@ -55,7 +48,6 @@ using android::Mutex;
 #define SAMP_RATE_INDX_32000	6
 #define SAMP_RATE_INDX_44100	7
 #define SAMP_RATE_INDX_48000	8
-#define SAMP_RATE_INDX_64000    9
 
 #define EQ_MAX_BAND_NUM 12
 
@@ -180,9 +172,7 @@ public:
 
     virtual status_t    setVoiceVolume(float volume);
     virtual status_t    setMasterVolume(float volume);
-#ifdef HAVE_FM_RADIO
-    virtual status_t    setFmVolume(float volume);
-#endif
+
     virtual status_t    setMode(int mode);
 
     // mic mute
@@ -195,6 +185,7 @@ public:
     // create I/O streams
     virtual AudioStreamOut* openOutputStream(
                                 uint32_t devices,
+                                audio_output_flags_t flags,
                                 int *format=0,
                                 uint32_t *channels=0,
                                 uint32_t *sampleRate=0,
@@ -227,9 +218,6 @@ private:
     uint32_t    getInputSampleRate(uint32_t sampleRate);
     bool        checkOutputStandby();
     status_t    doRouting(AudioStreamInMSM72xx *input);
-#ifdef HAVE_FM_RADIO
-    status_t    setFmOnOff(bool onoff);
-#endif
     AudioStreamInMSM72xx*   getActiveInput_l();
 
     class AudioStreamOutMSM72xx : public AudioStreamOut {
@@ -310,6 +298,7 @@ private:
                 AudioSystem::audio_in_acoustics mAcoustics;
                 uint32_t    mDevices;
                 bool        mFirstread;
+                static int InstanceCount;
     };
 
             static const uint32_t inputSamplingRates[];
@@ -324,13 +313,8 @@ private:
             int mNumSndEndpoints;
             int mCurSndDevice;
             int m7xsnddriverfd;
-            bool mDualMicEnabled;
-            int  mTtyMode;
-            bool mBuiltinMicSelected;
-#ifdef HAVE_FM_RADIO
-            int mFmRadioEnabled;
-            int mFmPrev;
-#endif
+            bool        mDualMicEnabled;
+            int         mTtyMode;
 
      friend class AudioStreamInMSM72xx;
             Mutex       mLock;

@@ -16,7 +16,7 @@ PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 PRODUCT_LOCALES := \
-	en_GB \
+	tr_TR \
 
 # Permission files
 PRODUCT_COPY_FILES += \
@@ -76,13 +76,13 @@ PRODUCT_COPY_FILES += \
 # Display 
 PRODUCT_PACKAGES += \
    libmemalloc \
-   liblgenlock \
    gralloc.msm7x27 \
+   libgenlock \
    copybit.msm7x27 \
    libstagefrighthw \
    libtilerenderer \
    libopencorehw \
-   hwcomposer.msm7x27 \
+   hwcomposer.default \
    libQcomUI \
 
 # Audio
@@ -115,7 +115,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     librs_jni \
     camera.msm7x27 \
-    lights.msm7x27 \
+    lights.p350 \
     gps.p350 \
     lgapversion
 
@@ -132,6 +132,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.google.networklocation=1 \
     ro.com.google.gmsversion=2.3_r6 \
     ro.setupwizard.enable_bypass=1 \
+    dalvik.vm.lockprof.threshold=500 \
+    dalvik.vm.dexopt-flags=m=y \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 

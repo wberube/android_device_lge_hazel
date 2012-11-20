@@ -20,13 +20,12 @@ PRODUCT_DEVICE := p350
 PRODUCT_NAME := cm_p350
 PRODUCT_BRAND := lge
 PRODUCT_MODEL := LG-P350
-PRODUCT_MANUFACTURER := LGE
+PRODUCT_MANUFACTURER := lge
 PRODUCT_CHARACTERISTICS := phone
 
 # Release name and versioning
 PRODUCT_RELEASE_NAME := OptimusMe
 PRODUCT_VERSION_DEVICE_SPECIFIC :=
--include vendor/cm/products/common_versions.mk
 
 # For userdebug builds
 ADDITIONAL_DEFAULT_PROPERTIES += \
