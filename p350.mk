@@ -3,9 +3,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
-$(call inherit-product, vendor/qcom/opensource/omx/mm-core/Android.mk)
-$(call inherit-product, vendor/qcom/opensource/omx/mm-video/Android.mk)
-$(call inherit-product, frameworks/base/build/phone-hdpi-512-dalvik-heap.mk)
+
 
 $(call inherit-product-if-exists, vendor/lge/p350/p350-vendor.mk)
 $(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendor-blobs.mk)
@@ -16,21 +14,24 @@ PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 PRODUCT_LOCALES := \
-	tr_TR \
+	en_GB \
+
+
 
 # Permission files
 PRODUCT_COPY_FILES += \
-    frameworks/base/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
-    frameworks/base/data/etc/android.hardware.camera.autofocus.xml:system/etc/permissions/android.hardware.camera.autofocus.xml \
-    frameworks/base/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
-    frameworks/base/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml \
-    frameworks/base/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
-    frameworks/base/data/etc/android.hardware.sensor.compass.xml:system/etc/permissions/android.hardware.sensor.compass.xml \
-    frameworks/base/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
-    frameworks/base/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
-    frameworks/base/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
-    frameworks/base/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml \
-    packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:/system/etc/permissions/android.software.live_wallpaper.xml
+ frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
+    frameworks/native/data/etc/android.hardware.camera.autofocus.xml:system/etc/permissions/android.hardware.camera.autofocus.xml \
+    frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
+    frameworks/native/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml \
+    frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
+    frameworks/native/data/etc/android.hardware.usb.host.xml:system/etc/permissions/android.hardware.usb.host.xml \
+    frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
+    frameworks/native/data/etc/android.hardware.sensor.compass.xml:system/etc/permissions/android.hardware.sensor.compass.xml \
+    frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
+    frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
+    frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
+    frameworks/native/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml
 
 # Board-specific init
 PRODUCT_COPY_FILES += \
@@ -47,15 +48,12 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AVRCP.kl:system/usr/keylayout/AVRCP.kl \
     $(LOCAL_PATH)/configs/idc/synaptics-rmi-touchscreen.idc:system/usr/idc/synaptics-rmi-touchscreen.idc \
     $(LOCAL_PATH)/configs/idc/synaptics.idc:system/usr/idc/synaptics.idc \
-    $(LOCAL_PATH)/configs/idc/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc 
+    $(LOCAL_PATH)/configs/idc/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc \
+device/lge/p350/prebuilt/*.ko:system/lib/modules/ \
 
 # BT startup
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/init.qcom.bt.sh:system/bin/init.qcom.bt.sh
-
-# Releasetool
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/releasetools/extras.sh:system/bin/extras.sh
 
 # Wifi
 PRODUCT_COPY_FILES += \
@@ -79,17 +77,18 @@ PRODUCT_PACKAGES += \
    gralloc.msm7x27 \
    libgenlock \
    copybit.msm7x27 \
-   libstagefrighthw \
    libtilerenderer \
    libopencorehw \
-   hwcomposer.default \
-   libQcomUI \
+   hwcomposer.msm7x27 \
+   libqdutils \
+   liboverlay
 
 # Audio
 PRODUCT_PACKAGES += \
-    audio_policy.p350 \
-    audio.primary.p350 \
-    audio.a2dp.default
+    audio_policy.msm7x27 \
+    audio.primary.msm7x27 \
+    audio.a2dp.default \
+    libaudioutils
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
@@ -101,22 +100,20 @@ PRODUCT_PACKAGES += \
     libstagefrighthw \
     libmm-omxcore \
     libOmxCore \
-    libOmxVdec \
-    libOmxVenc \
     libdivxdrmdecrypt
 
 # Apps
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory \
-    FM \
-    Gallery
+    Gallery \
+    Stk
 
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
     camera.msm7x27 \
-    lights.p350 \
-    gps.p350 \
+    lights.msm7x27 \
+    gps.default \
     lgapversion
 
 PRODUCT_PACKAGES += \
@@ -137,11 +134,18 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 
+# Battery life hacks
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.ril.disable.power.collapse=1
+    pm.sleep_mode=1
+    wifi.supplicant_scan_interval=150
+
 PRODUCT_PROPERTY_OVERRIDES += \
     com.qc.hardware=true \
     com.qc.hdmi_out=false \
     debug.sf.hw=1 \
     debug.enabletr=false \
+    debug.hwui.render_dirty_regions=false \
     debug.composition.type=mdp \
     debug.gr.numframebuffers=2 \
     debug.qctwa.statusbar=1 \
@@ -161,6 +165,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
-PRODUCT_NAME := p350
-PRODUCT_DEVICE := p350
+PRODUCT_NAME := cm_p350
+PRODUCT_DEVICE := cm_p350
 PRODUCT_MODEL := LG-P350

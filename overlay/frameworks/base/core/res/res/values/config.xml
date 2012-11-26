@@ -48,10 +48,10 @@ will not debounce light sensor readings -->
     <integer name="config_lightSensorWarmupTime">0</integer>
 
     <!-- Component name of the service providing network location support. -->
-    <string name="config_networkLocationProvider">com.google.android.location.NetworkLocationProvider</string>
+    <string name="config_networkLocationProviderPackageName">com.google.android.location</string>
 
     <!-- Component name of the service providing geocoder API support. -->
-    <string name="config_geocodeProvider">com.google.android.location.GeocodeProvider</string>
+    <string name="config_geocodeProviderPackageName">com.google.android.location</string>
 
 
     <!-- XXXXX NOTE THE FOLLOWING RESOURCES USE THE WRONG NAMING CONVENTION.
@@ -105,8 +105,7 @@ be empty. An example would be "usb.*" -->
     </integer-array>
 
     <bool name="config_sip_wifi_only">false</bool>
-    <string name="config_networkLocationProvider">com.google.android.location.NetworkLocationProvider</string>
-    <string name="config_geocodeProvider">com.google.android.location.GeocodeProvider</string>
+
     <bool name="config_bluetooth_adapter_quick_switch">false</bool>
     <bool name="config_forceDisableHardwareKeyboard">true</bool>
     <integer name="config_backKillTimeout">1500</integer>
