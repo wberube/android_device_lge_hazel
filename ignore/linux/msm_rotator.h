@@ -28,6 +28,7 @@
  */
 
 #ifndef __MSM_ROTATOR_H__
+#define __MSM_ROTATOR_H__
 
 #include <linux/types.h>
 #include <linux/msm_mdp.h>
@@ -40,6 +41,12 @@
 		_IOW(MSM_ROTATOR_IOCTL_MAGIC, 2, struct msm_rotator_data_info)
 #define MSM_ROTATOR_IOCTL_FINISH   \
 		_IOW(MSM_ROTATOR_IOCTL_MAGIC, 3, int)
+
+enum rotator_clk_type {
+	ROTATOR_CORE_CLK,
+	ROTATOR_PCLK,
+	ROTATOR_IMEM_CLK
+};
 
 struct msm_rotator_img_info {
 	unsigned int session_id;
@@ -63,5 +70,21 @@ struct msm_rotator_data_info {
 	struct msmfb_data dst_chroma;
 };
 
+struct msm_rot_clocks {
+	const char *clk_name;
+	enum rotator_clk_type clk_type;
+	unsigned int clk_rate;
+};
+
+struct msm_rotator_platform_data {
+	unsigned int number_of_clocks;
+	unsigned int hardware_version_number;
+	struct msm_rot_clocks *rotator_clks;
+#ifdef CONFIG_MSM_BUS_SCALING
+	struct msm_bus_scale_pdata *bus_scale_table;
+#endif
+	char rot_iommu_split_domain;
+
+};
 #endif
 
