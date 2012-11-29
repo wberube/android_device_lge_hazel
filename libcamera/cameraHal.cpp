@@ -37,6 +37,8 @@
 #include "libhardware/modules/gralloc/gralloc_priv.h"
 #endif
 
+#define LOGV LOGI
+
 struct blitreq {
    unsigned int count;
    struct mdp_blit_req req;
