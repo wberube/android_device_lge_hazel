@@ -53,4 +53,3 @@ int get_ashmem_file(int fd, struct file **filp, struct file **vm_file,
 void put_ashmem_file(struct file *file);
 
 #endif	/* _LINUX_ASHMEM_H */
-
