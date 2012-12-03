@@ -5,10 +5,10 @@ TARGET_BOOTANIMATION_NAME := vertical-240x320
 $(call inherit-product, device/lge/p350/p350.mk)
 
 # Include GSM stuff
-$(call inherit-product, vendor/slim/config/gsm.mk)
+$(call inherit-product, vendor/cm/config/gsm.mk)
 
-# Inherit some common slim stuff.
-$(call inherit-product, vendor/slim/config/common_full_phone.mk)
+# Inherit some common cm stuff.
+$(call inherit-product, vendor/cm/config/common_mini_phone.mk)
 
 
 ## Device identifier. This must come after all inclusions
@@ -20,7 +20,7 @@ PRODUCT_BUILD_PROP_OVERRIDES += \
 TARGET_NO_LIVEWALLPAPERS := true
 
 PRODUCT_DEVICE := p350
-PRODUCT_NAME := slim_p350
+PRODUCT_NAME := cm_p350
 PRODUCT_BRAND := lge
 PRODUCT_MODEL := LG-P350
 PRODUCT_MANUFACTURER := lge
@@ -35,7 +35,4 @@ ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
     ro.allow.mock.location=1 \
     ro.debuggable=1
-
-PRODUCT_COPY_FILES += \
-device/lge/p350/root/bootanimation.zip:system/media/bootanimation.zip
 

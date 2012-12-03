@@ -48,8 +48,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AVRCP.kl:system/usr/keylayout/AVRCP.kl \
     $(LOCAL_PATH)/configs/idc/synaptics-rmi-touchscreen.idc:system/usr/idc/synaptics-rmi-touchscreen.idc \
     $(LOCAL_PATH)/configs/idc/synaptics.idc:system/usr/idc/synaptics.idc \
-    $(LOCAL_PATH)/configs/idc/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc \
-device/lge/p350/prebuilt/*.ko:system/lib/modules/ \
+    $(LOCAL_PATH)/configs/idc/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc
 
 # BT startup
 PRODUCT_COPY_FILES += \
@@ -70,9 +69,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AudioFilter.csv:system/etc/AudioFilter.csv \
     $(LOCAL_PATH)/configs/AutoVolumeControl.txt:system/etc/AutoVolumeControl.txt \
     $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml
-
-# Pecan RIL implementation
-FRAMEWORKS_BASE_SUBDIRS += ../../$(LOCAL_PATH)/ril/
 
 # Display 
 PRODUCT_PACKAGES += \
