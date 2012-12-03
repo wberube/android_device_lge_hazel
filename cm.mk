@@ -1,6 +1,6 @@
 # Boot Animation
 TARGET_SCREEN_HEIGHT := 320
-TARGET_SCREEN_WIDTH := 480
+TARGET_SCREEN_WIDTH := 240
 
 # Inherit device configuration
 $(call inherit-product, device/lge/p350/p350.mk)
