@@ -84,8 +84,8 @@ PRODUCT_PACKAGES += \
 
 # Audio
 PRODUCT_PACKAGES += \
-    audio_policy.msm7x27 \
-    audio.primary.msm7x27 \
+    audio_policy.p350 \
+    audio.primary.p350 \
     audio.a2dp.default \
     libaudioutils
 
@@ -110,8 +110,8 @@ PRODUCT_PACKAGES += \
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    camera.msm7x27 \
-    lights.msm7x27 \
+    camera.p350 \
+    lights.p350 \
     gps.default \
     lgapversion
 
@@ -122,7 +122,7 @@ PRODUCT_PACKAGES += \
 
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.product.camera=msm7x27 \
+    ro.product.camera=p350 \
     debug.camcorder.disablemeta=1 \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1 \
