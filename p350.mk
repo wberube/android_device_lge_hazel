@@ -70,6 +70,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AutoVolumeControl.txt:system/etc/AutoVolumeControl.txt \
     $(LOCAL_PATH)/configs/media_profiles.xml:system/etc/media_profiles.xml
 
+
 # Display 
 PRODUCT_PACKAGES += \
    libmemalloc \
@@ -84,15 +85,23 @@ PRODUCT_PACKAGES += \
 
 # Audio
 PRODUCT_PACKAGES += \
-    audio_policy.p350 \
-    audio.primary.p350 \
+    audio_policy.msm7x27 \
+    audio.primary.msm7x27 \
     audio.a2dp.default \
     libaudioutils
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
     make_ext4fs \
-    setup_fs
+    setup_fs \
+    liblgdrm \
+    liblgeat \
+    liblgerft
+
+PRODUCT_PACKAGES += \
+    liblgdrm \
+    liblgeat \
+    liblgerft
 
 # Video decoding
 PRODUCT_PACKAGES += \
@@ -105,14 +114,15 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory \
     Gallery \
-    Stk
+    Stk \
+    LegacyCamera \
 
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    camera.p350 \
-    lights.p350 \
-    gps.default \
+    camera.msm7x27 \
+    lights.msm7x27 \
+    gps.p350 \
     lgapversion
 
 PRODUCT_PACKAGES += \
@@ -122,7 +132,7 @@ PRODUCT_PACKAGES += \
 
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.product.camera=p350 \
+    ro.product.camera=msm7x27 \
     debug.camcorder.disablemeta=1 \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1 \
