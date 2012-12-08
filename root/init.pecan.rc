@@ -277,6 +277,9 @@ on property:service.brcm.bt.mac=*
 on property:gsm.current.phone-type=1
     start setapversion
 
+on property:gsm.version.baseband=V07u-000-000-MAR-23-2009
+    start setapversion
+
 # Triggered by the KEY_VOLUME_DOWN+KEY_MENU keycodes
 service bugreport /system/bin/logwrapper /system/bin/dumpstate -d -v -o /sdcard/bugreports/bugreport
     keycodes 114 139
