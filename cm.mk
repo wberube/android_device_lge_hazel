@@ -14,9 +14,9 @@ $(call inherit-product, vendor/cm/config/common_mini_phone.mk)
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    BUILD_DISPLAY_ID=JZO54K \
-    BUILD_FINGERPRINT="lge/pecan/pecan:4.1.2/JZO54K/299849:user/release-keys" \
-    PRIVATE_BUILD_DESC="pecan-user 4.1.2 JZO54K 299849 release-keys"
+    BUILD_DISPLAY_ID=JOP40D \
+    BUILD_FINGERPRINT="lge/pecan/pecan:4.2.1/JOP40D/299849:user/release-keys" \
+    PRIVATE_BUILD_DESC="pecan-user 4.2.1 JOP40D 299849 release-keys"
 
 TARGET_NO_LIVEWALLPAPERS := true
 
