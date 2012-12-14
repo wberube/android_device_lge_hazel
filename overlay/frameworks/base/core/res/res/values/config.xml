@@ -34,13 +34,6 @@ For this time after the screen turns on, the Power Manager
 will not debounce light sensor readings -->
     <integer name="config_lightSensorWarmupTime">0</integer>
 
-    <!-- Component name of the service providing network location support. -->
-    <string name="config_networkLocationProviderPackageName">com.google.android.location</string>
-
-    <!-- Component name of the service providing geocoder API support. -->
-    <string name="config_geocodeProviderPackageName">com.google.android.location</string>
-
-
     <string-array translatable="false" name="config_tether_usb_regexs">
         <item>"rndis\\d"</item>
     </string-array>
@@ -111,7 +104,6 @@ will not debounce light sensor readings -->
 
     <bool name="config_sip_wifi_only">false</bool>
 
-    <bool name="config_bluetooth_adapter_quick_switch">false</bool>
     <bool name="config_forceDisableHardwareKeyboard">true</bool>
     <integer name="config_backKillTimeout">1500</integer>
 </resources>
