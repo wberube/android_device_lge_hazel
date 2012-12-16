@@ -4,7 +4,6 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
 
-
 $(call inherit-product-if-exists, vendor/lge/p350/p350-vendor.mk)
 $(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendor-blobs.mk)
 
@@ -15,8 +14,6 @@ PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 PRODUCT_LOCALES := \
 	en_GB \
-
-
 
 # Permission files
 PRODUCT_COPY_FILES += \
@@ -91,10 +88,7 @@ PRODUCT_PACKAGES += \
 # Filesystem management tools
 PRODUCT_PACKAGES += \
     make_ext4fs \
-    setup_fs \
-    liblgdrm \
-    liblgeat \
-    liblgerft
+    setup_fs 
 
 PRODUCT_PACKAGES += \
     liblgdrm \
@@ -112,8 +106,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory \
     Gallery \
-    Stk \
-    LegacyCamera \
+    Stk 
 
 # Other
 PRODUCT_PACKAGES += \
@@ -171,7 +164,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-qcp=true
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.pcm.version=2.0.0
+    ro.pcm.version=2.0.1
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
