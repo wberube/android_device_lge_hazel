@@ -164,7 +164,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-qcp=true
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.pcm.version=2.0.1
+    ro.pcm.version=3.0.0
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
