@@ -1,0 +1,70 @@
+From 10db1f2566d2fdc5a1afc85252991a8514014a93 Mon Sep 17 00:00:00 2001
+From: Pavel Kirpichyov <pavel.kirpichyov@gmail.com>
+Date: Tue, 18 Dec 2012 23:08:12 +0400
+Subject: [PATCH] Fix camera parameters
+
+Change-Id: I4763b925ca5be65becda84b04b606583b384e205
+---
+ camera/CameraParameters.cpp       |   16 +++++++++++++++-
+ include/camera/CameraParameters.h |    9 +++++++++
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/camera/CameraParameters.cpp b/camera/CameraParameters.cpp
+index 628961c..ebe0e42 100644
+--- a/camera/CameraParameters.cpp
++++ b/camera/CameraParameters.cpp
+@@ -323,12 +323,26 @@
+ const char CameraParameters::SKIN_TONE_ENHANCEMENT_DISABLE[] = "disable";
+ 
+ const char CameraParameters::KEY_SHARPNESS[] = "sharpness";
++#ifdef QCOM_HARDWARE
++const char CameraParameters::KEY_MAX_SHARPNESS[] = "sharpness-max";
++const char CameraParameters::KEY_MIN_SHARPNESS[] = "sharpness-min";
++#else
+ const char CameraParameters::KEY_MAX_SHARPNESS[] = "max-sharpness";
++#endif
+ const char CameraParameters::KEY_CONTRAST[] = "contrast";
++#ifdef QCOM_HARDWARE
++const char CameraParameters::KEY_MAX_CONTRAST[] = "contrast-max";
++const char CameraParameters::KEY_MIN_CONTRAST[] = "contrast-min";
++#else
+ const char CameraParameters::KEY_MAX_CONTRAST[] = "max-contrast";
++#endif
+ const char CameraParameters::KEY_SATURATION[] = "saturation";
++#ifdef QCOM_HARDWARE
++const char CameraParameters::KEY_MAX_SATURATION[] = "saturation-max";
++const char CameraParameters::KEY_MIN_SATURATION[] = "saturation-min";
++#else
+ const char CameraParameters::KEY_MAX_SATURATION[] = "max-saturation";
+-
++#endif
+ //Values for DENOISE
+ const char CameraParameters::DENOISE_OFF[] = "denoise-off";
+ const char CameraParameters::DENOISE_ON[] = "denoise-on";
+diff --git a/include/camera/CameraParameters.h b/include/camera/CameraParameters.h
+index b514158..588b5a4 100644
+--- a/include/camera/CameraParameters.h
++++ b/include/camera/CameraParameters.h
+@@ -858,10 +858,19 @@ class CameraParameters
+     static const char AUTO_EXPOSURE_SPOT_METERING[];
+ 
+     static const char KEY_SHARPNESS[];
++#ifdef QCOM_HARDWARE
++    static const char KEY_MIN_SHARPNESS[];
++#endif
+     static const char KEY_MAX_SHARPNESS[];
+     static const char KEY_CONTRAST[];
++#ifdef QCOM_HARDWARE
++    static const char KEY_MIN_CONTRAST[];
++#endif
+     static const char KEY_MAX_CONTRAST[];
+     static const char KEY_SATURATION[];
++#ifdef QCOM_HARDWARE
++    static const char KEY_MIN_SATURATION[];
++#endif
+     static const char KEY_MAX_SATURATION[];
+ 
+     static const char KEY_HISTOGRAM[] ;
+-- 
+1.7.10
+
