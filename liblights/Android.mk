@@ -30,6 +30,6 @@ LOCAL_SHARED_LIBRARIES := liblog
 
 LOCAL_MODULE := lights.p350
 
-#include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_SHARED_LIBRARY)
 
 endif
