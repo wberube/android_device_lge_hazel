@@ -105,6 +105,9 @@ BOARD_USES_QCOM_HARDWARE := true
 # RIL
 TARGET_PROVIDES_LIBRIL := true
 
+BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/lge/p350/bluetooth
+BOARD_BLUEDROID_VENDOR_CONF := device/lge/p350/bluetooth/vnd_p350.txt
+
 # USB mass storage
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/devices/platform/msm_hsusb/gadget/lun0/file
