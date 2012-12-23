@@ -114,7 +114,6 @@ PRODUCT_PACKAGES += \
     hciconfig \
     hwaddrs
 
-
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.product.camera=p350 \
     debug.camcorder.disablemeta=1 \
