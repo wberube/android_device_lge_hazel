@@ -79,8 +79,8 @@ PRODUCT_PACKAGES += \
 
 # Audio
 PRODUCT_PACKAGES += \
-    audio_policy.p350 \
-    audio.primary.p350 \
+    audio_policy.msm7x27 \
+    audio.primary.msm7x27 \
     audio.a2dp.default \
     libaudioutils
 
