@@ -1,0 +1,51 @@
+From f21dce76deebdbf61722e6d8e9cf37288ed2e5e5 Mon Sep 17 00:00:00 2001
+From: freexperia <jerpelea@gmail.com>
+Date: Mon, 24 Dec 2012 18:32:40 +0530
+Subject: [PATCH] display: implement ANCIENT_GL ifdef
+
+ported from cm10
+http://review.cyanogenmod.org/25937
+
+Change-Id: I46da2b2bd668401de8fb9be800815dc29acacb44
+---
+ libgralloc/framebuffer.cpp    |    5 ++++-
+ libhwcomposer/hwc_copybit.cpp |    2 ++
+ 2 files changed, 6 insertions(+), 1 deletions(-)
+
+diff --git a/libgralloc/framebuffer.cpp b/libgralloc/framebuffer.cpp
+index bbb4a47..1a2ff4c 100644
+--- a/libgralloc/framebuffer.cpp
++++ b/libgralloc/framebuffer.cpp
+@@ -160,7 +160,10 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
+ 
+ static int fb_compositionComplete(struct framebuffer_device_t* dev)
+ {
+-    // TODO: Properly implement composition complete callback
++    // TODO: Properly implement composition complete callback   
++#ifdef ANCIENT_GL
++    glFinish();
++#endif
+     return 0;
+ }
+ 
+diff --git a/libhwcomposer/hwc_copybit.cpp b/libhwcomposer/hwc_copybit.cpp
+index 04db814..75e5742 100644
+--- a/libhwcomposer/hwc_copybit.cpp
++++ b/libhwcomposer/hwc_copybit.cpp
+@@ -192,11 +192,13 @@ bool CopyBit::draw(hwc_context_t *ctx, hwc_display_contents_1_t *list, EGLDispla
+         return -1;
+     }
+ 
++#ifndef ANCIENT_GL
+     // Invoke a glFinish if we are rendering any layers using copybit.
+     // We call glFinish instead of locking the renderBuffer because the
+     // GPU could take longer than the genlock timeout value to complete
+     // rendering
+     glFinish();
++#endif
+ 
+     for (size_t i=0; i<list->numHwLayers; i++) {
+         if (list->hwLayers[i].compositionType == HWC_USE_COPYBIT) {
+-- 
+1.7.5.4
+
