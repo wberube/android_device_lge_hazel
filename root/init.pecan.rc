@@ -106,7 +106,6 @@ on boot
 ## SENSOR
     mkdir /data/amit 0777 ami304d ami304d
     chmod 0666 /data/amit/AMI306_Config.ini
-    chmod 0666 /data/amit/AMI306_Config2.ini
 
 # liblights
   chown system system /sys/class/leds/green/brightness
@@ -151,8 +150,6 @@ on boot
 # Wakelock debug
   write /sys/module/wakelock/parameters/debug_mask 7
 
-
-
 #############################################################################
 ### S E R V I C E S                                                        ##
 #############################################################################
@@ -165,7 +162,6 @@ service qmuxd /system/bin/qmuxd
 service ami304d /system/bin/ami304d
     class main
     user compass
-    group system
 
 service hciattach /system/bin/sh /system/bin/init.qcom.bt.sh
     class main
