@@ -17,7 +17,7 @@
 #ifndef _BDROID_BUILDCFG_H
 #define _BDROID_BUILDCFG_H
 
-#define BTM_DEF_LOCAL_NAME   "P350"
+#define BTM_DEF_LOCAL_NAME   "LG-P350"
 #define BTA_DISABLE_DELAY 1000
 
 #endif
