@@ -1,6 +1,8 @@
 import init.pecan.usb.rc
 
 on early-init
+
+  mount debugfs /sys/kernel/debug /sys/kernel/debug
  
   mkdir /system
   mkdir /data 0771 system system
@@ -12,7 +14,6 @@ on early-init
   mkdir /storage/sdcard0 0000 system system
   symlink /storage/sdcard0 /mnt/sdcard
   symlink /storage/sdcard0 /sdcard
-
 
 on init
 
@@ -81,18 +82,14 @@ on post-fs-data
   mkdir /data/misc/dhcp 0770 dhcp dhcp
   chown dhcp dhcp /data/misc/dhcp
 
-
 # last line for post-fs-data
   setprop vold.post_fs_data_done 1
-
 
 on early-boot
 # set RLIMIT_MEMLOCK to 64MB
   setrlimit 8 67108864 67108864
 
 on boot
-
-   mount debugfs /sys/kernel/debug /sys/kernel/debug
 
 # Temporary hack to prevent framebuffer flicker
     chmod 0777 /sys/class/graphics/fb0/state
