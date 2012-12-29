@@ -1,6 +1,6 @@
 PecanCM Project
 ========================
-Here LG Optimus Me device folder for build Cyanogenmod 10/10.1, Android 4.1.2/4.2.x
+Here LGE Optimus Me device folder for build Cyanogenmod 10/10.1, Android 4.1.2/4.2.x
 
 1. Operating System:
 --------------------------------
