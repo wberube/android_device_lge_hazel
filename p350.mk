@@ -126,12 +126,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 
-# Battery life hacks
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.ril.disable.power.collapse=1
-    pm.sleep_mode=1
-    wifi.supplicant_scan_interval=150
-
 PRODUCT_PROPERTY_OVERRIDES += \
     com.qc.hardware=true \
     com.qc.hdmi_out=false \
