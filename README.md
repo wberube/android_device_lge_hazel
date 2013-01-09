@@ -29,7 +29,7 @@ Repo is the program that handles synchronization between our pc and the reposito
 --------------------------------
 - mkdir cm10.1
 - cd cm10.1
-- repo init -u git://github.com/androidarmv6/android.git -b cm-10.1
+- repo init -u git://github.com/PecanCM/android.git -b cm-10.1
 - repo sync
 
 5. Download Prebuilt files:
@@ -42,7 +42,7 @@ Another small wait time and we're ready!
 6. Build ROM:
 -------------
 - cd cm10.1
-- source build/envsetup.sh && brunch cm_p350-userdebug
+- . build/envsetup.sh && brunch p350
 
 7. Installing:
 --------------
