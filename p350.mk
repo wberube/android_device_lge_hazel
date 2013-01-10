@@ -139,7 +139,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     hwui.render_dirty_regions=false \
     hwui.disable_vsync=true \
     hwui.print_config=choice \
-    persist.sys.strictmode.visual=false
+    persist.sys.strictmode.visual=false \
+    ro.opengles.surface.rgb565=true
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
