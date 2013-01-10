@@ -104,6 +104,9 @@ BOARD_USES_QCOM_HARDWARE := true
 # RIL
 TARGET_PROVIDES_LIBRIL := true
 
+# Liblights
+TARGET_PROVIDES_LIBLIGHT := true
+
 # USB mass storage
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/devices/platform/msm_hsusb/gadget/lun0/file

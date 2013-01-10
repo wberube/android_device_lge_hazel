@@ -106,6 +106,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     librs_jni \
     camera.p350 \
+    lights.p350 \
     gps.p350 \
     lgapversion
 
