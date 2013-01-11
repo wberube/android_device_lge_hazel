@@ -32,9 +32,9 @@ PRODUCT_COPY_FILES += \
 
 # Board-specific init
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/root/init.pecan.rc:root/init.pecan.rc \
-    $(LOCAL_PATH)/root/ueventd.pecan.rc:root/ueventd.pecan.rc \
-    $(LOCAL_PATH)/root/init.pecan.usb.rc:root/init.pecan.usb.rc
+    $(LOCAL_PATH)/root/init.p350.rc:root/init.p350.rc \
+    $(LOCAL_PATH)/root/ueventd.p350.rc:root/ueventd.p350.rc \
+    $(LOCAL_PATH)/root/init.p350.usb.rc:root/init.p350.usb.rc
 
 # Configs
 PRODUCT_COPY_FILES += \

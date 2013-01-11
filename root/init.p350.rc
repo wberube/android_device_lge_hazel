@@ -1,4 +1,4 @@
-import init.pecan.usb.rc
+import init.p350.usb.rc
 
 on early-init
 
