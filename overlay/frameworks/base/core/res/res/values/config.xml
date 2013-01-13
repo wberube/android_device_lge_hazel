@@ -24,16 +24,22 @@ for different hardware and product builds. -->
     <bool name="config_animateScreenLights">false</bool>
    <bool name="config_unplugTurnsOnScreen">true</bool>
     <bool name="config_sf_slowBlur">true</bool>
-    <bool name="config_allowAllRotations">true</bool>
     <bool name="config_sf_limitedAlpha">false</bool>
-
-    <string name="config_legacyUmsLunFile">/sys/devices/platform/msm_hsusb/gadget/lun0/file</string>
 
     <!-- Amount of time it takes for the light sensor to warm up in milliseconds.
 For this time after the screen turns on, the Power Manager
 will not debounce light sensor readings -->
     <integer name="config_lightSensorWarmupTime">0</integer>
 
+    <string name="config_legacyUmsLunFile">/sys/devices/platform/msm_hsusb/gadget/lun0/file</string>
+
+    <bool name="config_wifiApStartInterface">true</bool>
+    <string-array name="config_locationProviderPackageNames" translatable="false">
+        <!-- The standard AOSP fused location provider -->
+        <item>com.android.location.fused</item>
+        <!-- The Google Network Location Services location provider -->
+        <item>com.google.android.location</item>
+    </string-array>
     <string-array translatable="false" name="config_tether_usb_regexs">
         <item>"rndis\\d"</item>
     </string-array>
