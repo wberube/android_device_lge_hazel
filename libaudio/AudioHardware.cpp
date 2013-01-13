@@ -20,7 +20,7 @@
 
 //#define LOG_NDEBUG 0
 
-#define LOG_TAG "AudioHardwareMSM72XX"
+#define LOG_TAG "AudioHardware7x27"
 #include <utils/Log.h>
 #include <utils/String8.h>
 
