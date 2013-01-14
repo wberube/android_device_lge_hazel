@@ -26,7 +26,7 @@ TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 # Kernel
 TARGET_PREBUILT_RECOVERY_KERNEL := device/lge/p350/recovery/recovery_kernel
 TARGET_KERNEL_SOURCE := kernel/lge/p350
-TARGET_KERNEL_CONFIG := cyanogenmod_pecan_defconfig
+TARGET_KERNEL_CONFIG := cyanogenmod_p350_defconfig
 BOARD_KERNEL_CMDLINE := mem=215M console=ttyMSM2,115200n8 androidboot.hardware=p350
 BOARD_KERNEL_BASE := 0x02808000
 BOARD_KERNEL_PAGESIZE := 2048
