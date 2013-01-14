@@ -23,6 +23,9 @@ TARGET_PROVIDES_INIT_TARGET_RC := true
 TARGET_NO_INITLOGO := true
 TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 
+TARGET_GLOBAL_CFLAGS += -mfpu=vfp -mfloat-abi=softfp
+TARGET_GLOBAL_CPPFLAGS += -mfpu=vfp -mfloat-abi=softfp
+
 # Kernel
 TARGET_PREBUILT_RECOVERY_KERNEL := device/lge/p350/recovery/recovery_kernel
 TARGET_KERNEL_SOURCE := kernel/lge/p350
