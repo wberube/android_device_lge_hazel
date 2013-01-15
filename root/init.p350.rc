@@ -48,7 +48,6 @@ on init
 # fix for enropy service and some other that failed
   chmod 0755 /data/system/appwidgets.xml
   chmod 0755 /data/system/entropy.dat
-  chmod 0755 /data/system/wallpaper_info.xml
 
 on fs
 
