@@ -43,6 +43,10 @@ LOCAL_SRC_FILES += AudioHardware.cpp
 
 LOCAL_CFLAGS += -fno-short-enums
 
+ifeq ($(BOARD_USE_SRSAUDIO),true)
+  LOCAL_CFLAGS += -DSRS_AUDIO
+endif
+
 ifeq ($(BOARD_HAVE_BLUETOOTH),true)
 #  LOCAL_SHARED_LIBRARIES += audio.a2dp.default
 endif
