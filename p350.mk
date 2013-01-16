@@ -103,7 +103,8 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory \
     Gallery \
-    Stk 
+    Stk \
+    HwaSettings
 
 # Other
 PRODUCT_PACKAGES += \
@@ -143,7 +144,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     hwui.render_dirty_regions=false \
     hwui.disable_vsync=true \
     hwui.print_config=choice \
-    persist.sys.strictmode.visual=false \
+    persist.sys.strictmode.visual=false
     ro.opengles.surface.rgb565=true
 
 PRODUCT_PROPERTY_OVERRIDES += \

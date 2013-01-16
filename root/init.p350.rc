@@ -81,6 +81,12 @@ on post-fs-data
   mkdir /data/misc/dhcp 0770 dhcp dhcp
   chown dhcp dhcp /data/misc/dhcp
 
+# HwaSettings
+# hwui config folder for process names black list
+  mkdir /data/local/hwui.deny
+  chown system nobody /data/local/hwui.deny
+  chmod 0775 /data/local/hwui.deny
+
 # last line for post-fs-data
   setprop vold.post_fs_data_done 1
 
