@@ -42,6 +42,9 @@ view.scroll_friction=0.008
 persist.sys.use_dithering=2
 persist.sys.purgeable_assets=1
 
+# HwaSettings
+hwui.use.blacklist=true
+
 # System
 dalvik.vm.heapsize=32m
 ro.compcache.default=26
