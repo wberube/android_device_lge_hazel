@@ -13,7 +13,6 @@ lib/libmmgsdilib.so
 lib/libril-qcril-hook-oem.so
 lib/libdsm.so
 lib/liboncrpc.so
-lib/libril-qc-qmi-1.so
 lib/libnv.so
 lib/libauth.so
 lib/libril.so
@@ -32,7 +31,6 @@ lib/libdll.so
 lib/libbcmwl.so
 lib/libwmsts.so
 lib/libdsutils.so
-lib/libidl.so
 lib/liblgdrm.so
 lib/libsnd.so
 
@@ -55,7 +53,7 @@ etc/wl/rtecdc-mfgtest.bin
 
 ## HAL
 bin/ami304d
-lib/hw/sensors.pecan.so
+lib/hw/sensors.p350.so
 
 ## EGL
 lib/egl/libEGL_adreno200.so
