@@ -74,7 +74,6 @@ PRODUCT_PACKAGES += \
    libmemalloc \
    gralloc.msm7x27 \
    libgenlock \
-   copybit.msm7x27 \
    libtilerenderer \
    libopencorehw \
    libqdutils \
