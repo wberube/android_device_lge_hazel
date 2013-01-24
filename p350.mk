@@ -108,12 +108,11 @@ PRODUCT_PACKAGES += \
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
+    power.msm7x27 \
     camera.p350 \
     lights.p350 \
     gps.p350 \
-    lgapversion
-
-PRODUCT_PACKAGES += \
+    lgapversion \
     hcitool \
     hciconfig \
     hwaddrs
