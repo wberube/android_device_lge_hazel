@@ -44,13 +44,13 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AVRCP.kl:system/usr/keylayout/AVRCP.kl \
     $(LOCAL_PATH)/configs/sysctl.conf:system/etc/sysctl.conf
 
-# Bluetooth
+# BT startup
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/bluetooth/init.qcom.bt.sh:system/bin/init.qcom.bt.sh \
     $(LOCAL_PATH)/bluetooth/bt_vendor.conf:system/etc/bluetooth/bt_vendor.conf
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/configs/88checkcache:system/etc/init.d/88checkcache
+   $(LOCAL_PATH)/configs/88checkcache:system/etc/init.d/88checkcache
 
 # Wifi
 PRODUCT_COPY_FILES += \
@@ -61,6 +61,9 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/vold.fstab:system/etc/vold.fstab
 
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/releasetools/extras.sh:system/bin/extras.sh
+
 # Audio
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/AudioFilter.csv:system/etc/AudioFilter.csv \
@@ -69,29 +72,31 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/media_codecs.xml:system/etc/media_codecs.xml \
     $(LOCAL_PATH)/configs/audio_policy.conf:system/etc/audio_policy.conf
 
+
 # Display 
 PRODUCT_PACKAGES += \
    libmemalloc \
    gralloc.msm7x27 \
    libgenlock \
+   copybit.msm7x27 \
    libtilerenderer \
    libopencorehw \
    libqdutils \
    liboverlay
 
-# Audio
+## Audio
 PRODUCT_PACKAGES += \
-    audio_policy.p350 \
-    audio.primary.p350 \
     audio.a2dp.default \
-    libaudioutils
+    libaudioutils \
+    audio_policy.p350 \
+    audio.primary.p350
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
     make_ext4fs \
     setup_fs 
 
-# Video decoding
+# video decoding
 PRODUCT_PACKAGES += \
     libstagefrighthw \
     libmm-omxcore \
@@ -108,14 +113,18 @@ PRODUCT_PACKAGES += \
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    power.msm7x27 \
     camera.p350 \
     lights.p350 \
     gps.p350 \
+    power.msm7x27 \
     lgapversion \
+
+PRODUCT_PACKAGES += \
+    bdAddrLoader \
     hcitool \
     hciconfig \
     hwaddrs
+
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.product.camera=p350 \
@@ -129,21 +138,26 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 
+# Battery life hacks
 PRODUCT_PROPERTY_OVERRIDES += \
+    ro.ril.disable.power.collapse=1
+    pm.sleep_mode=1
+    wifi.supplicant_scan_interval=150
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.opengles.surface.rgb565=true \
     com.qc.hardware=true \
     com.qc.hdmi_out=false \
     debug.sf.hw=1 \
     debug.enabletr=false \
     debug.hwui.render_dirty_regions=false \
     debug.composition.type=mdp \
-    debug.gr.numframebuffers=2 \
+    debug.gr.numframebuffers=3 \
     debug.qctwa.statusbar=1 \
     debug.qctwa.preservebuf=1 \
-    debug.hwui.disable_vsync=true \
     hwui.render_dirty_regions=false \
     hwui.print_config=choice \
     persist.sys.strictmode.visual=false
-    ro.opengles.surface.rgb565=true
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
