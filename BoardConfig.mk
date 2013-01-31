@@ -139,6 +139,3 @@ TARGET_FORCE_CPU_UPLOAD := true
 
 # Touch screen compatibility for jellybean
 BOARD_USE_LEGACY_TOUCHSCREEN := true
-
-## OTA script
-TARGET_RELEASETOOL_OTA_FROM_TARGET_SCRIPT := device/lge/p350/releasetools/ota_from_target_files
