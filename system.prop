@@ -23,6 +23,9 @@ ro.bt.bdaddr_path=/data/misc/bd_addr
 persist.sys.usb.config=mass_storage,adb
 persist.service.adb.enable=1
 
+# Store dalvik-cache on /data
+dalvik.vm.dexopt-data-only=1
+
 #lcd
 ro.sf.lcd_density=120
 ro.sf.hw_lcd_density=120

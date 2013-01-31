@@ -49,9 +49,6 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/bluetooth/init.qcom.bt.sh:system/bin/init.qcom.bt.sh \
     $(LOCAL_PATH)/bluetooth/bt_vendor.conf:system/etc/bluetooth/bt_vendor.conf
 
-PRODUCT_COPY_FILES += \
-   $(LOCAL_PATH)/configs/88checkcache:system/etc/init.d/88checkcache
-
 # Wifi
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
