@@ -110,6 +110,7 @@ PRODUCT_PACKAGES += \
     camera.p350 \
     lights.p350 \
     gps.p350 \
+    gps.msm7x27 \
     power.msm7x27 \
     lgapversion \
 
