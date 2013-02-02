@@ -13,15 +13,15 @@ $(call inherit-product, vendor/cm/config/common_mini_phone.mk)
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    BUILD_DISPLAY_ID=JOP40D \
-    BUILD_FINGERPRINT="lge/pecan/pecan:4.2.1/JOP40D/299849:user/release-keys" \
-    PRIVATE_BUILD_DESC="pecan-user 4.2.1 JOP40D 299849 release-keys"
+    BUILD_DISPLAY_ID=JOP40G \
+    BUILD_FINGERPRINT="lge/pecan/pecan:4.2.1/JOP40G/20111018:user/release-keys" \
+    PRIVATE_BUILD_DESC="pecan-user 4.2.1 JOP40G 20111018 release-keys"
 
 PRODUCT_DEVICE := p350
 PRODUCT_NAME := cm_p350
 PRODUCT_BRAND := lge
 PRODUCT_MODEL := LG-P350
-PRODUCT_MANUFACTURER := lge
+PRODUCT_MANUFACTURER := LGE
 PRODUCT_CHARACTERISTICS := phone
 
 # Release name and versioning
