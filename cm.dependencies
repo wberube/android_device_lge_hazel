@@ -1,0 +1,11 @@
+[
+ {
+   "repository": "lge-kernel-pecan",
+   "target_path": "kernel/lge/p350",
+   "branch": "android-msm-2.6.32"
+ }, {
+   "repository": "cm_vendor_lge",
+   "target_path": "vendor/lge",
+   "branch": "cm-10.1"
+ }
+]
