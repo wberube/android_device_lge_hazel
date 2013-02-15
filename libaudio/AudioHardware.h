@@ -52,9 +52,7 @@ using android::Mutex;
 #define SAMP_RATE_INDX_32000	6
 #define SAMP_RATE_INDX_44100	7
 #define SAMP_RATE_INDX_48000	8
-#ifdef SRS_AUDIO
-#define SAMP_RATE_INDX_96000    9
-#endif
+
 #define EQ_MAX_BAND_NUM 12
 
 #define ADRC_ENABLE  0x0001
