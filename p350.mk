@@ -157,7 +157,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     debug.qctwa.preservebuf=1 \
     hwui.render_dirty_regions=false \
     hwui.print_config=choice \
-    persist.sys.strictmode.visual=false
+    persist.sys.strictmode.visual=0 \
+    persist.sys.strictmode.disable=1 
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
