@@ -30,7 +30,7 @@ target=`getprop ro.product.device`
 
 # Pecan/Hazel porting by bongkyu.kim@lge.com 
 case "$target" in 
-	"pecan" | "hazel")
+	"p350" | "hazel")
 		target='msm7627_surf'
 		;;
 esac
@@ -80,5 +80,12 @@ esac
 case "$target" in
     "qsd8650a_st1x")
         mount -t debugfs none /sys/kernel/debug
+    ;;
+esac
+
+usb_config=`getprop persist.sys.usb.config`
+case "$usb_config" in
+    "") #USB persist config not set, select default configuration
+        setprop persist.sys.usb.config mass_storage,adb
     ;;
 esac

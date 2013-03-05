@@ -31,8 +31,6 @@ For this time after the screen turns on, the Power Manager
 will not debounce light sensor readings -->
     <integer name="config_lightSensorWarmupTime">0</integer>
 
-    <string name="config_legacyUmsLunFile">/sys/devices/platform/msm_hsusb/gadget/lun0/file</string>
-
     <bool name="config_wifiApStartInterface">true</bool>
     <string-array name="config_locationProviderPackageNames" translatable="false">
         <!-- The standard AOSP fused location provider -->
@@ -40,9 +38,15 @@ will not debounce light sensor readings -->
         <!-- The Google Network Location Services location provider -->
         <item>com.google.android.location</item>
     </string-array>
+    
+    <!-- List of regexpressions describing the interface (if any) that represent tetherable
+         USB interfaces.  If the device doesn't want to support tething over USB this should
+         be empty.  An example would be "usb.*" -->
     <string-array translatable="false" name="config_tether_usb_regexs">
         <item>"rndis\\d"</item>
+	<item>"usb\\d"</item>
     </string-array>
+
     <integer-array translatable="false" name="config_tether_upstream_types">
         <item>0</item>
         <item>1</item>
