@@ -135,8 +135,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.com.google.networklocation=1 \
     ro.com.google.gmsversion=2.3_r6 \
     ro.setupwizard.enable_bypass=1 \
-    dalvik.vm.lockprof.threshold=500 \
-    dalvik.vm.dexopt-flags=m=y \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 
