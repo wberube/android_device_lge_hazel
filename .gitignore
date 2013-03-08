@@ -13,3 +13,4 @@
 *.rej
 *.orig
 *~
+*.patch
