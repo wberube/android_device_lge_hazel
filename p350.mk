@@ -115,7 +115,9 @@ PRODUCT_PACKAGES += \
     power.msm7x27 \
     lgapversion \
 
+# Misc
 PRODUCT_PACKAGES += \
+    libnetcmdiface.so \
     bdAddrLoader \
     hcitool \
     hciconfig \
