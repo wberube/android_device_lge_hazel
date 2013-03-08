@@ -121,7 +121,7 @@ PRODUCT_PACKAGES += \
 
 # Misc
 PRODUCT_PACKAGES += \
-    libnetcmdiface.so \
+    libnetcmdiface \
     bdAddrLoader \
     hcitool \
     hciconfig \
