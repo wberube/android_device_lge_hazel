@@ -20,7 +20,7 @@ mobiledata.interfaces=rmnet0,rmnet1,rmnet2
 ro.bt.bdaddr_path=/data/misc/bd_addr
 
 # see also: init.qcom.usb.rc and init.qcom.post_boot.sh
-persist.sys.usb.config=mass_storage,adb
+persist.sys.usb.config=mtp,adb
 persist.service.adb.enable=1
 
 #lcd
