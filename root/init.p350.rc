@@ -210,6 +210,7 @@ service dhcpservice /system/bin/netcfg wlan0 dhcp
     oneshot
 
 on property:dev.bootcomplete=1
+    stop bootanim
     stop dhcp-service
     start dhcp-service
 
