@@ -116,4 +116,13 @@ will not debounce light sensor readings -->
 
     <bool name="config_forceDisableHardwareKeyboard">true</bool>
     <integer name="config_backKillTimeout">1500</integer>
+
+    <!-- Minimum screen brightness setting allowed by the power manager.
+         The user is forbidden from setting the brightness below this level. -->
+    <integer name="config_screenBrightnessSettingMinimum">20</integer>
+
+    <!-- Screen brightness used to dim the screen when the user activity
+         timeout expires.  May be less than the minimum allowed brightness setting
+         that can be set by the user. -->
+    <integer name="config_screenBrightnessDim">20</integer>
 </resources>
