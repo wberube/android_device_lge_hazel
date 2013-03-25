@@ -74,6 +74,7 @@ PRODUCT_COPY_FILES += \
 
 # Display 
 PRODUCT_PACKAGES += \
+   hwcomposer.msm7x27 \
    libmemalloc \
    gralloc.msm7x27 \
    libgenlock \
@@ -81,7 +82,7 @@ PRODUCT_PACKAGES += \
    libtilerenderer \
    libopencorehw \
    libqdutils \
-   liboverlay
+   liboverlay 
 
 ## Audio
 PRODUCT_PACKAGES += \
