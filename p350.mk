@@ -159,7 +159,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     hwui.render_dirty_regions=false \
     hwui.print_config=choice \
     persist.sys.strictmode.visual=0 \
-    persist.sys.strictmode.disable=1 
+    persist.sys.strictmode.disable=1  \
+    sys.mem.max_hidden_apps=3
 
 PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-player=true \
