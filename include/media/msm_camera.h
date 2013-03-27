@@ -226,6 +226,7 @@ struct msm_isp_stats_event_ctrl {
 		struct msm_isp_evt_msg isp_msg;
 		struct msm_ctrl_cmd ctrl;
 	} isp_data;
+	uint32_t evt_id;
 };
 
 #define MSM_CAM_RESP_CTRL         0
@@ -426,6 +427,8 @@ struct msm_stats_buf {
 	int type;
 	unsigned long buffer;
 	int fd;
+	int length;
+	uint32_t frame_id;
 };
 
 #define MSM_V4L2_VID_CAP_TYPE	0

@@ -52,6 +52,10 @@ enum {
 
 /* name for copybit_set_parameter */
 enum {
+    /* Default blit destination is offline buffer */
+    /* clients to set this to '1', if blitting to framebuffer */
+    /* and reset to '0', after calling blit/stretch */
+    COPYBIT_BLIT_TO_FRAMEBUFFER = 0,
     /* rotation of the source image in degrees (0 to 359) */
     COPYBIT_ROTATION_DEG    = 1,
     /* plane alpha value */
@@ -60,9 +64,16 @@ enum {
     COPYBIT_DITHER          = 3,
     /* transformation applied (this is a superset of COPYBIT_ROTATION_DEG) */
     COPYBIT_TRANSFORM       = 4,
-    /* blurs the copied bitmap. The amount of blurring cannot be changed 
+    /* blurs the copied bitmap. The amount of blurring cannot be changed
      * at this time. */
-    COPYBIT_BLUR            = 5
+    COPYBIT_BLUR            = 5,
+    /* Informs the copybit that the source and destination contains
+       premultiplied alpha */
+    COPYBIT_PREMULTIPLIED_ALPHA  = 6,
+    /* FB width */
+    COPYBIT_FRAMEBUFFER_WIDTH = 7,
+    /* FB height */
+    COPYBIT_FRAMEBUFFER_HEIGHT = 8,
 };
 
 /* values for copybit_set_parameter(COPYBIT_TRANSFORM) */
@@ -207,10 +218,10 @@ struct copybit_device_t {
 
 /** convenience API for opening and closing a device */
 
-static inline int copybit_open(const struct hw_module_t* module, 
-        struct copybit_device_t** device) {
-    return module->methods->open(module, 
-            COPYBIT_HARDWARE_COPYBIT0, (struct hw_device_t**)device);
+static inline int copybit_open(const struct hw_module_t* module,
+                               struct copybit_device_t** device) {
+    return module->methods->open(module,
+                                 COPYBIT_HARDWARE_COPYBIT0, (struct hw_device_t**)device);
 }
 
 static inline int copybit_close(struct copybit_device_t* device) {
