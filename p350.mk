@@ -79,7 +79,6 @@ PRODUCT_PACKAGES += \
    gralloc.msm7x27 \
    libgenlock \
    copybit.msm7x27 \
-   libtilerenderer \
    libopencorehw \
    libqdutils \
    liboverlay 
