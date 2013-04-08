@@ -158,6 +158,9 @@ on boot
 # Wakelock debug
   write /sys/module/wakelock/parameters/debug_mask 7
 
+# Make smartassV2 as default governor
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor smartassV2
+
 #############################################################################
 ### S E R V I C E S                                                        ##
 #############################################################################
