@@ -47,7 +47,6 @@ PRODUCT_COPY_FILES += \
 
 # BT startup
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/bluetooth/init.qcom.bt.sh:system/bin/init.qcom.bt.sh \
     $(LOCAL_PATH)/bluetooth/bt_vendor.conf:system/etc/bluetooth/bt_vendor.conf
 
 # Wifi
@@ -142,8 +141,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     libnetcmdiface \
     bdAddrLoader \
-    hcitool \
-    hciconfig \
     hwaddrs
 
 
