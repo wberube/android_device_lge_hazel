@@ -141,5 +141,8 @@ ENABLE_JSC_JIT := true
 ENABLE_WEBGL := true
 TARGET_FORCE_CPU_UPLOAD := true
 
+## Radio fixes
+BOARD_RIL_CLASS := ../../../device/lge/p350/ril/
+
 # Touch screen compatibility for jellybean
 BOARD_USE_LEGACY_TOUCHSCREEN := true
