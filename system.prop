@@ -42,6 +42,8 @@ persist.sys.purgeable_assets=1
 # HwaSettings
 hwui.use.blacklist=true
 
+ro.hwaccel.lockscreen=0
+
 # System
 ro.compcache.default=26
 sys.checkfs.fat=false
