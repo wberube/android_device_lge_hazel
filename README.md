@@ -1,6 +1,6 @@
 PecanCM Project
 ========================
-Here LGE Optimus Me device folder for build Cyanogenmod 10/10.1, Android 4.1.2/4.2.x
+Here LGE Optimus Me device folder for build Cyanogenmod 10.1, Android 4.2.2
 
 1. Operating System:
 --------------------------------
@@ -46,7 +46,7 @@ Another small wait time and we're ready!
 
 7. Installing:
 --------------
-- Grab new file named cm-10.1-(DATE)-UNOFFICIAL-p350 from cm10/out/target/product/p350
+- Grab new file named cm-10.1-(DATE)-UNOFFICIAL-p350 from cm10.1/out/target/product/p350
 - Push ZIP to SD Card and install
 - Install Google Apps
 
