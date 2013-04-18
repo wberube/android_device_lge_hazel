@@ -13,9 +13,9 @@ $(call inherit-product, vendor/cm/config/common_mini_phone.mk)
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_BUILD_PROP_OVERRIDES += \
-    BUILD_DISPLAY_ID=JDQ39 \
-    BUILD_FINGERPRINT="lge/pecan/pecan:4.2.2/JDQ39/20111018:user/release-keys" \
-    PRIVATE_BUILD_DESC="pecan-user 4.2.2 JDQ39 20111018 release-keys"
+    BUILD_DISPLAY_ID=JDQ39E \
+    BUILD_FINGERPRINT="lge/pecan/pecan:4.2.2/JDQ39E/20111018:user/release-keys" \
+    PRIVATE_BUILD_DESC="pecan-user 4.2.2 JDQ39E 20111018 release-keys"
 
 PRODUCT_DEVICE := p350
 PRODUCT_NAME := cm_p350
