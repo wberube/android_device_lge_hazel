@@ -31,4 +31,3 @@ struct msm_audio_amrnb_enc_config_v2 {
 	uint32_t frame_format;
 };
 #endif /* __MSM_AUDIO_AMRNB_H */
-

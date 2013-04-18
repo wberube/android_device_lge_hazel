@@ -64,4 +64,3 @@ struct msm_audio_voicememo_config {
 };
 
 #endif /* __MSM_AUDIO_VOICEMEMO_H */
-

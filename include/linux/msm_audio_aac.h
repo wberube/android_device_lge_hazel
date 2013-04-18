@@ -70,4 +70,3 @@ struct msm_audio_aac_enc_config {
 };
 
 #endif /* __MSM_AUDIO_AAC_H */
-

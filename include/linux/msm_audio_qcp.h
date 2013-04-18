@@ -35,4 +35,3 @@ struct msm_audio_evrc_enc_config {
 };
 
 #endif /* __MSM_AUDIO_QCP_H */
-
