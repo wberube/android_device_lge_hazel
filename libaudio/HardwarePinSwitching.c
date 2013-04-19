@@ -37,7 +37,7 @@
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <linux/i2c.h>
-#include "i2c-dev.h"
+#include <linux/i2c-dev.h>
 
 #define LOG_TAG "BTFMPinSwitching"
 #include <utils/Log.h>
