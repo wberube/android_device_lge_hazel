@@ -129,9 +129,7 @@ PRODUCT_PACKAGES += \
 
 # Camera
 PRODUCT_PACKAGES += \
-     camera.p350 \
-     libcamera
-
+     camera.p350
 
 # Other
 PRODUCT_PACKAGES += \
