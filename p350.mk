@@ -38,6 +38,8 @@ PRODUCT_COPY_FILES += \
 
 # Configs
 PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/synaptics-rmi-touchscreen.idc:system/usr/idc/synaptics-rmi-touchscreen.idc \
+    $(LOCAL_PATH)/configs/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc \
     $(LOCAL_PATH)/configs/7k_handset.kl:system/usr/keylayout/7k_handset.kl \
     $(LOCAL_PATH)/configs/qwerty.kl:system/usr/keylayout/qwerty.kl \
     $(LOCAL_PATH)/configs/Generic.kl:system/usr/keylayout/Generic.kl \
