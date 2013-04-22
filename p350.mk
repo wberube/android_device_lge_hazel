@@ -127,10 +127,15 @@ PRODUCT_PACKAGES += \
     Stk \
     HwaSettings
 
+# Camera
+PRODUCT_PACKAGES += \
+     camera.p350 \
+     libcamera
+
+
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    camera.p350 \
     lights.p350 \
     gps.p350 \
     gps.msm7x27 \
