@@ -43,13 +43,7 @@ LOCAL_C_INCLUDES += hardware/libhardware_legacy/include
 LOCAL_C_INCLUDES += frameworks/base/include
 LOCAL_C_INCLUDES += system/core/include
 
-ifndef TARGET_PREBUILT_KERNEL
-LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
-LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
-endif
-
-
-include 
+include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
