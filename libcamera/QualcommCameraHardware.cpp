@@ -590,6 +590,11 @@ static const str_map flash[] = {
 static const str_map iso[] = {
     { CameraParameters::ISO_AUTO,  CAMERA_ISO_AUTO},
     { CameraParameters::ISO_HJR,   CAMERA_ISO_DEBLUR},
+#ifdef ADDITIONAL_ISO_MODES
+    { CameraParameters::ISO_SPORTS,CAMERA_ISO_SPORTS},
+    { CameraParameters::ISO_NIGHT, CAMERA_ISO_NIGHT},
+    { CameraParameters::ISO_MOVIE, CAMERA_ISO_MOVIE},
+#endif
     { CameraParameters::ISO_100,   CAMERA_ISO_100},
     { CameraParameters::ISO_200,   CAMERA_ISO_200},
     { CameraParameters::ISO_400,   CAMERA_ISO_400},
