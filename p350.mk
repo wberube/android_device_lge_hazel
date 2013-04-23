@@ -139,7 +139,6 @@ PRODUCT_PACKAGES += \
     lights.p350 \
     gps.p350 \
     gps.msm7x27 \
-    power.p350 \
     lgapversion \
 
 # Misc
