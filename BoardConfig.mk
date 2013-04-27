@@ -120,6 +120,9 @@ BOARD_USES_QCOM_HARDWARE := true
 # RIL
 TARGET_PROVIDES_LIBRIL := true
 
+# powerhal
+TARGET_PROVIDES_POWERHAL := true
+
 # USB mass storage
 BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/class/android_usb/android0/f_mass_storage/lun/file
