@@ -109,6 +109,8 @@ static uint32_t SND_DEVICE_BT=-1;
 static uint32_t SND_DEVICE_BT_EC_OFF=-1;
 static uint32_t SND_DEVICE_HEADSET=-1;
 static uint32_t SND_DEVICE_STEREO_HEADSET_AND_SPEAKER=-1;
+static uint32_t SND_DEVICE_HEADSET_STEREO=-1;
+static uint32_t SND_DEVICE_HEADSET_AND_SPEAKER=-1;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_HANDSET=-1;
 static uint32_t SND_DEVICE_IN_S_SADC_OUT_SPEAKER_PHONE=-1;
 static uint32_t SND_DEVICE_TTY_HEADSET=-1;
@@ -160,6 +162,8 @@ AudioHardware::AudioHardware() :
                 CHECK_FOR(BT_EC_OFF);
                 CHECK_FOR(HEADSET);
                 CHECK_FOR(STEREO_HEADSET_AND_SPEAKER);
+                CHECK_FOR(HEADSET_STEREO);
+                CHECK_FOR(HEADSET_AND_SPEAKER);
                 CHECK_FOR(IN_S_SADC_OUT_HANDSET);
                 CHECK_FOR(IN_S_SADC_OUT_SPEAKER_PHONE);
                 CHECK_FOR(TTY_HEADSET);
@@ -172,6 +176,8 @@ AudioHardware::AudioHardware() :
                 CHECK_FOR(FM_ANALOG_STEREO_HEADSET);
                 CHECK_FOR(FM_ANALOG_STEREO_HEADSET_CODEC);
 #endif
+                CHECK_FOR(CARKIT);
+                CHECK_FOR(NO_MIC_HEADSET);
 #undef CHECK_FOR
             }
         }
@@ -1096,10 +1102,10 @@ static int msm72xx_enable_postproc(bool state)
         device_id = 1;
         ALOGI("set device to SND_DEVICE_HANDSET device_id=1");
     }
-    if(snd_device == SND_DEVICE_HEADSET)
+    if(snd_device == SND_DEVICE_HEADSET_STEREO || snd_device == SND_DEVICE_HEADSET)
     {
         device_id = 2;
-        ALOGI("set device to SND_DEVICE_HEADSET device_id=2");
+        ALOGI("set device to SND_DEVICE_HEADSET_STEREO/SND_DEVICE_HEADSET device_id=2");
     }
     if(snd_device == SND_DEVICE_SPEAKER_IN_CALL)
     {
@@ -1309,7 +1315,7 @@ status_t AudioHardware::setVoiceVolume(float v)
     // setting Rx volume level as 2 for minimum and 7 as max level.
     v = 0.4 + v;
 
-    int vol = lrint(v * 5.0);
+    int vol = lrint(v * 6.0) + 1;
     ALOGD("setVoiceVolume(%f)\n", v);
     ALOGI("Setting in-call volume to %d (available range is 2 to 7)\n", vol);
 
@@ -1343,6 +1349,7 @@ status_t AudioHardware::setFmVolume(float v)
     set_volume_rpc(SND_DEVICE_CURRENT, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     return NO_ERROR;
 }
+
 #endif
 
 status_t AudioHardware::setMasterVolume(float v)
@@ -1355,6 +1362,8 @@ status_t AudioHardware::setMasterVolume(float v)
     set_volume_rpc(SND_DEVICE_SPEAKER_IN_CALL, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_BT,      SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_HEADSET, SND_METHOD_VOICE, vol, m7xsnddriverfd);
+    set_volume_rpc(SND_DEVICE_HEADSET_STEREO, SND_METHOD_VOICE, vol, m7xsnddriverfd);
+    set_volume_rpc(SND_DEVICE_NO_MIC_HEADSET, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_IN_S_SADC_OUT_HANDSET, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_IN_S_SADC_OUT_SPEAKER_PHONE, SND_METHOD_VOICE, vol, m7xsnddriverfd);
     set_volume_rpc(SND_DEVICE_TTY_HEADSET, SND_METHOD_VOICE, 1, m7xsnddriverfd);
@@ -1507,7 +1516,7 @@ status_t AudioHardware::doRouting(AudioStreamInMSM72xx *input)
                 new_snd_device = SND_DEVICE_BT;
             } else if (inputDevice & AudioSystem::DEVICE_IN_WIRED_HEADSET) {
                     ALOGI("Routing audio to Wired Headset\n");
-                    new_snd_device = SND_DEVICE_HEADSET;
+                    new_snd_device = SND_DEVICE_HEADSET_STEREO; //STEREO
 #ifdef QCOM_FM_ENABLED
             } else if (inputDevice & AudioSystem::DEVICE_IN_FM_RX_A2DP) {
                     ALOGI("Routing audio from FM to Bluetooth A2DP\n");
@@ -1596,7 +1605,7 @@ status_t AudioHardware::doRouting(AudioStreamInMSM72xx *input)
             new_snd_device = SND_DEVICE_CARKIT;
         } else if (outputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADSET) {
             ALOGI("Routing audio to Wired Headset\n");
-            new_snd_device = SND_DEVICE_HEADSET;
+            new_snd_device = SND_DEVICE_HEADSET_STEREO; //STEREO
             new_post_proc_feature_mask = (ADRC_ENABLE | EQ_ENABLE | RX_IIR_ENABLE | MBADRC_ENABLE);
         } else if (outputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADPHONE) {
             ALOGI("Routing audio to Wired Headphone\n");
@@ -1815,7 +1824,8 @@ status_t AudioHardware::AudioStreamInVoip::set(
         return BAD_VALUE;
     }
 
-    if (pChannels == 0 || (*pChannels & (AudioSystem::CHANNEL_IN_MONO)) == 0) {
+    if (pChannels == 0 || (*pChannels & (AudioSystem::CHANNEL_IN_MONO | AudioSystem::CHANNEL_IN_STEREO)) == 0)
+    {
         *pChannels = AUDIO_HW_IN_CHANNELS;
         ALOGE(" Channle count does not match\n");
         return BAD_VALUE;
@@ -3076,9 +3086,11 @@ ssize_t AudioHardware::AudioStreamInMSM72xx::read( void* buffer, ssize_t bytes)
 
         ssize_t bytesRead = ::read(mFd, p, count);
         if (bytesRead > 0) {
+            ALOGV("Number of Bytes read = %d", bytesRead);
             count -= bytesRead;
             p += bytesRead;
             bytes += bytesRead;
+            ALOGV("Total Number of Bytes read = %d", bytes);
 
             if (mFormat == AudioSystem::AAC){
                 *frameSizePtr =  bytesRead;
