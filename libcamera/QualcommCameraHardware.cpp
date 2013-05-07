@@ -915,8 +915,8 @@ QualcommCameraHardware::QualcommCameraHardware()
       mFrameThreadRunning(false),
       mVideoThreadRunning(false),
       mSnapshotThreadRunning(false),
-      mInSnapshotMode(false),
       mJpegThreadRunning(false),
+      mInSnapshotMode(false),
       mSnapshotFormat(0),
       mReleasedRecordingFrame(false),
       mPreviewFrameSize(0),
@@ -1906,7 +1906,7 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
         }
     }
 
-    if(mCurrentTarget != TARGET_MSM7630) {
+    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_MSM7227) ) {
         int rotation = mParameters.getInt("rotation");
         if (rotation >= 0) {
             ALOGV("native_jpeg_encode, rotation = %d", rotation);
@@ -2432,7 +2432,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     //For offline jpeg hw encoder, jpeg encoder will provide us the
     //required offsets and buffer size depending on the rotation.
     int yOffset = 0;
-    if( mCurrentTarget == TARGET_MSM7630 ) {
+    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM7227) ) {
         int rotation = mParameters.getInt("rotation");
         if (rotation >= 0) {
             ALOGV("initRaw, jpeg_rotation = %d", rotation);
@@ -3598,7 +3598,7 @@ void QualcommCameraHardware::releaseRecordingFrame(
         ALOGV(" in release recording frame :  heap base %x offset %x buffer %lx ", (unsigned int)heap->base(), (unsigned int)offset, (unsigned int)heap->base() + offset );
         int cnt;
         for (cnt = 0; cnt < kRecordBufferCount; cnt++) {
-            if((unsigned int)recordframes[cnt].buffer == (unsigned int)heap->base()+ offset){
+            if((unsigned int)recordframes[cnt].buffer == ((unsigned int)heap->base()+ offset)){
                 ALOGV("in release recording frame found match , releasing buffer %x", (unsigned int)recordframes[cnt].buffer);
                 releaseframe = &recordframes[cnt];
                 break;
@@ -4882,7 +4882,7 @@ bool QualcommCameraHardware::isValidDimension(int width, int height) {
      && (height <= sensorType->max_supported_snapshot_height) )
     {
         uint32_t pictureAspectRatio = (uint32_t)((width * Q12)/height);
-        for(int i = 0; i < THUMBNAIL_SIZE_COUNT; i++ ) {
+        for(uint32_t i = 0; i < THUMBNAIL_SIZE_COUNT; i++ ) {
             if(thumbnail_sizes[i].aspect_ratio == pictureAspectRatio) {
                 retVal = TRUE;
                 break;
