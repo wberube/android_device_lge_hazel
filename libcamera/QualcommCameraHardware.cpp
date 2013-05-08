@@ -2278,6 +2278,39 @@ bool QualcommCameraHardware::initPreview()
         return false;
     }
 
+    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
+        || (mCurrentTarget == TARGET_MSM7227) ) {
+        mPostViewHeap.clear();
+	if(mPostViewHeap == NULL) {
+        ALOGV(" Allocating Postview heap ");
+        /* mPostViewHeap should be declared only for 7630 target */
+	    mPostViewHeap =
+		new PmemPool("/dev/pmem_adsp",
+			MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
+			mCameraControlFd,
+			MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
+			mPreviewFrameSize,
+			1,
+			mPreviewFrameSize,
+                        CbCrOffset,
+                        0,
+			"postview");
+
+	    if (!mPostViewHeap->initialized()) {
+		mPostViewHeap.clear();
+		ALOGE(" Failed to initialize Postview Heap");
+		return false;
+	    }
+	}
+    }
+
+    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660)) {
+
+        // Allocate video buffers after allocating preview buffers.
+        initRecord();
+    }
+
+
     // mDimension will be filled with thumbnail_width, thumbnail_height,
     // orig_picture_dx, and orig_picture_dy after this function call. We need to
     // keep it for jpeg_encoder_encode.
@@ -2600,8 +2633,9 @@ void QualcommCameraHardware::release()
         stopPreviewInternal();
     }
 
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660) ) {
-	mPostViewHeap.clear();
+    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
+        || (mCurrentTarget == TARGET_MSM7227) ) {
+    mPostViewHeap.clear();
         mPostViewHeap = NULL;
     }
     LINK_jpeg_encoder_join();
@@ -3102,10 +3136,11 @@ status_t QualcommCameraHardware::takePicture()
         ALOGV("takePicture: old snapshot thread completed.");
     }
 
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)) {
-	/* Store the last frame queued for preview. This
-	 * shall be used as postview */
-	storePreviewFrameForPostview();
+    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
+        || (mCurrentTarget == TARGET_MSM7227) ) {
+    /* Store the last frame queued for preview. This
+     * shall be used as postview */
+    storePreviewFrameForPostview();
     }
 
     //mSnapshotFormat is protected by mSnapshotThreadWaitLock
@@ -3486,19 +3521,42 @@ void QualcommCameraHardware::receivePreviewFrame(struct msm_frame *frame)
           frameCnt++;
 #endif
     mInPreviewCallback = true;
-	if (crop->in2_w != 0 || crop->in2_h != 0) {
-	    dstOffset = (dstOffset + 1) % NUM_MORE_BUFS;
-		ALOGV("dstOffset=0x%X", (unsigned int)dstOffset);
-	    offset = kPreviewBufferCount + dstOffset;
-		ALOGV("offset=0x%X", (unsigned int)offset);
-	    ssize_t dstOffset_addr = offset * mPreviewHeap->mAlignedBufferSize;
-		ALOGV("dstOffset_addr=0x%X", (unsigned int)dstOffset_addr);
-	    if( !native_zoom_image(mPreviewHeap->mHeap->getHeapID(),
-			offset_addr, dstOffset_addr, crop)) {
-		ALOGV(" Error while doing MDP zoom ");
+    if(mUseOverlay) {
+        if(mOverlay != NULL) {
+            mOverlayLock.lock();
+            mOverlay->setFd(mPreviewHeap->mHeap->getHeapID());
+            if (crop->in2_w != 0 || crop->in2_h != 0) {
+                zoomCropInfo.x = (crop->out2_w - crop->in2_w + 1) / 2 - 1;
+                zoomCropInfo.y = (crop->out2_h - crop->in2_h + 1) / 2 - 1;
+                zoomCropInfo.w = crop->in2_w;
+                zoomCropInfo.h = crop->in2_h;
+                mOverlay->setCrop(zoomCropInfo.x, zoomCropInfo.y,
+                        zoomCropInfo.w, zoomCropInfo.h);
+            } else {
+                // Reset zoomCropInfo variables. This will ensure that
+                // stale values wont be used for postview
+                zoomCropInfo.w = crop->in2_w;
+                zoomCropInfo.h = crop->in2_h;
+            }
+            mOverlay->queueBuffer((void *)offset_addr);
+            mLastQueuedFrame = (void *)frame->buffer;
+            mOverlayLock.unlock();
+        }
+    } else {
+	    if (crop->in2_w != 0 || crop->in2_h != 0) {
+	        dstOffset = (dstOffset + 1) % NUM_MORE_BUFS;
+	        offset = kPreviewBufferCount + dstOffset;
+	        ssize_t dstOffset_addr = offset * mPreviewHeap->mAlignedBufferSize;
+	        if( !native_zoom_image(mPreviewHeap->mHeap->getHeapID(),
+			  offset_addr, dstOffset_addr, crop)) {
+		        ALOGE(" Error while doing MDP zoom ");
                 offset = offset_addr / mPreviewHeap->mAlignedBufferSize;
-	    }
-	}
+	        }
+        }
+        if (mCurrentTarget == TARGET_MSM7227) {
+            mLastQueuedFrame = (void *)mPreviewHeap->mBuffers[offset]->pointer();
+        }
+    }
     if (pcb != NULL && (msgEnabled & CAMERA_MSG_PREVIEW_FRAME))
         pcb(CAMERA_MSG_PREVIEW_FRAME, mPreviewHeap->mBuffers[offset],
             pdata);
@@ -3724,7 +3782,12 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
 
         // To workaround a bug in MDP which happens if either
         // dimension > 2048, we display the thumbnail instead.
-        mDisplayHeap = mRawHeap;
+
+        if (mCurrentTarget == TARGET_MSM7227)
+            mDisplayHeap = mPostViewHeap;
+        else
+            mDisplayHeap = mRawHeap;
+
         if (crop->in1_w == 0 || crop->in1_h == 0) {
             // Full size
             size.width = mDimension.picture_width;
@@ -3734,6 +3797,12 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
                 size.height = mDimension.ui_thumbnail_height;
                 mDisplayHeap = mThumbnailHeap;
             }
+            else {
+                if (mCurrentTarget == TARGET_MSM7227) {
+                    size.width = previewWidth;
+                    size.height = previewHeight;
+                }
+            }
         } else {
             // Cropped
             size.width = (crop->in2_w + jpegPadding) & ~1;
@@ -3742,6 +3811,12 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
                 size.width = (crop->in1_w + jpegPadding) & ~1;
                 size.height = (crop->in1_h + jpegPadding) & ~1;
                 mDisplayHeap = mThumbnailHeap;
+            }
+            else {
+                if (mCurrentTarget == TARGET_MSM7227) {
+                    size.width = previewWidth;
+                    size.height = previewHeight;
+                }
             }
         }
         /* Now, invoke Notify Callback to unregister preview buffer
@@ -3762,10 +3837,21 @@ static void receive_shutter_callback(common_crop_t *crop)
 // Crop the picture in place.
 static void crop_yuv420(uint32_t width, uint32_t height,
                  uint32_t cropped_width, uint32_t cropped_height,
-                 uint8_t *image)
+                 uint8_t *image, const char *name)
 {
     uint32_t i, x, y;
     uint8_t* chroma_src, *chroma_dst;
+    int yOffsetSrc, yOffsetDst, CbCrOffsetSrc, CbCrOffsetDst;
+    int mSrcSize, mDstSize;
+
+    //check if all fields needed eg. size and also how to set y offset. If condition for 7x27
+    //and need to check if needed for 7x30.
+
+    LINK_jpeg_encoder_get_buffer_offset(width, height, (uint32_t *)&yOffsetSrc,
+                                       (uint32_t *)&CbCrOffsetSrc, (uint32_t *)&mSrcSize);
+
+    LINK_jpeg_encoder_get_buffer_offset(cropped_width, cropped_height, (uint32_t *)&yOffsetDst,
+                                       (uint32_t *)&CbCrOffsetDst, (uint32_t *)&mDstSize);
 
     // Calculate the start position of the cropped area.
     x = (width - cropped_width) / 2;
@@ -3775,12 +3861,23 @@ static void crop_yuv420(uint32_t width, uint32_t height,
 
     // Copy luma component.
     for(i = 0; i < cropped_height; i++)
-        memcpy(image + i * cropped_width,
-               image + width * (y + i) + x,
+        memcpy(image + yOffsetDst + i * cropped_width,
+               image + yOffsetSrc + width * (y + i) + x,
                cropped_width);
 
-    chroma_src = image + width * height;
-    chroma_dst = image + cropped_width * cropped_height;
+    if((mCurrentTarget == TARGET_MSM7227)
+       || (mCurrentTarget == TARGET_MSM7630)) {
+        if (!strcmp("snapshot camera", name)) {
+            chroma_src = image + CbCrOffsetSrc;
+            chroma_dst = image + CbCrOffsetDst;
+        } else {
+            chroma_src = image + width * height;
+            chroma_dst = image + cropped_width * cropped_height;
+        }
+    } else {
+       chroma_src = image + CbCrOffsetSrc;
+       chroma_dst = image + CbCrOffsetDst;
+    }
 
     // Copy chroma components.
     cropped_height /= 2;
@@ -3790,7 +3887,6 @@ static void crop_yuv420(uint32_t width, uint32_t height,
                chroma_src + width * (y + i) + x,
                cropped_width);
 }
-
 
 void QualcommCameraHardware::receiveRawSnapshot(){
     ALOGV("receiveRawSnapshot E");
@@ -3850,10 +3946,16 @@ void QualcommCameraHardware::receiveRawPicture()
             // By the time native_get_picture returns, picture is taken. Call
             // shutter callback if cam config thread has not done that.
             notifyShutter(&mCrop);
+            {
+                Mutex::Autolock l(&mRawPictureHeapLock);
+                if(mRawHeap != NULL)
                     crop_yuv420(mCrop.out2_w, mCrop.out2_h, (mCrop.in2_w + jpegPadding), (mCrop.in2_h + jpegPadding),
-                            (uint8_t *)mRawHeap->mHeap->base());
+                            (uint8_t *)mRawHeap->mHeap->base(), mRawHeap->mName);
+                if(mThumbnailHeap != NULL) {
                     crop_yuv420(mCrop.out1_w, mCrop.out1_h, (mCrop.in1_w + jpegPadding), (mCrop.in1_h + jpegPadding),
-                            (uint8_t *)mThumbnailHeap->mHeap->base());
+                            (uint8_t *)mThumbnailHeap->mHeap->base(), mThumbnailHeap->mName);
+                }
+            }
 
             // We do not need jpeg encoder to upscale the image. Set the new
             // dimension for encoder.
