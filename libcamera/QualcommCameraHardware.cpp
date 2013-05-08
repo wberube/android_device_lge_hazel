@@ -1963,7 +1963,7 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
         }
     }
 
-    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_MSM7227) ) {
+    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_MSM7227) && (mCurrentTarget != TARGET_MSM8660) ) {
         int rotation = mParameters.getInt("rotation");
         if (rotation >= 0) {
             ALOGV("native_jpeg_encode, rotation = %d", rotation);
@@ -2606,7 +2606,7 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     //For offline jpeg hw encoder, jpeg encoder will provide us the
     //required offsets and buffer size depending on the rotation.
     int yOffset = 0;
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM7227) ) {
+    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM7227) || (mCurrentTarget == TARGET_MSM8660)) {
         int rotation = mParameters.getInt("rotation");
         if (rotation >= 0) {
             ALOGV("initRaw, jpeg_rotation = %d", rotation);
@@ -4007,7 +4007,8 @@ static void crop_yuv420(uint32_t width, uint32_t height,
     y &= ~1;
 
     if((mCurrentTarget == TARGET_MSM7227)
-       || (mCurrentTarget == TARGET_MSM7630)) {
+       || (mCurrentTarget == TARGET_MSM7630)
+       || (mCurrentTarget == TARGET_MSM8660)) {
         if (!strcmp("snapshot camera", name)) {
             chroma_src = image + CbCrOffsetSrc;
             chroma_dst = image + CbCrOffsetDst;
