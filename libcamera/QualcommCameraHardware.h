@@ -85,6 +85,17 @@ typedef enum {
     CAMERA_BESTSHOT_AR,
 } camera_scene_mode_t;
 
+typedef enum {
+  CAMERA_YUV_420_NV12,
+  CAMERA_YUV_420_NV21,
+  CAMERA_YUV_420_NV21_ADRENO,
+  CAMERA_BAYER_SBGGR10,
+  CAMERA_RDI,
+  CAMERA_YUV_420_YV12,
+  CAMERA_YUV_422_NV16,
+  CAMERA_YUV_422_NV61
+} cam_format_t;
+
 /* Values originally in proprietary headers */
 
 #define MSM_CAMERA_CONTROL "/dev/msm_camera/control0"
@@ -107,7 +118,9 @@ typedef enum {
 #define CAMERA_EXPOSURE_COMPENSATION_STEP 1
 
 #define CEILING16(x) (x&0xfffffff0)
+#define CEILING32(X) (((X) + 0x0001F) & 0xFFFFFFE0)
 #define PAD_TO_WORD(x) ((x&1) ? x+1 : x)
+#define PAD_TO_4K(a)                 (((a)+4095)&~4095)
 
 #define JPEG_EVENT_DONE 0
 #define CAM_CTRL_SUCCESS 1
@@ -147,6 +160,14 @@ typedef struct {
 	unsigned short raw_picture_width;
 	unsigned short filler7;
 	unsigned short filler8;
+        unsigned short prev_format;
+        unsigned short enc_format;
+        unsigned short thumb_format;
+        unsigned short main_img_format;
+        unsigned short display_luma_width;
+        unsigned short display_luma_height;
+        unsigned short display_chroma_width;
+        unsigned short display_chroma_height;
 } cam_ctrl_dimension_t;
 
 typedef struct {
@@ -603,7 +624,8 @@ private:
     status_t setSceneMode(const CameraParameters& params);
     status_t setContinuousAf(const CameraParameters& params);
     status_t setSceneDetect(const CameraParameters& params);
-
+    status_t setStrTextures(const CameraParameters& params);
+    status_t setPreviewFormat(const CameraParameters& params);
     void setGpsParameters();
     void storePreviewFrameForPostview();
     bool isValidDimension(int w, int h);
