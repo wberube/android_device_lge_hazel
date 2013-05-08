@@ -640,6 +640,11 @@ static const str_map focus_modes[] = {
     { CameraParameters::LENSSHADE_DISABLE, FALSE }
 };*/
 
+/*static const str_map continuous_af[] = {
+    { CameraParameters::CONTINUOUS_AF_OFF, FALSE },
+    { CameraParameters::CONTINUOUS_AF_ON, TRUE }
+};*/
+
 struct SensorType {
     const char *name;
     int rawPictureWidth;
@@ -680,6 +685,7 @@ static String8 iso_values;
 //static String8 lensshade_values;
 static String8 picture_format_values;
 static String8 scenemode_values;
+//static String8 continuous_af_values;
 static String8 preview_frame_rate_values;
 
 static String8 create_sizes_str(const camera_size_type *sizes, int len) {
@@ -1043,6 +1049,10 @@ void QualcommCameraHardware::initDefaultParameters()
             iso,sizeof(iso)/sizeof(str_map));
         /*lensshade_values = create_values_str(
             lensshade,sizeof(lensshade)/sizeof(str_map));*/
+        /*if(sensorType->hasAutoFocusSupport){
+            continuous_af_values = create_values_str(
+                continuous_af, sizeof(continuous_af) / sizeof(str_map));
+        }*/
         picture_format_values = create_values_str(
             picture_formats, sizeof(picture_formats)/sizeof(str_map));
         preview_frame_rate_values = create_values_range_str(
@@ -1189,6 +1199,10 @@ void QualcommCameraHardware::initDefaultParameters()
  
     mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,
                     scenemode_values);
+    /*mParameters.set(CameraParameters::KEY_CONTINUOUS_AF,
+                    CameraParameters::CONTINUOUS_AF_OFF);
+    mParameters.set(CameraParameters::KEY_SUPPORTED_CONTINUOUS_AF,
+                    continuous_af_values)*/
     if (setParameters(mParameters) != NO_ERROR) {
         ALOGV("Failed to set default parameters?!");
     }
@@ -3084,6 +3098,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
     if ((rc = setPictureFormat(params))) final_rc = rc;
     //if ((rc = setSharpness(params)))    final_rc = rc;
     if ((rc = setSaturation(params)))   final_rc = rc;
+    //if ((rc = setContinuousAf(params)))  final_rc = rc;
     if ((rc = setSceneMode(params)))    final_rc = rc;
     if ((rc = setContrast(params)))     final_rc = rc;
 
@@ -4191,12 +4206,31 @@ status_t QualcommCameraHardware::setAntibanding(const CameraParameters& params)
         if (value != NOT_FOUND) {
             int8_t temp = (int8_t)value;
             mParameters.set(CameraParameters::KEY_LENSSHADE, str);
+
             native_set_parm(CAMERA_SET_PARM_ROLLOFF, sizeof(int8_t), (void *)&temp);
 		ALOGV("native_set_parm(CAMERA_SET_PARM_ROLLOFF");
             return NO_ERROR;
         }
     }
     ALOGV("Invalid lensShade value: %s", (str == NULL) ? "NULL" : str);
+    return BAD_VALUE;
+}*/
+
+/*status_t QualcommCameraHardware::setContinuousAf(const CameraParameters& params)
+{
+    const char *str = params.get(CameraParameters::KEY_CONTINUOUS_AF);
+    if (str != NULL) {
+        int value = attr_lookup(continuous_af,
+                                    sizeof(continuous_af) / sizeof(str_map), str);
+        if (value != NOT_FOUND) {
+            int8_t temp = (int8_t)value;
+            mParameters.set(CameraParameters::KEY_CONTINUOUS_AF, str);
+
+            native_set_parm(CAMERA_SET_CAF, sizeof(int8_t), (void *)&temp);
+            return NO_ERROR;
+        }
+    }
+    ALOGE("Invalid continuous Af value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }*/
 
