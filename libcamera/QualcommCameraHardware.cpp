@@ -960,7 +960,8 @@ QualcommCameraHardware::QualcommCameraHardware()
       mCallbackCookie(0),
       mInitialized(false),
       mDebugFps(0),
-      mSnapshotDone(0)
+      mSnapshotDone(0),
+      mResetOverlayCrop(false)
 {
     ALOGI("QualcommCameraHardware constructor E");
     // Start opening camera device in a separate thread/ Since this
@@ -3682,11 +3683,25 @@ void QualcommCameraHardware::receivePreviewFrame(struct msm_frame *frame)
                 zoomCropInfo.h = crop->in2_h;
                 mOverlay->setCrop(zoomCropInfo.x, zoomCropInfo.y,
                         zoomCropInfo.w, zoomCropInfo.h);
+                /* Set mResetOverlayCrop to true, so that when there is
+                 * no crop information, setCrop will be called
+                 * with zero crop values.
+                 */
+                mResetOverlayCrop = true;
             } else {
                 // Reset zoomCropInfo variables. This will ensure that
                 // stale values wont be used for postview
                 zoomCropInfo.w = crop->in2_w;
                 zoomCropInfo.h = crop->in2_h;
+                /* This reset is required, if not, overlay driver continues
+                 * to use the old crop information for these preview
+                 * frames which is not the correct behavior. To avoid
+                 * multiple calls, reset once.
+                 */
+                if(mResetOverlayCrop == true){
+                    mOverlay->setCrop(0, 0,previewWidth, previewHeight);
+                    mResetOverlayCrop = false;
+                }
             }
             mOverlay->queueBuffer((void *)offset_addr);
             mLastQueuedFrame = (void *)frame->buffer;

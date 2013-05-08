@@ -699,6 +699,8 @@ private:
     int kPreviewBufferCountActual;
     int previewWidth, previewHeight;
     bool mSnapshotDone;
+
+    bool mResetOverlayCrop;
 };
 
 }; // namespace android
