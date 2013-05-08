@@ -200,12 +200,12 @@ static camera_size_type supportedPreviewSizes[PREVIEW_SIZE_COUNT];
 static unsigned int previewSizeCount;
 
 board_property boardProperties[] = {
-        {TARGET_MSM7227, 0x00000fff},
-        {TARGET_MSM7625, 0x00000fff},
-        {TARGET_MSM7627, 0x000006ff},
-        {TARGET_MSM7630, 0x00000fff},
-        {TARGET_MSM8660, 0x00000fff},
-        {TARGET_QSD8250, 0x00000fff}
+        {TARGET_MSM7227, 0x00000fff, false},
+        {TARGET_MSM7625, 0x00000fff, false},
+        {TARGET_MSM7627, 0x000006ff, false},
+        {TARGET_MSM7630, 0x00000fff, true},
+        {TARGET_MSM8660, 0x00000fff, true},
+        {TARGET_QSD8250, 0x00000fff, true}
 };
 
 //static const camera_size_type* picture_sizes;
@@ -556,7 +556,6 @@ static struct country_map country_numeric[] = {
     { 750, CAMERA_ANTIBANDING_50HZ }, // Falkland Islands
 };
 
-
 static const str_map scenemode[] = {
     { CameraParameters::SCENE_MODE_AUTO,           CAMERA_BESTSHOT_OFF },
     { CameraParameters::SCENE_MODE_ACTION,         CAMERA_BESTSHOT_ACTION },
@@ -575,6 +574,11 @@ static const str_map scenemode[] = {
     { CameraParameters::SCENE_MODE_CANDLELIGHT,    CAMERA_BESTSHOT_CANDLELIGHT },
     { CameraParameters::SCENE_MODE_BACKLIGHT,      CAMERA_BESTSHOT_BACKLIGHT },
     { CameraParameters::SCENE_MODE_FLOWERS,        CAMERA_BESTSHOT_FLOWERS },
+};
+
+static const str_map scenedetect[] = {
+    { CameraParameters::SCENE_DETECT_OFF, FALSE  },
+    { CameraParameters::SCENE_DETECT_ON, TRUE },
 };
 
 #define country_number (sizeof(country_numeric) / sizeof(country_map))
@@ -692,6 +696,7 @@ static String8 picture_format_values;
 static String8 scenemode_values;
 //static String8 continuous_af_values;
 static String8 preview_frame_rate_values;
+static String8 scenedetect_values;
 
 static String8 create_sizes_str(const camera_size_type *sizes, int len) {
     String8 str;
@@ -974,7 +979,6 @@ QualcommCameraHardware::QualcommCameraHardware()
     ALOGV("constructor EX");
 }
 
-
 void QualcommCameraHardware::filterPreviewSizes(){
 
     unsigned int boardMask = 0;
@@ -1017,6 +1021,18 @@ void QualcommCameraHardware::filterPictureSizes(){
             return ;
         }
     }
+}
+
+bool QualcommCameraHardware::supportsSceneDetection() {
+   int prop = 0;
+   for(prop=0; prop<sizeof(boardProperties)/sizeof(board_property); prop++) {
+       if((mCurrentTarget == boardProperties[prop].target)
+          && boardProperties[prop].hasSceneDetect == true) {
+           return true;
+           break;
+       }
+   }
+   return false;
 }
 
 void QualcommCameraHardware::initDefaultParameters()
@@ -1063,10 +1079,15 @@ void QualcommCameraHardware::initDefaultParameters()
             picture_formats, sizeof(picture_formats)/sizeof(str_map));
         preview_frame_rate_values = create_values_range_str(
             MINIMUM_FPS, MAXIMUM_FPS);
-        parameter_string_initialized = true;
 
         scenemode_values = create_values_str(
             scenemode, sizeof(scenemode) / sizeof(str_map));
+        if(supportsSceneDetection()) {
+            scenedetect_values = create_values_str(
+                scenedetect, sizeof(scenedetect) / sizeof(str_map));
+        }
+
+        parameter_string_initialized = true;
     }
 
     mParameters.setPreviewSize(DEFAULT_PREVIEW_WIDTH, DEFAULT_PREVIEW_HEIGHT);
@@ -1201,14 +1222,17 @@ void QualcommCameraHardware::initDefaultParameters()
     }*/
 
      mParameters.set(CameraParameters::KEY_SCENE_MODE,
-                    CameraParameters::SCENE_MODE_AUTO);
- 
+                    CameraParameters::SCENE_MODE_AUTO); 
     mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,
                     scenemode_values);
     /*mParameters.set(CameraParameters::KEY_CONTINUOUS_AF,
                     CameraParameters::CONTINUOUS_AF_OFF);
     mParameters.set(CameraParameters::KEY_SUPPORTED_CONTINUOUS_AF,
                     continuous_af_values)*/
+     mParameters.set(CameraParameters::KEY_SCENE_DETECT,
+                    CameraParameters::SCENE_DETECT_OFF);
+    mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_DETECT,
+                    scenedetect_values);
     if (setParameters(mParameters) != NO_ERROR) {
         ALOGV("Failed to set default parameters?!");
     }
@@ -3187,6 +3211,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
     //if ((rc = setContinuousAf(params)))  final_rc = rc;
     if ((rc = setSceneMode(params)))    final_rc = rc;
     if ((rc = setContrast(params)))     final_rc = rc;
+    if ((rc = setSceneDetect(params)))  final_rc = rc;
 
     ALOGV("setParameters: X");
     //return final_rc;
@@ -4367,6 +4392,40 @@ status_t  QualcommCameraHardware::setISOValue(const CameraParameters& params) {
     return BAD_VALUE;
 }
 
+status_t QualcommCameraHardware::setSceneDetect(const CameraParameters& params)
+{
+
+    bool retParm1, retParm2;
+    if (supportsSceneDetection()) {
+        const char *str = params.get(CameraParameters::KEY_SCENE_DETECT);
+        if (str != NULL) {
+            int32_t value = attr_lookup(scenedetect, sizeof(scenedetect) / sizeof(str_map), str);
+            if (value != NOT_FOUND) {
+                mParameters.set(CameraParameters::KEY_SCENE_DETECT, str);
+
+                retParm1 = native_set_parm(CAMERA_SET_PARM_BL_DETECTION_ENABLE, sizeof(value),
+                                           (void *)&value);
+
+                retParm2 = native_set_parm(CAMERA_SET_PARM_SNOW_DETECTION_ENABLE, sizeof(value),
+                                           (void *)&value);
+
+                //All Auto Scene detection modes should be all ON or all OFF.
+                if(retParm1 == false || retParm2 == false) {
+                    value = !value;
+                    retParm1 = native_set_parm(CAMERA_SET_PARM_BL_DETECTION_ENABLE, sizeof(value),
+                                               (void *)&value);
+
+                    retParm2 = native_set_parm(CAMERA_SET_PARM_SNOW_DETECTION_ENABLE, sizeof(value),
+                                               (void *)&value);
+                }
+                return (retParm1 && retParm2) ? NO_ERROR : UNKNOWN_ERROR;
+            }
+        }
+    ALOGE("Invalid auto scene detection value: %s", (str == NULL) ? "NULL" : str);
+    return BAD_VALUE;
+    }
+    return NO_ERROR;
+}
 
 status_t QualcommCameraHardware::setSceneMode(const CameraParameters& params)
 {

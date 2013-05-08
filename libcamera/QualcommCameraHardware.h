@@ -61,6 +61,7 @@ struct target_map {
 struct board_property{
     targetType target;
     unsigned int previewSizeMask;
+    bool hasSceneDetect;
 };
 
 typedef enum {
@@ -313,6 +314,8 @@ enum camera_ops {
     CAMERA_PREPARE_SNAPSHOT,
     CAMERA_SET_FPS_MODE,
     CAMERA_SET_PARM_SCENE_MODE,
+    CAMERA_SET_PARM_BL_DETECTION_ENABLE,
+    CAMERA_SET_PARM_SNOW_DETECTION_ENABLE,
 };
 
 typedef enum {
@@ -570,6 +573,7 @@ private:
     void filterPictureSizes();
     void filterPreviewSizes();
     void storeTargetType();
+    bool supportsSceneDetection();
 
     void initDefaultParameters();
     void findSensorType();
@@ -598,6 +602,7 @@ private:
     status_t setSaturation(const CameraParameters& params);
     status_t setSceneMode(const CameraParameters& params);
     status_t setContinuousAf(const CameraParameters& params);
+    status_t setSceneDetect(const CameraParameters& params);
 
     void setGpsParameters();
     void storePreviewFrameForPostview();
