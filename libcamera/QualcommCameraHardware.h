@@ -1,6 +1,6 @@
 /*
 ** Copyright 2008, Google Inc.
-** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
+** Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
 ** Copyright (c) 2010, Ricardo Cerqueira
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,6 +61,27 @@ struct board_property{
     targetType target;
     unsigned int previewSizeMask;
 };
+
+typedef enum {
+    CAMERA_BESTSHOT_OFF,
+    CAMERA_BESTSHOT_ACTION,
+    CAMERA_BESTSHOT_PORTRAIT,
+    CAMERA_BESTSHOT_LANDSCAPE,
+    CAMERA_BESTSHOT_NIGHT,
+    CAMERA_BESTSHOT_NIGHT_PORTRAIT,
+    CAMERA_BESTSHOT_THEATRE,
+    CAMERA_BESTSHOT_BEACH,
+    CAMERA_BESTSHOT_SNOW,
+    CAMERA_BESTSHOT_SUNSET,
+    CAMERA_BESTSHOT_ANTISHAKE,
+    CAMERA_BESTSHOT_FIREWORKS,
+    CAMERA_BESTSHOT_SPORTS,
+    CAMERA_BESTSHOT_PARTY,
+    CAMERA_BESTSHOT_CANDLELIGHT,
+    CAMERA_BESTSHOT_BACKLIGHT,
+    CAMERA_BESTSHOT_FLOWERS,
+    CAMERA_BESTSHOT_AR,
+} camera_scene_mode_t;
 
 /* Values originally in proprietary headers */
 
@@ -572,6 +593,8 @@ private:
     status_t setSharpness(const CameraParameters& params);
     status_t setContrast(const CameraParameters& params);
     status_t setSaturation(const CameraParameters& params);
+    status_t setSceneMode(const CameraParameters& params);
+
     void setGpsParameters();
     void storePreviewFrameForPostview();
     bool isValidDimension(int w, int h);
