@@ -181,6 +181,7 @@ union zoomimage
  */
 
 static const camera_size_type preview_sizes[] = {
+    { 1920, 1088 }, //1080p
     { 1280, 720 }, // 720P, reserved
     { 800, 480 }, // WVGA
     { 768, 432 },
@@ -204,7 +205,7 @@ board_property boardProperties[] = {
         {TARGET_MSM7625, 0x00000fff, false},
         {TARGET_MSM7627, 0x000006ff, false},
         {TARGET_MSM7630, 0x00000fff, true},
-        {TARGET_MSM8660, 0x00000fff, true},
+        {TARGET_MSM8660, 0x00001fff, true},
         {TARGET_QSD8250, 0x00000fff, true}
 };
 
@@ -665,7 +666,7 @@ struct SensorType {
 };
 
 static SensorType sensorTypes[] = {
-        { "12mp", 4096, 3120, false, 4096, 3120,0x00000fff },
+        { "12mp", 4096, 3120, false, 4096, 3120,0x00001fff },
         { "5mp", 2608, 1960, true,  2592, 1944,0x00000fff },
         { "5mp", 5184, 1944, true,  2592, 1944,0x00000fff }, // actual 5MP blade
         { "5mp", 2560, 1920, true,  2560, 1920,0x00000fff }, //should be 5MP blade
