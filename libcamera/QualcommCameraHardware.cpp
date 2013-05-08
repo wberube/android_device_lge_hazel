@@ -219,6 +219,12 @@ board_property boardProperties[] = {
  */
 //sorted on column basis
 static const camera_size_type picture_sizes[] = {
+#ifdef BOARD_CAMERA_12MP
+   { 4000, 3000 }, // 12MP
+#endif
+#ifdef BOARD_CAMERA_8MP
+   { 3200, 2400 }, // 8MP
+#endif
 #ifdef BOARD_CAMERA_5MP
     { 2592, 1944 }, // 5MP
     { 2560, 1920 }, // 5MP (slightly reduced)
@@ -667,6 +673,7 @@ struct SensorType {
 
 static SensorType sensorTypes[] = {
         { "12mp", 4096, 3120, false, 4096, 3120,0x00001fff },
+        { "12mp_sn12m0pz",4032, 3024, true,  4000, 3000,0x00000fff },
         { "5mp", 2608, 1960, true,  2592, 1944,0x00000fff },
         { "5mp", 5184, 1944, true,  2592, 1944,0x00000fff }, // actual 5MP blade
         { "5mp", 2560, 1920, true,  2560, 1920,0x00000fff }, //should be 5MP blade
