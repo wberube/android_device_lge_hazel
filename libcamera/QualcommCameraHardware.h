@@ -666,6 +666,7 @@ private:
     int mDebugFps;
     int kPreviewBufferCountActual;
     int previewWidth, previewHeight;
+    bool mSnapshotDone;
 };
 
 }; // namespace android
