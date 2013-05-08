@@ -954,7 +954,7 @@ QualcommCameraHardware::QualcommCameraHardware()
       mDebugFps(0),
       mSnapshotDone(0)
 {
-
+    ALOGI("QualcommCameraHardware constructor E");
     // Start opening camera device in a separate thread/ Since this
     // initializes the sensor hardware, this can take a long time. So,
     // start the process here so it will be ready by the time it's
@@ -1057,7 +1057,7 @@ bool QualcommCameraHardware::supportsSceneDetection() {
 
 void QualcommCameraHardware::initDefaultParameters()
 {
-    ALOGV("initDefaultParameters E");
+    ALOGI("initDefaultParameters E");
 
     // Initialize constant parameter strings. This will happen only once in the
     // lifetime of the mediaserver process.
@@ -1275,7 +1275,7 @@ void QualcommCameraHardware::initDefaultParameters()
 
     mInitialized = true;
 
-    ALOGV("initDefaultParameters X");
+    ALOGI("initDefaultParameters X");
 }
 
 void QualcommCameraHardware::findSensorType(){
@@ -2726,7 +2726,7 @@ void QualcommCameraHardware::deinitRaw()
 
 void QualcommCameraHardware::release()
 {
-    ALOGD("release E");
+    ALOGI("release E");
     Mutex::Autolock l(&mLock);
 
 #if DLOPEN_LIBMMCAMERA
@@ -2740,6 +2740,7 @@ void QualcommCameraHardware::release()
 
     int cnt, rc;
     struct msm_ctrl_cmd ctrlCmd;
+    ALOGI("release: mCameraRunning = %d", mCameraRunning);
     if (mCameraRunning) {
         if(mDataCallbackTimestamp && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME)) {
             mRecordFrameLock.lock();
@@ -2748,6 +2749,7 @@ void QualcommCameraHardware::release()
             mRecordFrameLock.unlock();
         }
         stopPreviewInternal();
+        ALOGI("release: stopPreviewInternal done.");
     }
 
     if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
@@ -2795,7 +2797,9 @@ void QualcommCameraHardware::release()
     singleton_releasing_start_time = systemTime();
     singleton_lock.unlock();
 
-    ALOGD("release X");
+    ALOGI("release X: mCameraRunning = %d, mFrameThreadRunning = %d", mCameraRunning, mFrameThreadRunning);
+    ALOGI("mVideoThreadRunning = %d, mSnapshotThreadRunning = %d, mJpegThreadRunning = %d", mVideoThreadRunning, mSnapshotThreadRunning, mJpegThreadRunning);
+    ALOGI("camframe_timeout_flag = %d, mAutoFocusThreadRunning = %d", camframe_timeout_flag, mAutoFocusThreadRunning);
 }
 
 QualcommCameraHardware::~QualcommCameraHardware()
@@ -2812,7 +2816,7 @@ QualcommCameraHardware::~QualcommCameraHardware()
     singleton_releasing_start_time = 0;
     singleton_wait.signal();
     singleton_lock.unlock();
-    ALOGD("~QualcommCameraHardware X");
+    ALOGI("~QualcommCameraHardware X");
 }
 
 sp<IMemoryHeap> QualcommCameraHardware::getRawHeap() const
@@ -2936,7 +2940,7 @@ void QualcommCameraHardware::stopPreviewInternal()
 	}
 	else ALOGV("stopPreviewInternal: failed to stop preview");
     }
-    ALOGV("stopPreviewInternal X: %d", mCameraRunning);
+    ALOGI("stopPreviewInternal X: %d", mCameraRunning);
 }
 
 void QualcommCameraHardware::stopPreview()
@@ -3400,7 +3404,7 @@ status_t QualcommCameraHardware::sendCommand(int32_t command, int32_t arg1,
 
 extern "C" sp<CameraHardwareInterface> openCameraHardware()
 {
-    ALOGV("openCameraHardware: call createInstance");
+    ALOGI("openCameraHardware: call createInstance");
     return QualcommCameraHardware::createInstance();
 }
 
@@ -3476,6 +3480,7 @@ sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
     sp<QualcommCameraHardware> hardware(cam);
     singleton = hardware;
 
+    ALOGI("createInstance: created hardware=%p", &(*hardware));
     if (!cam->startCamera()) {
         ALOGV("%s: startCamera failed!", __FUNCTION__);
         singleton_lock.unlock();
@@ -3483,8 +3488,8 @@ sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
     }
 
     cam->initDefaultParameters();
-    ALOGD("createInstance: X created hardware=%p", &(*hardware));
     singleton_lock.unlock();
+    ALOGI("createInstance: X");
     return hardware;
 }
 
@@ -4051,6 +4056,7 @@ void QualcommCameraHardware::receiveRawSnapshot(){
 
     //cleanup
     deinitRawSnapshot();
+    ALOGI("release: clearing resources done.");
 
     ALOGV("receiveRawSnapshot X");
 }
