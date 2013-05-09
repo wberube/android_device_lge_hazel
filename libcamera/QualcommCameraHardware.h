@@ -96,6 +96,10 @@ typedef enum {
 } camera_scene_mode_t;
 
 typedef enum {
+  CAM_CTRL_INVALID_PARM,
+} cam_ctrl_status_t;
+
+typedef enum {
   CAMERA_YUV_420_NV12,
   CAMERA_YUV_420_NV21,
   CAMERA_YUV_420_NV21_ADRENO,
@@ -529,6 +533,7 @@ private:
     bool native_set_dimension (int camfd);
     bool native_jpeg_encode (void);
     bool native_set_parm(cam_ctrl_type type, uint16_t length, void *value);
+    bool native_set_parm(cam_ctrl_type type, uint16_t length, void *value, int *result);
     bool native_zoom_image(int fd, int srcOffset, int dstOffset, common_crop_t *crop);
 
     static wp<QualcommCameraHardware> singleton;
