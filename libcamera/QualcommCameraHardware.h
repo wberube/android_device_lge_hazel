@@ -609,6 +609,7 @@ private:
     void findSensorType();
 
     status_t setPreviewSize(const CameraParameters& params);
+    status_t setJpegThumbnailSize(const CameraParameters& params);
     status_t setPreviewFrameRate(const CameraParameters& params);
     status_t setPreviewFrameRateMode(const CameraParameters& params);
     status_t setPictureSize(const CameraParameters& params);
