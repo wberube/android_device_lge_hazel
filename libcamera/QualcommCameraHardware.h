@@ -45,6 +45,13 @@ struct str_map {
     int val;
 };
 
+typedef enum {
+    AUTO,
+    SPOT,
+    CENTER_WEIGHTED,
+    AVERAGE
+} select_zone_af_t;
+
 typedef enum{
     TARGET_MSM7227,
     TARGET_MSM7625,
@@ -64,6 +71,7 @@ struct board_property{
     targetType target;
     unsigned int previewSizeMask;
     bool hasSceneDetect;
+    bool hasSelectableZoneAf;
 };
 
 typedef enum {
@@ -660,6 +668,7 @@ private:
     void filterPreviewSizes();
     void storeTargetType();
     bool supportsSceneDetection();
+    bool supportsSelectableZoneAf();
 
     void initDefaultParameters();
     void findSensorType();
@@ -693,6 +702,7 @@ private:
     status_t setSceneDetect(const CameraParameters& params);
     status_t setStrTextures(const CameraParameters& params);
     status_t setPreviewFormat(const CameraParameters& params);
+    status_t setSelectableZoneAf(const CameraParameters& params);
     void setGpsParameters();
     void storePreviewFrameForPostview();
     bool isValidDimension(int w, int h);
@@ -771,4 +781,3 @@ private:
 }; // namespace android
 
 #endif
-
