@@ -2999,14 +2999,27 @@ void QualcommCameraHardware::release()
         ALOGI("release: stopPreviewInternal done.");
     }
     LINK_jpeg_encoder_join();
-    {
-        deinitRaw();
-    }
+
     //Signal the snapshot thread
     mJpegThreadWaitLock.lock();
     mJpegThreadRunning = false;
     mJpegThreadWait.signal();
     mJpegThreadWaitLock.unlock();
+
+    // Wait for snapshot thread to complete before clearing the
+    // resources.
+    mSnapshotThreadWaitLock.lock();
+    while (mSnapshotThreadRunning) {
+        ALOGV("takePicture: waiting for old snapshot thread to complete.");
+        mSnapshotThreadWait.wait(mSnapshotThreadWaitLock);
+        ALOGV("takePicture: old snapshot thread completed.");
+    }
+    mSnapshotThreadWaitLock.unlock();
+
+    {
+        Mutex::Autolock l (&mRawPictureHeapLock);
+        deinitRaw();
+    }
 
     deinitRawSnapshot();
     
