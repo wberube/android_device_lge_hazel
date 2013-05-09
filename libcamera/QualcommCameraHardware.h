@@ -362,6 +362,7 @@ enum camera_ops {
     CAMERA_SET_PARM_SCENE_MODE,
     CAMERA_SET_PARM_BL_DETECTION_ENABLE,
     CAMERA_SET_PARM_SNOW_DETECTION_ENABLE,
+    CAMERA_SET_SCE_FACTOR,
 };
 
 typedef enum {
@@ -688,6 +689,7 @@ private:
     status_t setZoom(const CameraParameters& params);
     status_t setFocusMode(const CameraParameters& params);
     status_t setBrightness(const CameraParameters& params);
+    status_t setSkinToneEnhancement(const CameraParameters& params);
     status_t setExposureCompensation(const CameraParameters& params);
     status_t setOrientation(const CameraParameters& params);
     status_t setLensshadeValue(const CameraParameters& params);
@@ -755,6 +757,7 @@ private:
     bool mInitialized;
 
     int mBrightness;
+    int mSkinToneEnhancement;
     int mHJR;
     struct msm_frame frames[kPreviewBufferCount];
     struct msm_frame *recordframes;

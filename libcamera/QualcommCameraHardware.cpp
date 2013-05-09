@@ -688,6 +688,11 @@ static const str_map focus_modes[] = {
     { CameraParameters::HISTOGRAM_DISABLE, FALSE }
 };*/
 
+static const str_map skinToneEnhancement[] = {
+    { CameraParameters::SKIN_TONE_ENHANCEMENT_ENABLE, TRUE },
+    { CameraParameters::SKIN_TONE_ENHANCEMENT_DISABLE, FALSE }
+};
+
 static const str_map selectable_zone_af[] = {
     { CameraParameters::SELECTABLE_ZONE_AF_AUTO,  AUTO },
     { CameraParameters::SELECTABLE_ZONE_AF_SPOT_METERING, SPOT },
@@ -759,6 +764,7 @@ static String8 frame_rate_mode_values;
 static String8 scenedetect_values;
 static String8 preview_format_values;
 //static String8 histogram_values;
+static String8 skinToneEnhancement_values;
 static String8 selectable_zone_af_values;
 
 static String8 create_sizes_str(const camera_size_type *sizes, int len) {
@@ -998,6 +1004,7 @@ QualcommCameraHardware::QualcommCameraHardware()
       mAutoFocusThreadRunning(false),
       mAutoFocusFd(-1),
       mBrightness(0),
+      mSkinToneEnhancement(0),
       mHJR(0),
       mInPreviewCallback(false),
       mUseOverlay(0),
@@ -1176,6 +1183,11 @@ void QualcommCameraHardware::initDefaultParameters()
           histogram_values = create_values_str(
                 histogram,sizeof(histogram)/sizeof(str_map));
         }*/
+        //Currently Enabling Skin Tone Enhancement for 8x60 and 7630
+        if((mCurrentTarget == TARGET_MSM8660)||(mCurrentTarget == TARGET_MSM7630)) {
+            skinToneEnhancement_values = create_values_str(
+                skinToneEnhancement,sizeof(skinToneEnhancement)/sizeof(str_map));
+        }
         picture_format_values = create_values_str(
             picture_formats, sizeof(picture_formats)/sizeof(str_map));
         preview_frame_rate_values = create_values_range_str(
@@ -1319,6 +1331,7 @@ void QualcommCameraHardware::initDefaultParameters()
             CAMERA_EXPOSURE_COMPENSATION_STEP);
 
     mParameters.set("luma-adaptation", "3");
+    mParameters.set("skinToneEnhancement", "0");
     mParameters.set("zoom-supported", "true");
     mParameters.set("zoom-ratios", "100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200");
     mParameters.set("max-zoom", MAX_ZOOM_LEVEL);
@@ -1355,6 +1368,10 @@ void QualcommCameraHardware::initDefaultParameters()
                     CameraParameters::HISTOGRAM_DISABLE);
     mParameters.set(CameraParameters::KEY_SUPPORTED_HISTOGRAM_MODES,
                     histogram_values);*/
+     mParameters.set(CameraParameters::KEY_SKIN_TONE_ENHANCEMENT,
+                    CameraParameters::SKIN_TONE_ENHANCEMENT_DISABLE);
+    mParameters.set(CameraParameters::KEY_SUPPORTED_SKIN_TONE_ENHANCEMENT_MODES,
+                    skinToneEnhancement_values);
      mParameters.set(CameraParameters::KEY_SCENE_MODE,
                     CameraParameters::SCENE_MODE_AUTO);
     mParameters.set("strtextures", "OFF");
@@ -3548,6 +3565,7 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
     if ((rc = setSceneDetect(params)))  final_rc = rc;
     if ((rc = setStrTextures(params)))   final_rc = rc;
     if ((rc = setPreviewFormat(params)))   final_rc = rc;
+    if ((rc = setSkinToneEnhancement(params)))   final_rc = rc;
 
    const char *str = params.get(CameraParameters::KEY_SCENE_MODE);
     int32_t value = attr_lookup(scenemode, sizeof(scenemode) / sizeof(str_map), str);
@@ -4982,6 +5000,21 @@ status_t QualcommCameraHardware::setExposureCompensation(const CameraParameters&
                                        (void *)&expcomp);
 	ALOGV("native_set_parm(CAMERA_SET_PARM_EXPOSURE_COMPENSATION");
         return ret ? NO_ERROR : UNKNOWN_ERROR;
+}
+
+status_t QualcommCameraHardware::setSkinToneEnhancement(const CameraParameters& params) {
+         int skinToneValue = params.getInt("skinToneEnhancement");
+         if (mSkinToneEnhancement != skinToneValue) {
+              ALOGV(" new skinTone correction value : %d ", skinToneValue);
+              mSkinToneEnhancement = skinToneValue;
+              mParameters.set("skinToneEnhancement", skinToneValue);
+
+              bool ret = native_set_parm(CAMERA_SET_SCE_FACTOR, sizeof(mSkinToneEnhancement),
+                             (void *)&mSkinToneEnhancement);
+              return ret ? NO_ERROR : UNKNOWN_ERROR;
+        } else {
+              return NO_ERROR;
+       }
 }
 
 status_t QualcommCameraHardware::setWhiteBalance(const CameraParameters& params)
