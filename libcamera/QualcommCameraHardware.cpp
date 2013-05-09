@@ -1129,7 +1129,6 @@ void QualcommCameraHardware::initDefaultParameters()
     mDimension.display_width = DEFAULT_PREVIEW_WIDTH;
     mDimension.display_height = DEFAULT_PREVIEW_HEIGHT;
 
-    /* C3C0 20120503 */
     mParameters.setPreviewFrameRate(DEFAULT_FPS);
     if((strcmp(mSensorInfo.name, "vx6953")) &&
         (strcmp(mSensorInfo.name, "VX6953")) &&
@@ -1183,7 +1182,8 @@ void QualcommCameraHardware::initDefaultParameters()
     frame_rate_mode_values = create_values_str(
             frame_rate_modes, sizeof(frame_rate_modes) / sizeof(str_map));
     if((strcmp(mSensorInfo.name, "vx6953")) &&
-        (strcmp(mSensorInfo.name, "VX6953"))){
+        (strcmp(mSensorInfo.name, "VX6953")) &&
+        (strcmp(sensorType->name, "2mp"))){
         mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATE_MODES,
                     frame_rate_mode_values.string());
     }
@@ -4371,7 +4371,8 @@ status_t QualcommCameraHardware::setPreviewFrameRate(const CameraParameters& par
 status_t QualcommCameraHardware::setPreviewFrameRateMode(const CameraParameters& params) {
     //Temporary check for mipi sensor
     if((!strcmp(mSensorInfo.name, "vx6953")) ||
-        (!strcmp(mSensorInfo.name, "VX6953"))){
+        (!strcmp(mSensorInfo.name, "VX6953")) ||
+        (!strcmp(sensorType->name, "2mp"))){
         ALOGI("set fps mode is not supported for this sensor");
         return NO_ERROR;
     }
