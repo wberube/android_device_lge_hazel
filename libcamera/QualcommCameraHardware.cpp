@@ -1010,6 +1010,7 @@ QualcommCameraHardware::QualcommCameraHardware()
       mInitialized(false),
       mDebugFps(0),
       mSnapshotDone(0),
+      mSnapshotPrepare(0),
       mResetOverlayCrop(false),
       mThumbnailWidth(0),
       mThumbnailHeight(0)
@@ -3333,6 +3334,8 @@ status_t QualcommCameraHardware::autoFocus()
                ALOGV("native_prepare_snapshot failed!\n");
                mAutoFocusThreadLock.unlock();
                return UNKNOWN_ERROR;
+            } else {
+                mSnapshotPrepare = TRUE;
             }
 
             // Create a detached thread here so that we don't have to wait
@@ -3486,12 +3489,14 @@ status_t QualcommCameraHardware::takePicture()
         mSnapshotFormat = PICTURE_FORMAT_JPEG;
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
-        if(!native_prepare_snapshot(mCameraControlFd)) {
-            mSnapshotThreadWaitLock.unlock();
-            return UNKNOWN_ERROR;
+        if(!mSnapshotPrepare){
+            if(!native_prepare_snapshot(mCameraControlFd)) {
+                mSnapshotThreadWaitLock.unlock();
+                return UNKNOWN_ERROR;
+            }
         }
     }
-
+    mSnapshotPrepare = FALSE;
     stopPreviewInternal();
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){

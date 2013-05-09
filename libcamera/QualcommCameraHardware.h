@@ -773,6 +773,7 @@ private:
     int kPreviewBufferCountActual;
     int previewWidth, previewHeight;
     bool mSnapshotDone;
+    bool mSnapshotPrepare;
     mm_camera_config mCfgControl;
     bool mResetOverlayCrop;
     int mThumbnailWidth, mThumbnailHeight;
