@@ -22,6 +22,8 @@ LOCAL_CFLAGS+= -DNUM_PREVIEW_BUFFERS=2 -D_ANDROID_
 
 LOCAL_C_INCLUDES+= \
     $(TARGET_OUT_HEADERS)/mm-camera \
+    $(TARGET_OUT_HEADERS)/mm-camera/common \
+    $(TARGET_OUT_HEADERS)/mm-camera \
     $(TARGET_OUT_HEADERS)/mm-still/jpeg \
 
 LOCAL_SHARED_LIBRARIES:= libutils libui libcamera_client liblog libcutils

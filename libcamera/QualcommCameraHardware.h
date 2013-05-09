@@ -35,7 +35,9 @@
 
 extern "C" {
 #include <linux/android_pmem.h>
-#include <linux/msm_camera.h>
+#include <media/msm_camera.h>
+#include <camera/camera.h>
+//#include <mm_camera_interface.h>
 }
 
 struct str_map {
@@ -237,6 +239,16 @@ typedef enum {
   FPS_MODE_FIXED,
 } fps_mode_t;
 
+typedef enum {
+  CAM_STATS_TYPE_HIST,
+  CAM_STATS_TYPE_MAX
+} camstats_type;
+
+typedef struct {
+  int32_t  buffer[256];       /* buffer to hold data */
+  int32_t  max_value;
+} camera_preview_histogram_info;
+
 struct fifo_queue {
 	int num_of_frames;
 	int front;
@@ -343,6 +355,38 @@ enum camera_ops {
     CAMERA_SET_PARM_BL_DETECTION_ENABLE,
     CAMERA_SET_PARM_SNOW_DETECTION_ENABLE,
 };
+
+typedef enum {
+  CAMERA_PARM_PICT_SIZE,
+  CAMERA_PARM_HISTOGRAM,
+  MM_CAMERA_STATUS_SUCCESS,
+}mm_camera_parm_type_t;
+
+typedef enum {
+  MM_CAMERA_SUCCESS,
+  MM_CAMERA_ERR_GENERAL,
+  MM_CAMERA_ERR_NO_MEMORY,
+  MM_CAMERA_ERR_NOT_SUPPORTED,
+  MM_CAMERA_ERR_INVALID_INPUT,
+  MM_CAMERA_ERR_INVALID_OPERATION,
+  MM_CAMERA_ERR_ENCODE,
+  MM_CAMERA_ERR_BUFFER_REG,
+  MM_CAMERA_ERR_PMEM_ALLOC,
+  MM_CAMERA_ERR_CAPTURE_FAILED,
+  MM_CAMERA_ERR_CAPTURE_TIMEOUT,
+} mm_camera_status_t;
+
+typedef struct {
+  mm_camera_status_t (*mm_camera_query_parms) (mm_camera_parm_type_t parm_type,
+    void** pp_values, uint32_t* p_count);
+  mm_camera_status_t (*mm_camera_set_parm) (mm_camera_parm_type_t parm_type,
+    void* p_value);
+  mm_camera_status_t(*mm_camera_get_parm) (mm_camera_parm_type_t parm_type,
+    void* p_value);
+  int8_t (*mm_camera_is_supported) (mm_camera_parm_type_t parm_type);
+  int8_t (*mm_camera_is_parm_supported) (mm_camera_parm_type_t parm_type,
+   void* sub_parm);
+} mm_camera_config;
 
 typedef enum {
 	CAMERA_RSP_CB_SUCCESS,
@@ -455,6 +499,7 @@ public:
     static sp<QualcommCameraHardware> getInstance();
 
     void receivePreviewFrame(struct msm_frame *frame);
+    void receiveCameraStats(camstats_type stype, camera_preview_histogram_info* histinfo);
     void receiveRecordingFrame(struct msm_frame *frame);
     void receiveJpegPicture(void);
     void jpeg_set_location();
@@ -466,6 +511,8 @@ private:
     QualcommCameraHardware();
     virtual ~QualcommCameraHardware();
     status_t startPreviewInternal();
+    status_t setHistogramOn();
+    status_t setHistogramOff();
     void stopPreviewInternal();
     friend void *auto_focus_thread(void *user);
     void runAutoFocus();
@@ -549,6 +596,7 @@ private:
     sp<PmemPool> mRawHeap;
     sp<PmemPool> mDisplayHeap;
     sp<AshmemPool> mJpegHeap;
+    sp<AshmemPool> mStatHeap;
     sp<PmemPool> mRawSnapShotPmemHeap;
     sp<PmemPool> mPostViewHeap;
 
@@ -575,6 +623,14 @@ private:
     Condition mVideoThreadWait;
     friend void *video_thread(void *user);
     void runVideoThread(void *data);
+
+    // For Histogram
+    int mStatsOn;
+    int mCurrent;
+    bool mSendData;
+    Mutex mStatsWaitLock;
+    Condition mStatsWait;
+
 
 
     bool mShutterPending;
@@ -666,6 +722,7 @@ private:
     int                 mRawSize;
     int                 mCbCrOffsetRaw;
     int                 mJpegMaxSize;
+    int32_t                 mStatSize;
 
 #if DLOPEN_LIBMMCAMERA
     void *libmmcamera;
@@ -706,7 +763,7 @@ private:
     int kPreviewBufferCountActual;
     int previewWidth, previewHeight;
     bool mSnapshotDone;
-
+    mm_camera_config mCfgControl;
     bool mResetOverlayCrop;
 };
 
