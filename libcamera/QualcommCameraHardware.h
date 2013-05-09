@@ -765,6 +765,7 @@ private:
     bool mSnapshotDone;
     mm_camera_config mCfgControl;
     bool mResetOverlayCrop;
+    int mThumbnailWidth, mThumbnailHeight;
 };
 
 }; // namespace android

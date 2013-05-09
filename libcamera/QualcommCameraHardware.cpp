@@ -1001,7 +1001,9 @@ QualcommCameraHardware::QualcommCameraHardware()
       mInitialized(false),
       mDebugFps(0),
       mSnapshotDone(0),
-      mResetOverlayCrop(false)
+      mResetOverlayCrop(false),
+      mThumbnailWidth(0),
+      mThumbnailHeight(0)
 {
     ALOGI("QualcommCameraHardware constructor E");
     // Start opening camera device in a separate thread/ Since this
@@ -2112,7 +2114,9 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
     ALOGV("width %d and height %d", width , height);
 
     if(width != 0 && height != 0){
-        if (mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
+        if((mCurrentTarget == TARGET_MSM7630) ||
+           (mCurrentTarget == TARGET_MSM8660) ||
+           (mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)) {
             thumbnailHeap = (uint8_t *)mRawHeap->mHeap->base();
             thumbfd =  mRawHeap->mHeap->getHeapID();
         } else {
@@ -2124,7 +2128,9 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
         thumbfd = 0;
     }
 
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
+    if( (mCurrentTarget == TARGET_MSM7630) ||
+        (mCurrentTarget == TARGET_MSM8660) ||
+        (mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) ) {
         // Pass the main image as thumbnail buffer, so that jpeg encoder will
         // generate thumbnail based on main image.
         // Set the input and output dimensions for thumbnail generation to main
@@ -2132,32 +2138,56 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
        // encoder to do downscaling of the main image accordingly.
         mCrop.in1_w  = mDimension.orig_picture_dx;
         mCrop.in1_h  = mDimension.orig_picture_dy;
+         /* For Adreno format on targets that don't use VFE other output
+         * for postView, thumbnail_width and thumbnail_height has the
+         * actual thumbnail dimensions.
+         */
         mCrop.out1_w = mDimension.thumbnail_width;
         mCrop.out1_h = mDimension.thumbnail_height;
+       /* For targets, that uses VFE other output for postview,
+         * thumbnail_width and thumbnail_height has values based on postView
+         * dimensions(mostly previewWidth X previewHeight), but not based on
+         * required thumbnail dimensions. So, while downscaling, we need to
+         * pass the actual thumbnail dimensions, not the postview dimensions.
+         * mThumbnailWidth/Height has the required thumbnail dimensions, so
+         * use them here.
+         */
+        if( (mCurrentTarget == TARGET_MSM7630)||
+            (mCurrentTarget == TARGET_MSM8660)) {
+            mCrop.out1_w = mThumbnailWidth;
+            mCrop.out1_h = mThumbnailHeight;
+        }
         mDimension.thumbnail_width = mDimension.orig_picture_dx;
         mDimension.thumbnail_height = mDimension.orig_picture_dy;
+        ALOGV("mCrop.in1_w = %d, mCrop.in1_h = %d", mCrop.in1_w, mCrop.in1_h);
+        ALOGV("mCrop.out1_w = %d, mCrop.out1_h = %d", mCrop.out1_w, mCrop.out1_h);
+        ALOGV("mDimension.thumbnail_width = %d, mDimension.thumbnail_height = %d", mDimension.thumbnail_width, mDimension.thumbnail_height);
+        int CbCrOffset = -1;
+        if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
+            CbCrOffset = mCbCrOffsetRaw;
         if (!LINK_jpeg_encoder_encode(&mDimension,
                                       thumbnailHeap,
                                       thumbfd,
                                       (uint8_t *)mRawHeap->mHeap->base(),
                                       mRawHeap->mHeap->getHeapID(),
                                       &mCrop, exif_data, exif_table_numEntries,
-                                      jpegPadding/2, mCbCrOffsetRaw)) {
+                                      jpegPadding/2, CbCrOffset)) {
             ALOGE("native_jpeg_encode: jpeg_encoder_encode failed.");
             return false;
         }
     } else {
     if (!LINK_jpeg_encoder_encode(&mDimension,
                     thumbnailHeap,
-                    thumbfd,
-                    (uint8_t *)mRawHeap->mHeap->base(),
-                    mRawHeap->mHeap->getHeapID(),
-                    &mCrop, exif_data, exif_table_numEntries,
-                    jpegPadding/2, -1)) {
+                                     thumbfd,
+                                     (uint8_t *)mRawHeap->mHeap->base(),
+                                     mRawHeap->mHeap->getHeapID(),
+                                     &mCrop, exif_data, exif_table_numEntries,
+                                     jpegPadding/2, -1)) {
             ALOGE("native_jpeg_encode: jpeg_encoder_encode failed.");
             return false;
         }
     }
+
     return true;
 }
 
@@ -2483,30 +2513,29 @@ bool QualcommCameraHardware::initPreview()
         return false;
     }
 
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
-        || (mCurrentTarget == TARGET_MSM7227) ) {
+    if(mCurrentTarget == TARGET_MSM7227) {
         mPostViewHeap.clear();
 	if(mPostViewHeap == NULL) {
-        ALOGV(" Allocating Postview heap ");
-        /* mPostViewHeap should be declared only for 7630 target */
-	    mPostViewHeap =
-		new PmemPool("/dev/pmem_adsp",
-			MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
-			mCameraControlFd,
-			MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
-			mPreviewFrameSize,
-			1,
-			mPreviewFrameSize,
+            ALOGV(" Allocating Postview heap ");
+            /* mPostViewHeap should be declared only for 7630 target */
+            mPostViewHeap =
+                new PmemPool("/dev/pmem_adsp",
+                        MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
+                        mCameraControlFd,
+                        MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
+                        mPreviewFrameSize,
+                        1,
+                        mPreviewFrameSize,
                         CbCrOffset,
                         0,
 			"postview");
 
 	    if (!mPostViewHeap->initialized()) {
-		mPostViewHeap.clear();
-		ALOGE(" Failed to initialize Postview Heap");
-		return false;
-	    }
-	}
+                mPostViewHeap.clear();
+                ALOGE(" Failed to initialize Postview Heap");
+                return false;
+            }
+        }
     }
 
     if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660)) {
@@ -2669,6 +2698,31 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
                 (THUMBNAIL_SMALL_HEIGHT * rawWidth)/ rawHeight;
     }
 
+    if((mCurrentTarget == TARGET_MSM7630) ||
+       (mCurrentTarget == TARGET_MSM8660)) {
+        if(rawHeight < previewHeight) {
+            mDimension.ui_thumbnail_height = THUMBNAIL_SMALL_HEIGHT;
+            mDimension.ui_thumbnail_width =
+                    (THUMBNAIL_SMALL_HEIGHT * rawWidth)/ rawHeight;
+        }
+        /* store the thumbanil dimensions which are needed
+         * by the jpeg downscaler to generate thumbnails from
+         * main YUV image.
+         */
+        mThumbnailWidth = mDimension.ui_thumbnail_width;
+        mThumbnailHeight = mDimension.ui_thumbnail_height;
+        /* As thumbnail is generated from main YUV image,
+         * configure and use the VFE other output to get
+         * an image of preview dimensions for postView use.
+         * So, mThumbnailHeap will be used for postview rather than
+         * as thumbnail(Not changing the terminology to keep changes minimum).
+         */
+        if(rawHeight >= previewHeight) {
+            mDimension.ui_thumbnail_width = previewWidth;
+            mDimension.ui_thumbnail_height = previewHeight;
+        }
+    }
+
     ALOGV("Thumbnail Size Width %d Height %d",
             mDimension.ui_thumbnail_width,
             mDimension.ui_thumbnail_height);
@@ -2737,10 +2791,10 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         //Don't call the get_buffer_offset() for ADRENO, as the width and height
         //for Adreno format will be of CEILING32.
         if(mPreviewFormat != CAMERA_YUV_420_NV21_ADRENO) {
-        LINK_jpeg_encoder_get_buffer_offset(rawWidth, rawHeight, (uint32_t *)&yOffset,
+            LINK_jpeg_encoder_get_buffer_offset(rawWidth, rawHeight, (uint32_t *)&yOffset,
                                             (uint32_t *)&mCbCrOffsetRaw, (uint32_t *)&mRawSize);
-        mJpegMaxSize = mRawSize;
-    }
+            mJpegMaxSize = mRawSize;
+        }
         ALOGV("initRaw: yOffset = %d, mCbCrOffsetRaw = %d, mRawSize = %d",
                      yOffset, mCbCrOffsetRaw, mRawSize);
     }
@@ -2798,7 +2852,6 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         }
 
         // Thumbnails
-
         mThumbnailHeap =
             new PmemPool(pmem_region,
                          MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
@@ -2872,9 +2925,8 @@ void QualcommCameraHardware::release()
         ALOGI("release: stopPreviewInternal done.");
     }
 
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
-        || (mCurrentTarget == TARGET_MSM7227) ) {
-    mPostViewHeap.clear();
+    if(mCurrentTarget == TARGET_MSM7227) {
+        mPostViewHeap.clear();
         mPostViewHeap = NULL;
     }
     LINK_jpeg_encoder_join();
@@ -3390,11 +3442,10 @@ status_t QualcommCameraHardware::takePicture()
         ALOGV("takePicture: old snapshot thread completed.");
     }
 
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)
-        || (mCurrentTarget == TARGET_MSM7227) ) {
-    /* Store the last frame queued for preview. This
-     * shall be used as postview */
-    storePreviewFrameForPostview();
+    if(mCurrentTarget == TARGET_MSM7227) {
+        /* Store the last frame queued for preview. This
+         * shall be used as postview */
+        storePreviewFrameForPostview();
     }
 
     //mSnapshotFormat is protected by mSnapshotThreadWaitLock
@@ -4219,6 +4270,16 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
                 }
             }
         }
+        //We need to create overlay with dimensions that the VFE output
+        //is configured for post view.
+        if((mCurrentTarget == TARGET_MSM7630) ||
+           (mCurrentTarget == TARGET_MSM8660)) {
+            size.width = mDimension.ui_thumbnail_width;
+            size.height = mDimension.ui_thumbnail_height;
+            //Make ThumbnailHeap as Displayheap for post view.
+            mDisplayHeap = mThumbnailHeap;
+        }
+
         //For Adreno format, we need to pass the main image in all the cases.
         if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
             mDisplayHeap = mRawHeap;
@@ -4413,10 +4474,16 @@ void QualcommCameraHardware::receiveRawPicture()
             notifyShutter(&mCrop);
             {
                 Mutex::Autolock l(&mRawPictureHeapLock);
-                if(mRawHeap != NULL)
-                    crop_yuv420(mCrop.out2_w, mCrop.out2_h, (mCrop.in2_w + jpegPadding), (mCrop.in2_h + jpegPadding),
+                if(mRawHeap != NULL){
+                  crop_yuv420(mCrop.out2_w, mCrop.out2_h, (mCrop.in2_w + jpegPadding), (mCrop.in2_h + jpegPadding),
                             (uint8_t *)mRawHeap->mHeap->base(), mRawHeap->mName);
-                if(mThumbnailHeap != NULL) {
+                }
+                if( (mThumbnailHeap != NULL) &&
+                    (mCurrentTarget != TARGET_MSM7630) &&
+                    (mCurrentTarget != TARGET_MSM8660) ) {
+                    //Don't crop the mThumbnailHeap for 7630. As this heap
+                    //is used for postview rather than for thumbnail. (thumbnail is generated from main image).
+                    //overlay's setCrop will take of cropping while displaying postview.
                     crop_yuv420(mCrop.out1_w, mCrop.out1_h, (mCrop.in1_w + jpegPadding), (mCrop.in1_h + jpegPadding),
                             (uint8_t *)mThumbnailHeap->mHeap->base(), mThumbnailHeap->mName);
                 }
@@ -4426,8 +4493,14 @@ void QualcommCameraHardware::receiveRawPicture()
             // dimension for encoder.
             mDimension.orig_picture_dx = mCrop.in2_w + jpegPadding;
             mDimension.orig_picture_dy = mCrop.in2_h + jpegPadding;
-            mDimension.thumbnail_width = mCrop.in1_w + jpegPadding;
-            mDimension.thumbnail_height = mCrop.in1_h + jpegPadding;
+            /* Don't update the thumbnail_width/height, if jpeg downscaling
+             * is used to generate thumbnail. These parameters should contain
+             * the original thumbnail dimensions.
+             */
+            if(mPreviewFormat != CAMERA_YUV_420_NV21_ADRENO) {
+                mDimension.thumbnail_width = mCrop.in1_w + jpegPadding;
+                mDimension.thumbnail_height = mCrop.in1_h + jpegPadding;
+            }
         }else {
             memset(&mCrop, 0 ,sizeof(mCrop));
             // By the time native_get_picture returns, picture is taken. Call
@@ -4435,15 +4508,34 @@ void QualcommCameraHardware::receiveRawPicture()
             notifyShutter(&mCrop);
         }
 
-   if (mDataCallback && (mMsgEnabled & CAMERA_MSG_RAW_IMAGE))
-       mDataCallback(CAMERA_MSG_RAW_IMAGE, mDisplayHeap->mBuffers[0],
+   if( mUseOverlay && (mOverlay != NULL) ) {
+            mOverlay->setFd(mDisplayHeap->mHeap->getHeapID());
+            int cropX = 0;
+            int cropY = 0;
+            int cropW = 0;
+            int cropH = 0;
+            //Caculate the crop dimensions from mCrop.
+            //mCrop will have the crop dimensions for VFE's
+            //postview output.
+            if (mCrop.in1_w != 0 || mCrop.in1_h != 0) {
+                cropX = (mCrop.out1_w - mCrop.in1_w + 1) / 2 - 1;
+                cropY = (mCrop.out1_h - mCrop.in1_h + 1) / 2 - 1;
+                cropW = mCrop.in1_w;
+                cropH = mCrop.in1_h;
+                mOverlay->setCrop(cropX, cropY, cropW, cropH);
+            }
+            ALOGV(" Queueing Postview for display ");
+            mOverlay->queueBuffer((void *)0);
+        }
+        if (mDataCallback && (mMsgEnabled & CAMERA_MSG_RAW_IMAGE))
+            mDataCallback(CAMERA_MSG_RAW_IMAGE, mDisplayHeap->mBuffers[0],
                             mCallbackCookie);
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
-           ALOGE("Raw Data given to app for processing...will wait for jpeg encode call");
-           mEncodePendingWaitLock.lock();
-           mEncodePending = true;
-           mEncodePendingWaitLock.unlock();
-       }
+        if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
+            ALOGI("Raw Data given to app for processing...will wait for jpeg encode call");
+            mEncodePendingWaitLock.lock();
+            mEncodePending = true;
+            mEncodePendingWaitLock.unlock();
+        }
     }
     else ALOGV("Raw-picture callback was canceled--skipping.");
 
