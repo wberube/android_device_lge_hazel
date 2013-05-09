@@ -232,6 +232,11 @@ typedef enum {
 	CAMERA_ISO_1600,
 } camera_iso_mode_type;
 
+typedef enum {
+  FPS_MODE_AUTO,
+  FPS_MODE_FIXED,
+} fps_mode_t;
+
 struct fifo_queue {
 	int num_of_frames;
 	int front;
@@ -605,6 +610,7 @@ private:
 
     status_t setPreviewSize(const CameraParameters& params);
     status_t setPreviewFrameRate(const CameraParameters& params);
+    status_t setPreviewFrameRateMode(const CameraParameters& params);
     status_t setPictureSize(const CameraParameters& params);
     status_t setJpegQuality(const CameraParameters& params);
     status_t setAntibanding(const CameraParameters& params);
