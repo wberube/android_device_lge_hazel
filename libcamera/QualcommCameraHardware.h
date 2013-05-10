@@ -785,6 +785,7 @@ private:
     mm_camera_config mCfgControl;
     bool mResetOverlayCrop;
     int mThumbnailWidth, mThumbnailHeight;
+    bool strTexturesOn;
 };
 
 }; // namespace android
