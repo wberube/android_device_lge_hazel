@@ -1258,7 +1258,8 @@ void QualcommCameraHardware::initDefaultParameters()
                     CameraParameters::WHITE_BALANCE_AUTO);
     mParameters.set(CameraParameters::KEY_FOCUS_MODE,
                     CameraParameters::FOCUS_MODE_AUTO);
-    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_QSD8250) ) {
+    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_QSD8250)
+        && (mCurrentTarget != TARGET_MSM8660)) {
     mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS,
                     "yuv420sp");
     }
