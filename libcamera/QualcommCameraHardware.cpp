@@ -1288,6 +1288,8 @@ void QualcommCameraHardware::initDefaultParameters()
     mDimension.ui_thumbnail_height =
             thumbnail_sizes[DEFAULT_THUMBNAIL_SETTING].height;
     mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY, "90");
+    mDimension.thumbnail_width = mDimension.ui_thumbnail_width;
+    mDimension.thumbnail_height = mDimension.ui_thumbnail_height;
    
      String8 valuesStr = create_sizes_str(jpeg_thumbnail_sizes, JPEG_THUMBNAIL_SIZE_COUNT);
     mParameters.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,

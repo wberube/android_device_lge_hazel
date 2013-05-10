@@ -93,11 +93,12 @@ public:
     /** Return the IMemoryHeap for the raw image heap */
     virtual sp<IMemoryHeap>         getRawHeap() const = 0;
 
+    virtual status_t dummyA() { return 0; }
     /** Set the notification and data callbacks */
     virtual void setCallbacks(notify_callback notify_cb,
                               data_callback data_cb,
                               data_callback_timestamp data_cb_timestamp,
-                              void* user) = 0;
+                              void* user) = 0; // 20
 
     /**
      * The following three functions all take a msgtype,
@@ -108,12 +109,12 @@ public:
     /**
      * Enable a message, or set of messages.
      */
-    virtual void        enableMsgType(int32_t msgType) = 0;
+    virtual void        enableMsgType(int32_t msgType) = 0; // 24
 
     /**
      * Disable a message, or a set of messages.
      */
-    virtual void        disableMsgType(int32_t msgType) = 0;
+    virtual void        disableMsgType(int32_t msgType) = 0; // 28
 
     /**
      * Query whether a message, or a set of messages, is enabled.
@@ -127,19 +128,13 @@ public:
      */
     virtual status_t    startPreview() = 0;
 
-#ifdef USE_GETBUFFERINFO
-    /**
-     * Query the recording buffer information from HAL.
-     * This is needed because the opencore expects the buffer
-     * information before starting the recording.
-     */
-    virtual status_t    getBufferInfo(sp<IMemory>& Frame, size_t *alignedSize) = 0;
-#endif
+    virtual status_t    getBufferInfo(sp<IMemory>& Frame, size_t *alignedSize) = 0; // 40
 
+    virtual status_t dummyB() { return 0; }
     /**
      * Only used if overlays are used for camera preview.
      */
-    virtual bool         useOverlay() {return false;}
+    virtual bool         useOverlay() {return false;} // 48
     virtual status_t     setOverlay(const sp<Overlay> &overlay) {return BAD_VALUE;}
 
     /**
@@ -150,7 +145,7 @@ public:
     /**
      * Returns true if preview is enabled.
      */
-    virtual bool        previewEnabled() = 0;
+    virtual bool        previewEnabled() = 0; // 60
 
     /**
      * Start record mode. When a record image is available a CAMERA_MSG_VIDEO_FRAME
@@ -206,7 +201,7 @@ public:
     virtual status_t    setParameters(const CameraParameters& params) = 0;
 
     /** Return the camera parameters. */
-    virtual CameraParameters  getParameters() const = 0;
+    virtual CameraParameters  getParameters() const = 0; // 100
 
     /**
      * Send command to camera driver.
@@ -240,4 +235,3 @@ extern "C" sp<CameraHardwareInterface> HAL_openCameraHardware(int cameraId);
 };  // namespace android
 
 #endif
-
