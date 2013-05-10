@@ -51,6 +51,7 @@
 
 #define LIKELY(exp)   __builtin_expect(!!(exp), 1)
 #define UNLIKELY(exp) __builtin_expect(!!(exp), 0)
+#define CAMERA_HAL_UNUSED(expr) do { (void)(expr); } while (0)
 
 extern "C" {
 #include <fcntl.h>
@@ -992,9 +993,9 @@ QualcommCameraHardware::QualcommCameraHardware()
       mFrameThreadRunning(false),
       mVideoThreadRunning(false),
       mSnapshotThreadRunning(false),
-      mEncodePending(false),
       mJpegThreadRunning(false),
       mInSnapshotMode(false),
+      mEncodePending(false),
       mSnapshotFormat(0),
       mFirstFrame(true),
       mReleasedRecordingFrame(false),
@@ -1004,6 +1005,7 @@ QualcommCameraHardware::QualcommCameraHardware()
       mCameraControlFd(-1),
       mAutoFocusThreadRunning(false),
       mAutoFocusFd(-1),
+      mInitialized(false),
       mBrightness(0),
       mSkinToneEnhancement(0),
       mHJR(0),
@@ -1015,7 +1017,6 @@ QualcommCameraHardware::QualcommCameraHardware()
       mDataCallback(0),
       mDataCallbackTimestamp(0),
       mCallbackCookie(0),
-      mInitialized(false),
       mDebugFps(0),
       mSnapshotDone(0),
       mSnapshotPrepare(0),
@@ -1113,7 +1114,7 @@ void QualcommCameraHardware::filterPictureSizes(){
 }
 
 bool QualcommCameraHardware::supportsSceneDetection() {
-   int prop = 0;
+   unsigned int prop = 0;
    for(prop=0; prop<sizeof(boardProperties)/sizeof(board_property); prop++) {
        if((mCurrentTarget == boardProperties[prop].target)
           && boardProperties[prop].hasSceneDetect == true) {
@@ -1125,7 +1126,7 @@ bool QualcommCameraHardware::supportsSceneDetection() {
 }
 
 bool QualcommCameraHardware::supportsSelectableZoneAf() {
-   int prop = 0;
+   unsigned prop = 0;
    for(prop=0; prop<sizeof(boardProperties)/sizeof(board_property); prop++) {
        if((mCurrentTarget == boardProperties[prop].target)
           && boardProperties[prop].hasSelectableZoneAf == true) {
@@ -3700,10 +3701,10 @@ CameraParameters QualcommCameraHardware::getParameters() const
 
     mStatSize = sizeof(uint32_t)* HISTOGRAM_STATS_SIZE;
     mCurrent = -1;
-    /*Currently the Ashmem is multiplying the buffer size with total number
-    of buffers and page aligning. This causes a crash in JNI as each buffer
-    individually expected to be page aligned  */
-    /*int page_size_minus_1 = getpagesize() - 1;
+    //Currently the Ashmem is multiplying the buffer size with total number
+    //of buffers and page aligning. This causes a crash in JNI as each buffer
+    //individually expected to be page aligned  
+    //int page_size_minus_1 = getpagesize() - 1;
     int32_t mAlignedStatSize = ((mStatSize + page_size_minus_1) & (~page_size_minus_1));
 
     mStatHeap =
@@ -3886,8 +3887,7 @@ void QualcommCameraHardware::receiveRecordingFrame(struct msm_frame *frame)
     ALOGV("receiveRecordingFrame X");
 }
 
-
-bool QualcommCameraHardware::native_zoom_image(int fd, int srcOffset, int dstOffSet, common_crop_t *crop)
+bool QualcommCameraHardware::native_zoom_image(int fd,int srcOffset,int dstOffSet, common_crop_t *crop)
 {
     int result = 0;
     struct mdp_blit_req *e;
@@ -4432,7 +4432,7 @@ static void crop_yuv420(uint32_t width, uint32_t height,
                  uint32_t cropped_width, uint32_t cropped_height,
                  uint8_t *image, const char *name)
 {
-    int32_t i;
+    uint32_t i;
     uint32_t x, y;
     uint8_t* chroma_src, *chroma_dst;
     int yOffsetSrc, yOffsetDst, CbCrOffsetSrc, CbCrOffsetDst;
@@ -4497,9 +4497,9 @@ static void crop_yuv420(uint32_t width, uint32_t height,
                     image + yOffsetSrc + width * (y + i) + x,
                     cropped_width);
         }
-        for(i=position; i>=0; i--){
-            memmove(image + yOffsetDst + i * cropped_width,
-                    image + yOffsetSrc + width * (y + i) + x,
+        for(int j=position; j>=0; j--){
+            memmove(image + yOffsetDst + j * cropped_width,
+                    image + yOffsetSrc + width * (y + j) + x,
                     cropped_width);
         }
     } else {
@@ -4528,9 +4528,9 @@ static void crop_yuv420(uint32_t width, uint32_t height,
                     chroma_src + width * (y + i) + x,
                     cropped_width);
         }
-        for(i=position; i >=0; i--){
-            memmove(chroma_dst + i * cropped_width,
-                    chroma_src + width * (y + i) + x,
+        for(int j=position; j >=0; j--){
+            memmove(chroma_dst + j * cropped_width,
+                    chroma_src + width * (y + j) + x,
                     cropped_width);
         }
     } else {
@@ -4720,7 +4720,7 @@ void QualcommCameraHardware::receiveJpegPicture(void)
          mJpegSize, mJpegHeap->mBufferSize);
     Mutex::Autolock cbLock(&mCallbackLock);
 
-    int index = 0, rc;
+    int index = 0;
 
     if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
         // The reason we do not allocate into mJpegHeap->mBuffers[offset] is
@@ -4849,7 +4849,7 @@ status_t QualcommCameraHardware::setJpegThumbnailSize(const CameraParameters& pa
     ALOGV("requested jpeg thumbnail size %d x %d", width, height);
 
     // Validate the picture size
-    for (int i = 0; i < JPEG_THUMBNAIL_SIZE_COUNT; ++i) {
+    for (unsigned int i = 0; i < JPEG_THUMBNAIL_SIZE_COUNT; ++i) {
        if (width == jpeg_thumbnail_sizes[i].width
          && height == jpeg_thumbnail_sizes[i].height) {
            mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH, width);
@@ -5726,6 +5726,7 @@ static bool register_buf(int camfd,
                          bool register_buffer)
 {
     struct msm_pmem_info pmemBuf;
+    CAMERA_HAL_UNUSED(frame_size);
 
     pmemBuf.type     = pmem_type;
     pmemBuf.fd       = pmempreviewfd;
@@ -5757,6 +5758,7 @@ status_t QualcommCameraHardware::MemPool::dump(int fd, const Vector<String16>& a
     const size_t SIZE = 256;
     char buffer[SIZE];
     String8 result;
+    CAMERA_HAL_UNUSED(args);
     snprintf(buffer, 255, "QualcommCameraHardware::AshmemPool::dump\n");
     result.append(buffer);
     if (mName) {
