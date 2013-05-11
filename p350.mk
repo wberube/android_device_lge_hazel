@@ -149,7 +149,6 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.product.camera=p350 \
-    debug.camcorder.disablemeta=1 \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1 \
     ro.com.google.gmsversion=2.3_r6 \
