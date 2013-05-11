@@ -20,9 +20,10 @@
 
 #include <binder/IMemory.h>
 #include <utils/RefBase.h>
-#include <surfaceflinger/ISurface.h>
+#include <gui/ISurface.h>
 #include <camera/Camera.h>
 #include <camera/CameraParameters.h>
+#include <QCameraHAL.h>
 
 namespace android {
 
@@ -93,6 +94,7 @@ public:
     /** Return the IMemoryHeap for the raw image heap */
     virtual sp<IMemoryHeap>         getRawHeap() const = 0;
 
+    virtual status_t dummyA() { return 0; }
     /** Set the notification and data callbacks */
     virtual void setCallbacks(notify_callback notify_cb,
                               data_callback data_cb,
@@ -127,15 +129,9 @@ public:
      */
     virtual status_t    startPreview() = 0;
 
-#ifdef USE_GETBUFFERINFO
-    /**
-     * Query the recording buffer information from HAL.
-     * This is needed because the opencore expects the buffer
-     * information before starting the recording.
-     */
     virtual status_t    getBufferInfo(sp<IMemory>& Frame, size_t *alignedSize) = 0;
-#endif
 
+    virtual status_t dummyB() { return 0; }
     /**
      * Only used if overlays are used for camera preview.
      */
@@ -240,4 +236,3 @@ extern "C" sp<CameraHardwareInterface> HAL_openCameraHardware(int cameraId);
 };  // namespace android
 
 #endif
-

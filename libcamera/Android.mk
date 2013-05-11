@@ -54,7 +54,7 @@ LOCAL_C_FLAGS        += -O3
 LOCAL_MODULE_TAGS    := optional
 LOCAL_MODULE_PATH    := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE         := camera.p350
-LOCAL_SRC_FILES      := cameraHal.cpp
+LOCAL_SRC_FILES      := QCameraHAL.cpp
 LOCAL_PRELINK_MODULE := false
 
 LOCAL_SHARED_LIBRARIES := liblog libdl libutils libcamera_client libbinder libcutils libhardware libcamera libui
@@ -64,6 +64,5 @@ LOCAL_C_INCLUDES       := frameworks/base/services \
                           frameworks/native/include \
                           hardware/libhardware/include \
                           hardware/qcom/display-legacy/libgralloc
-
 
 include $(BUILD_SHARED_LIBRARY)
