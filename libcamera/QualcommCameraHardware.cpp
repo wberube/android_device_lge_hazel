@@ -262,13 +262,13 @@ static int supportedPictureSizesCount;
 #define Q12 4096
 
 static const target_map targetList [] = {
-    { "msm7227", TARGET_MSM7227 },
-    { "msm7625", TARGET_MSM7625 },
-    { "msm7625a", TARGET_MSM7625A },
+    { "msm7x27", TARGET_MSM7227 },
+    { "msm7x25", TARGET_MSM7625 },
+    { "msm7x25a", TARGET_MSM7625A },
     { "msm7627", TARGET_MSM7627 },
-    { "msm7627a", TARGET_MSM7627A },
+    { "msm7x27a", TARGET_MSM7627A },
     { "qsd8250", TARGET_QSD8250 },
-    { "msm7630", TARGET_MSM7630 },
+    { "msm7x30", TARGET_MSM7630 },
     { "msm8660", TARGET_MSM8660 }
 
 };
