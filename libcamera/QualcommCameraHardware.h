@@ -521,6 +521,7 @@ public:
     void receiveJpegPictureFragment(uint8_t *buf, uint32_t size);
     void notifyShutter(common_crop_t *crop);
     void receive_camframetimeout();
+    static void getCameraInfo();
 
 private:
     QualcommCameraHardware();

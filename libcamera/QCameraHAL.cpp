@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
 #define LOG_TAG "QCameraHAL"
 #define THE_WRAPPER
 #include <camera/CameraHardwareInterface.h>

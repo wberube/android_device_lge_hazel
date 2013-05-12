@@ -82,6 +82,7 @@ extern "C" {
 #define ACTIVE_VIDEO_BUFFERS 3
 
 #define PAD_TO_2K(x) (((x)+2047)& ~2047)
+#define APP_ORIENTATION 90
 
 #if DLOPEN_LIBMMCAMERA
 #include <dlfcn.h>
@@ -3803,21 +3804,77 @@ extern "C" sp<CameraHardwareInterface> openCameraHardware()
     return QualcommCameraHardware::createInstance();
 }
 
-static CameraInfo sCameraInfo[] = {
-	{
-		CAMERA_FACING_BACK,
-		90,  /* orientation */
-	}
-};
+static struct CameraInfo HAL_cameraInfo[MSM_MAX_CAMERA_SENSORS];
+static int HAL_numOfCameras = 0;
 
-extern "C" int HAL_getNumberOfCameras()
+#define CAMERA_MODE_2D 1
+#define CAMERA_MODE_3D 0
+void QualcommCameraHardware::getCameraInfo()
 {
-	return sizeof(sCameraInfo) / sizeof(sCameraInfo[0]);
+    struct msm_camera_info camInfo;
+    int i, ret;
+
+    ALOGV("%s E", __FUNCTION__);
+    int camfd = open(MSM_CAMERA_CONTROL, O_RDWR);
+    if (camfd >= 0) {
+        ret = ioctl(camfd, MSM_CAM_IOCTL_GET_CAMERA_INFO, &camInfo);
+        close(camfd);
+
+        if (ret < 0) {
+             ALOGE("getCameraInfo: MSM_CAM_IOCTL_GET_CAMERA_INFO fd %d error %s",
+                  camfd, strerror(errno));
+             HAL_numOfCameras = 0;
+             return;
+        }
+
+        for (i = 0; i < camInfo.num_cameras; ++i) {
+             HAL_cameraInfo[i].facing = camInfo.is_internal_cam[i] == 1 ? CAMERA_FACING_FRONT : CAMERA_FACING_BACK;
+             HAL_cameraInfo[i].orientation = camInfo.s_mount_angle[i];
+             HAL_cameraInfo[i].mode = camInfo.has_3d_support[i] == 1 ? CAMERA_MODE_3D : CAMERA_MODE_2D;
+
+             ALOGV("camera %d, facing: %d, orientation: %d, mode: %d\n", i, 
+                  HAL_cameraInfo[i].facing, HAL_cameraInfo[i].orientation, HAL_cameraInfo[i].mode);
+        }
+        HAL_numOfCameras = camInfo.num_cameras;
+    }
+    ALOGV("HAL_numOfCameras: %d\n", HAL_numOfCameras);
+    ALOGV("%s X", __FUNCTION__);
 }
 
+/* Gingerbread API functions */
+extern "C" int HAL_getNumberOfCameras()
+{
+    QualcommCameraHardware::getCameraInfo();
+    return HAL_numOfCameras;
+}
+
+#define BACK_CAMERA 0
 extern "C" void HAL_getCameraInfo(int cameraId, struct CameraInfo* cameraInfo)
 {
-	memcpy(cameraInfo, &sCameraInfo[cameraId], sizeof(CameraInfo));
+    int i;
+    if (cameraInfo == NULL) {
+        ALOGE("cameraInfo is NULL");
+        return;
+    }
+
+    for(i = 0; i < HAL_numOfCameras; i++) {
+        if(i == cameraId) {
+            ALOGI("Found a matching camera info for ID %d", cameraId);
+            cameraInfo->facing = HAL_cameraInfo[i].facing;
+            // App Orientation not needed for 7x27 , sensor mount angle 0 is
+            // enough.
+            if(cameraInfo->facing == CAMERA_FACING_FRONT)
+                cameraInfo->orientation = HAL_cameraInfo[i].orientation;
+            else if(mCurrentTarget == TARGET_MSM7227)
+                cameraInfo->orientation = HAL_cameraInfo[i].orientation;
+            else
+                cameraInfo->orientation = ((APP_ORIENTATION - HAL_cameraInfo[i].orientation) + 360)%360;
+
+            ALOGI("%s: orientation = %d", __FUNCTION__, cameraInfo->orientation);
+            return;
+        }
+    }
+    ALOGE("Unable to find matching camera info for ID %d", cameraId);
 }
 
 extern "C" sp<CameraHardwareInterface> HAL_openCameraHardware(int cameraId)
