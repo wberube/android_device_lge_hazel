@@ -31,7 +31,6 @@ For this time after the screen turns on, the Power Manager
 will not debounce light sensor readings -->
     <integer name="config_lightSensorWarmupTime">0</integer>
 
-    <bool name="config_wifiApStartInterface">true</bool>
     <string-array name="config_locationProviderPackageNames" translatable="false">
         <!-- The standard AOSP fused location provider -->
         <item>com.android.location.fused</item>

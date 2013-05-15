@@ -30,12 +30,6 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.distinct.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.distinct.xml
 
-# Board-specific init
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/root/init.p350.rc:root/init.p350.rc \
-    $(LOCAL_PATH)/root/ueventd.p350.rc:root/ueventd.p350.rc \
-    $(LOCAL_PATH)/root/init.p350.usb.rc:root/init.p350.usb.rc
-
 # Configs
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/synaptics-rmi-touchscreen.idc:system/usr/idc/synaptics-rmi-touchscreen.idc \
@@ -145,6 +139,11 @@ PRODUCT_PACKAGES += \
     libnetcmdiface \
     bdAddrLoader \
     hwaddrs
+
+PRODUCT_PACKAGES += \
+    init.p350.rc \
+    init.p350.usb.rc \
+    ueventd.p350.rc
 
 
 PRODUCT_PROPERTY_OVERRIDES += \
