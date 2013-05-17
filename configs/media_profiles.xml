@@ -145,7 +145,7 @@
 	minFrameWidth="176" maxFrameWidth="640"
 	minFrameHeight="144" maxFrameHeight="480"
 	minFrameRate="1" maxFrameRate="15" />
-        
+
     <AudioEncoderCap name="amrnb" enabled="true"
         minBitRate="5525" maxBitRate="12200"
         minSampleRate="8000" maxSampleRate="8000"

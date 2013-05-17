@@ -28,8 +28,8 @@
 
 target=`getprop ro.product.device`
 
-# Pecan/Hazel porting by bongkyu.kim@lge.com 
-case "$target" in 
+# Pecan/Hazel porting by bongkyu.kim@lge.com
+case "$target" in
 	"p350" | "hazel")
 		target='msm7627_surf'
 		;;

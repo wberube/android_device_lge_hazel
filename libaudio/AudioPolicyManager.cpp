@@ -1257,9 +1257,9 @@ status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_h
     // We actually change the volume if:
     // - the float value returned by computeVolume() changed
     // - the force flag is set
-    if (volume != mOutputs.valueFor(output)->mCurVolume[stream] 
+    if (volume != mOutputs.valueFor(output)->mCurVolume[stream]
 #ifdef QCOM_FM_ENABLED
-            || (stream == AudioSystem::FM) 
+            || (stream == AudioSystem::FM)
 #endif
             || force) {
         mOutputs.valueFor(output)->mCurVolume[stream] = volume;
@@ -1290,7 +1290,7 @@ status_t AudioPolicyManager::checkAndSetVolume(int stream, int index, audio_io_h
             voiceVolume = 1.0;
         }
 
-        if ((voiceVolume != mLastVoiceVolume && output == mPrimaryOutput) 
+        if ((voiceVolume != mLastVoiceVolume && output == mPrimaryOutput)
 #ifdef QCOM_FM_ENABLED
 	    && (!(mAvailableOutputDevices & AudioSystem::DEVICE_OUT_FM))
 #endif

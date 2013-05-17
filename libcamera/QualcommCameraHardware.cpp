@@ -1276,7 +1276,7 @@ void QualcommCameraHardware::initDefaultParameters()
         mParameters.set(
             CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES,
             DEFAULT_FPS);
-    }    
+    }
     mParameters.setPreviewFrameRateMode("frame-rate-auto");
     mParameters.setPreviewFormat("yuv420sp"); // informative
 
@@ -1295,7 +1295,7 @@ void QualcommCameraHardware::initDefaultParameters()
     mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY, "90");
     mDimension.thumbnail_width = mDimension.ui_thumbnail_width;
     mDimension.thumbnail_height = mDimension.ui_thumbnail_height;
-   
+
      String8 valuesStr = create_sizes_str(jpeg_thumbnail_sizes, JPEG_THUMBNAIL_SIZE_COUNT);
     mParameters.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,
                 valuesStr.string());
@@ -1435,7 +1435,7 @@ void QualcommCameraHardware::initDefaultParameters()
      mParameters.set(CameraParameters::KEY_SCENE_MODE,
                     CameraParameters::SCENE_MODE_AUTO);
     mParameters.set("strtextures", "OFF");
- 
+
     mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,
                     scenemode_values);
     /*mParameters.set(CameraParameters::KEY_CONTINUOUS_AF,
@@ -2288,7 +2288,7 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
         int CbCrOffset = -1;
         if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
             CbCrOffset = mCbCrOffsetRaw;
-        mCrop.in1_w = mDimension.orig_picture_dx - jpegPadding; // when cropping is enabled 
+        mCrop.in1_w = mDimension.orig_picture_dx - jpegPadding; // when cropping is enabled
         mCrop.in1_h = mDimension.orig_picture_dy - jpegPadding; // when cropping is enabled
         if (!LINK_jpeg_encoder_encode(&mDimension,
                                       thumbnailHeap,
@@ -3088,7 +3088,7 @@ void QualcommCameraHardware::release()
     }
 
     deinitRawSnapshot();
-    
+
     ctrlCmd.timeout_ms = 5000;
     ctrlCmd.length = 0;
     ctrlCmd.type = (uint16_t)CAMERA_EXIT;
@@ -3733,7 +3733,7 @@ CameraParameters QualcommCameraHardware::getParameters() const
     mCurrent = -1;
     //Currently the Ashmem is multiplying the buffer size with total number
     //of buffers and page aligning. This causes a crash in JNI as each buffer
-    //individually expected to be page aligned  
+    //individually expected to be page aligned
     //int page_size_minus_1 = getpagesize() - 1;
     int32_t mAlignedStatSize = ((mStatSize + page_size_minus_1) & (~page_size_minus_1));
 
@@ -3837,7 +3837,7 @@ void QualcommCameraHardware::getCameraInfo()
              if (camInfo.has_3d_support[i])
                   HAL_cameraInfo[i].modes_supported |= CAMERA_MODE_3D;
 
-             ALOGV("camera %d, facing: %d, orientation: %d, mode: %d\n", HAL_cameraInfo[i].camera_id, 
+             ALOGV("camera %d, facing: %d, orientation: %d, mode: %d\n", HAL_cameraInfo[i].camera_id,
                   HAL_cameraInfo[i].position, HAL_cameraInfo[i].sensor_mount_angle, HAL_cameraInfo[i].modes_supported);
         }
         HAL_numOfCameras = camInfo.num_cameras;
@@ -5005,7 +5005,7 @@ status_t QualcommCameraHardware::setPictureSize(const CameraParameters& params)
     for (int i = 0; i < supportedPictureSizesCount; ++i) {
         if (width == picture_sizes_ptr[i].width
                 && height == picture_sizes_ptr[i].height) {
-            if (!strcmp(mSensorInfo.name, "ov5642") 
+            if (!strcmp(mSensorInfo.name, "ov5642")
 					&& width == 2592) {
 				/* WTF... The max this "5MPx" sensor supports is 4.75 */
                 width = 2560 ; height = 1920;

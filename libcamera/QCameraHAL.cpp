@@ -91,7 +91,7 @@ camera_module_t HAL_MODULE_INFO_SYM = {
    },
    get_number_of_cameras: HAL_getNumberOfCameras,
    get_camera_info: CameraHAL_GetCam_Info,
-};		
+};
 
 int CameraHAL_GetCam_Info(int camera_id, struct camera_info *info)
 {
@@ -276,7 +276,7 @@ void CameraHAL_HandlePreviewData(const android::sp<android::IMemory>& dataPtr,
 }
 
 camera_memory_t *
-CameraHAL_GenClientData(const android::sp<android::IMemory> &dataPtr, 
+CameraHAL_GenClientData(const android::sp<android::IMemory> &dataPtr,
                         camera_request_memory reqClientMemory,
                         void *user)
 {
@@ -303,7 +303,7 @@ void CameraHAL_DataCb(int32_t msg_type, const android::sp<android::IMemory>& dat
 {
    ALOGV("CameraHAL_DataCb: msg_type:%d user:%p\n", msg_type, user);
 
-   if ((msg_type != CAMERA_MSG_PREVIEW_FRAME || externallyRequestedFrames) && 
+   if ((msg_type != CAMERA_MSG_PREVIEW_FRAME || externallyRequestedFrames) &&
           origData_cb != NULL && origCamReqMemory != NULL) {
       camera_memory_t *clientData = CameraHAL_GenClientData(dataPtr,
                                        origCamReqMemory, user);
@@ -319,7 +319,7 @@ void CameraHAL_DataCb(int32_t msg_type, const android::sp<android::IMemory>& dat
       hwParameters.getPreviewSize(&previewWidth, &previewHeight);
       CameraHAL_HandlePreviewData(dataPtr, mWindow, origCamReqMemory,
                                   previewWidth, previewHeight);
-   } 
+   }
 }
 
 void CameraHAL_DataTSCb(nsecs_t timestamp, int32_t msg_type,
@@ -332,7 +332,7 @@ void CameraHAL_DataTSCb(nsecs_t timestamp, int32_t msg_type,
       camera_memory_t *clientData = CameraHAL_GenClientData(dataPtr,
                                        origCamReqMemory, user);
       if (clientData != NULL) {
-         ALOGV("CameraHAL_DataTSCb: Posting data to client timestamp:%lld\n", 
+         ALOGV("CameraHAL_DataTSCb: Posting data to client timestamp:%lld\n",
               systemTime());
 
 	 sentFrames.push_back(clientData);
@@ -419,7 +419,7 @@ static void releaseCameraFrames()
 }
 
 /* Hardware Camera interface handlers. */
-int qcamera_set_preview_window(struct camera_device * device, 
+int qcamera_set_preview_window(struct camera_device * device,
                            struct preview_stream_ops *window)
 {
    ALOGV("qcamera_set_preview_window : Window :%p\n", window);
@@ -433,14 +433,14 @@ int qcamera_set_preview_window(struct camera_device * device,
    }
 }
 
-void qcamera_set_callbacks(struct camera_device * device, 
-                      camera_notify_callback notify_cb,    
-                      camera_data_callback data_cb,       
-                      camera_data_timestamp_callback data_cb_timestamp,        
+void qcamera_set_callbacks(struct camera_device * device,
+                      camera_notify_callback notify_cb,
+                      camera_data_callback data_cb,
+                      camera_data_timestamp_callback data_cb_timestamp,
                       camera_request_memory get_memory, void *user)
 {
    ALOGV("qcamera_set_callbacks: notify_cb: %p, data_cb: %p "
-        "data_cb_timestamp: %p, get_memory: %p, user :%p", 
+        "data_cb_timestamp: %p, get_memory: %p, user :%p",
         notify_cb, data_cb, data_cb_timestamp, get_memory, user);
 
    origNotify_cb    = notify_cb;
@@ -471,8 +471,7 @@ void qcamera_disable_msg_type(struct camera_device * device, int32_t msg_type)
    qCamera->disableMsgType(msg_type);
 }
 
-int
-qcamera_msg_type_enabled(struct camera_device * device, int32_t msg_type)
+int qcamera_msg_type_enabled(struct camera_device * device, int32_t msg_type)
 {
    ALOGV("qcamera_msg_type_enabled: msg_type:%d\n", msg_type);
    return qCamera->msgTypeEnabled(msg_type);
@@ -529,7 +528,7 @@ int qcamera_recording_enabled(struct camera_device * device)
    return (int)qCamera->recordingEnabled();
 }
 
-void qcamera_release_recording_frame(struct camera_device * device, 
+void qcamera_release_recording_frame(struct camera_device * device,
                                 const void *opaque)
 {
    ALOGV("qcamera_release_recording_frame: opaque:%p\n", opaque);
@@ -577,7 +576,7 @@ int qcamera_cancel_picture(struct camera_device * device)
 {
    ALOGV("camera_cancel_picture:\n");
    qCamera->cancelPicture();
-   return NO_ERROR;	
+   return NO_ERROR;
 }
 
 int qcamera_set_parameters(struct camera_device * device, const char *params)
@@ -591,7 +590,7 @@ int qcamera_set_parameters(struct camera_device * device, const char *params)
 
 char*
 qcamera_get_parameters(struct camera_device * device)
-{ 
+{
    char *rc = NULL;
    ALOGV("qcamera_get_parameters\n");
    camSettings = qCamera->getParameters();
@@ -599,7 +598,7 @@ qcamera_get_parameters(struct camera_device * device)
    CameraHAL_FixupParams(camSettings);
    g_str = camSettings.flatten();
    rc = strdup((char *)g_str.string());
-   ALOGV("camera_get_parameters: returning rc:%p :%s\n", 
+   ALOGV("camera_get_parameters: returning rc:%p :%s\n",
         rc, (rc != NULL) ? rc : "EMPTY STRING");
    return rc;
 }
@@ -611,10 +610,10 @@ void qcamera_put_parameters(struct camera_device *device, char *params)
 }
 
 
-int qcamera_send_command(struct camera_device * device, int32_t cmd, 
+int qcamera_send_command(struct camera_device * device, int32_t cmd,
                         int32_t arg0, int32_t arg1)
 {
-   ALOGV("qcamera_send_command: cmd:%d arg0:%d arg1:%d\n", 
+   ALOGV("qcamera_send_command: cmd:%d arg0:%d arg1:%d\n",
         cmd, arg0, arg1);
    return qCamera->sendCommand(cmd, arg0, arg1);
 }
@@ -634,7 +633,7 @@ int qcamera_dump(struct camera_device * device, int fd)
 }
 
 int camera_device_close(hw_device_t* device)
-{	
+{
    int rc = -EINVAL;
    ALOGD("camera_device_close\n");
    camera_device_t *cameraDev = (camera_device_t *)device;
@@ -656,14 +655,14 @@ void sighandle(int s){
   //abort();
 }
 
-int qcamera_device_open(const hw_module_t* module, const char* name, 
+int qcamera_device_open(const hw_module_t* module, const char* name,
                    hw_device_t** device)
 {
 
    int cameraId = atoi(name);
    signal(SIGFPE,(*sighandle));
 
-   ALOGD("qcamera_device_open: name:%s device:%p cameraId:%d\n", 
+   ALOGD("qcamera_device_open: name:%s device:%p cameraId:%d\n",
         name, device, cameraId);
 
    qCamera = HAL_openCameraHardware(cameraId, 5);
@@ -679,8 +678,8 @@ int qcamera_device_open(const hw_module_t* module, const char* name,
    camera_device->common.version          = 0;
    camera_device->common.module           = (hw_module_t *)(module);
    camera_device->common.close            = camera_device_close;
-   camera_device->ops                     = camera_ops;	
-           
+   camera_device->ops                     = camera_ops;
+
    camera_ops->set_preview_window         = qcamera_set_preview_window;
    camera_ops->set_callbacks              = qcamera_set_callbacks;
    camera_ops->enable_msg_type            = qcamera_enable_msg_type;

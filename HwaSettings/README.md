@@ -12,6 +12,6 @@ Eclipse
 ---------------------------
 
 Please use master branch to edit the project in eclipse. ics and jellybean branches
-are made to build in a repo environment, just type "mm -B" in the folder to compile the 
+are made to build in a repo environment, just type "mm -B" in the folder to compile the
 application.
 

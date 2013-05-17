@@ -3,7 +3,7 @@ import init.p350.usb.rc
 on early-init
 
   mount debugfs /sys/kernel/debug /sys/kernel/debug
- 
+
   mkdir /system
   mkdir /data 0771 system system
   mkdir /cache 0771 system cache
