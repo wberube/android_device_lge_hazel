@@ -76,9 +76,6 @@
 #define VDEC_EXTRADATA_VUI 0x020
 #define VDEC_EXTRADATA_VC1 0x040
 
-#define VDEC_EXTRADATA_EXT_DATA          0x0800
-#define VDEC_EXTRADATA_USER_DATA         0x1000
-
 #define VDEC_CMDBASE	0x800
 #define VDEC_CMD_SET_INTF_VERSION	(VDEC_CMDBASE)
 
@@ -209,9 +206,6 @@ struct vdec_ioctl_msg {
 
 #define VDEC_IOCTL_GET_DISABLE_DMX_SUPPORT \
 	_IOR(VDEC_IOCTL_MAGIC, 37, struct vdec_ioctl_msg)
-
-#define VDEC_IOCTL_SET_PERF_CLK \
-	_IOR(VDEC_IOCTL_MAGIC, 38, struct vdec_ioctl_msg)
 
 enum vdec_picture {
 	PICTURE_TYPE_I,
@@ -572,4 +566,3 @@ struct vdec_mv_buff_size{
 };
 
 #endif /* end of macro _VDECDECODER_H_ */
-

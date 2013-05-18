@@ -615,4 +615,3 @@ struct venc_recon_buff_size{
 };
 
 #endif /* _MSM_VIDC_ENC_H_ */
-
