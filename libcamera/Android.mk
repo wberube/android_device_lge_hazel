@@ -83,7 +83,7 @@ LOCAL_C_INCLUDES       += hardware/qcom/$(DISPLAY)/libgralloc
 
 LOCAL_MODULE_TAGS      := optional
 LOCAL_MODULE_PATH      := $(TARGET_OUT_SHARED_LIBRARIES)/hw
-LOCAL_MODULE           := camera.$(TARGET_BOARD_PLATFORM)
+LOCAL_MODULE           := camera.p350
 
 include $(BUILD_SHARED_LIBRARY)
 
