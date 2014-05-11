@@ -24,6 +24,7 @@
 #include <system/audio.h>
 #include <hardware/audio.h>
 
+#include "AudioHardware.h"
 #include <hardware_legacy/AudioHardwareInterface.h>
 #include <hardware_legacy/AudioSystemLegacy.h>
 
@@ -75,6 +76,12 @@ static uint32_t audio_device_conv_table[][HAL_API_REV_NUM] =
     { AudioSystem::DEVICE_OUT_ANLG_DOCK_HEADSET, AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET },
     { AudioSystem::DEVICE_OUT_DGTL_DOCK_HEADSET, AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET },
     { AudioSystem::DEVICE_OUT_DEFAULT, AUDIO_DEVICE_OUT_DEFAULT },
+#ifdef QCOM_FM_ENABLED
+    { AudioSystem::DEVICE_OUT_FM, AUDIO_DEVICE_OUT_FM },
+#endif
+#ifdef QCOM_FM_TX_ENABLED
+    { AudioSystem::DEVICE_OUT_FM_TX, AUDIO_DEVICE_OUT_FM_TX },
+#endif
     /* input devices */
     { AudioSystem::DEVICE_IN_COMMUNICATION, AUDIO_DEVICE_IN_COMMUNICATION },
     { AudioSystem::DEVICE_IN_AMBIENT, AUDIO_DEVICE_IN_AMBIENT },
@@ -85,6 +92,10 @@ static uint32_t audio_device_conv_table[][HAL_API_REV_NUM] =
     { AudioSystem::DEVICE_IN_VOICE_CALL, AUDIO_DEVICE_IN_VOICE_CALL },
     { AudioSystem::DEVICE_IN_BACK_MIC, AUDIO_DEVICE_IN_BACK_MIC },
     { AudioSystem::DEVICE_IN_DEFAULT, AUDIO_DEVICE_IN_DEFAULT },
+#ifdef QCOM_FM_ENABLED
+    { AudioSystem::DEVICE_IN_FM_RX, AUDIO_DEVICE_IN_FM_RX },
+    { AudioSystem::DEVICE_IN_FM_RX_A2DP, AUDIO_DEVICE_IN_FM_RX_A2DP },
+#endif
 };
 
 static uint32_t convert_audio_device(uint32_t from_device, int from_rev, int to_rev)
@@ -475,44 +486,6 @@ static size_t adev_get_input_buffer_size(const struct audio_hw_device *dev,
     return qadev->hwif->getInputBufferSize(config->sample_rate,config->format,channelCount);
 }
 
-#ifdef QCOM_TUNNEL_LPA_ENABLED
-static int adev_open_output_session(struct audio_hw_device *dev,
-                                   uint32_t devices,
-                                   int *format,
-                                   int sessionId,
-                                   uint32_t samplingRate,
-                                   uint32_t channels,
-                                   struct audio_stream_out **stream_out)
-{
-    struct qcom_audio_device *qadev = to_ladev(dev);
-    status_t status;
-    struct qcom_stream_out *out;
-    int ret;
-
-    out = (struct qcom_stream_out *)calloc(1, sizeof(*out));
-    if (!out)
-        return -ENOMEM;
-
-    out->qcom_out = qadev->hwif->openOutputSession(devices, format,&status,sessionId,samplingRate,channels);
-    if (!out->qcom_out) {
-        ret = status;
-        goto err_open;
-    }
-
-    out->stream.common.standby = out_standby;
-    out->stream.common.set_parameters = out_set_parameters;
-    out->stream.set_volume = out_set_volume;
-
-    *stream_out = &out->stream;
-    return 0;
-
-err_open:
-    free(out);
-    *stream_out = NULL;
-    return ret;
-}
-#endif
-
 static int adev_open_output_stream(struct audio_hw_device *dev,
                                    audio_io_handle_t handle,
                                    audio_devices_t devices,
@@ -697,9 +670,6 @@ static int qcom_adev_open(const hw_module_t* module, const char* name,
     qadev->device.get_parameters = adev_get_parameters;
     qadev->device.get_input_buffer_size = adev_get_input_buffer_size;
     qadev->device.open_output_stream = adev_open_output_stream;
-#ifdef QCOM_TUNNEL_LPA_ENABLED
-    qadev->device.open_output_session = adev_open_output_session;
-#endif
     qadev->device.close_output_stream = adev_close_output_stream;
     qadev->device.open_input_stream = adev_open_input_stream;
     qadev->device.close_input_stream = adev_close_input_stream;
@@ -742,4 +712,4 @@ struct qcom_audio_module HAL_MODULE_INFO_SYM = {
 
 }; // extern "C"
 
-}; // namespace android
+}; // namespace android_audio_legacy
