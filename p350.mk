@@ -184,7 +184,7 @@ ADDITIONAL_DEFAULT_PROPERTIES += \
 # Install/Uninstall google apps
 $(call inherit-product, vendor/google/gapps_armv6_tiny.mk)
 
-Bluetooth configuration files
+#Bluetooth configuration files
 PRODUCT_COPY_FILES += \
     system/bluetooth/data/main.le.conf:system/etc/bluetooth/main.conf
 
