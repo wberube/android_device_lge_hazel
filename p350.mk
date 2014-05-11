@@ -184,6 +184,13 @@ ADDITIONAL_DEFAULT_PROPERTIES += \
 # Install/Uninstall google apps
 $(call inherit-product, vendor/google/gapps_armv6_tiny.mk)
 
+Bluetooth configuration files
+PRODUCT_COPY_FILES += \
+    system/bluetooth/data/main.le.conf:system/etc/bluetooth/main.conf
+
+# Inherit QCOM vendor
+$(call inherit-product, vendor/qcom/msm7x27/qcom-vendor.mk)    
+    
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
 PRODUCT_NAME := cm_p350
