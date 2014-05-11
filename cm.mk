@@ -10,6 +10,7 @@ $(call inherit-product, vendor/cm/config/gsm.mk)
 
 # Inherit some common cm stuff.
 $(call inherit-product, vendor/cm/config/common_mini_phone.mk)
+$(call inherit-product, vendor/cm/config/mini.mk)
 
 ## Device identifier. This must come after all inclusions
 PRODUCT_BUILD_PROP_OVERRIDES += \
