@@ -156,3 +156,6 @@ BOARD_RIL_CLASS := ../../../device/lge/p350/ril/
 
 # Touch screen compatibility for jellybean
 BOARD_USE_LEGACY_TOUCHSCREEN := true
+
+## OTA script extras file (build/tools/releasetools)
+TARGET_OTA_EXTRAS_FILE := device/lge/p350/releasetools/extras.txt
