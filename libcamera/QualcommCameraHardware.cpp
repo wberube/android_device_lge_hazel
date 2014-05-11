@@ -1,6 +1,6 @@
 /*
 ** Copyright 2008, Google Inc.
-** Copyright (c) 2009-2010 Code Aurora Forum. All rights reserved.
+** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
 ** Copyright (c) 2010, Ricardo Cerqueira
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,8 @@
 ** Please do not change the EXIF header without asking me first.
 */
 
-#define ALOG_NDEBUG 0
-#define ALOG_NIDEBUG 0
+//#define LOG_NDEBUG 0
+#define LOG_NIDEBUG 0
 #define LOG_TAG "QualcommCameraHardware"
 #include <utils/Log.h>
 
@@ -46,12 +46,11 @@
 #include <linux/ioctl.h>
 #include <camera/CameraParameters.h>
 
-#include <linux/msm_mdp.h>
+#include "linux/msm_mdp.h"
 #include <linux/fb.h>
 
 #define LIKELY(exp)   __builtin_expect(!!(exp), 1)
 #define UNLIKELY(exp) __builtin_expect(!!(exp), 0)
-#define CAMERA_HAL_UNUSED(expr) do { (void)(expr); } while (0)
 
 extern "C" {
 #include <fcntl.h>
@@ -71,18 +70,15 @@ extern "C" {
 #include <sys/time.h>
 #include <stdlib.h>
 
-#include <linux/msm_camera.h>
+#include <media/msm_camera.h>
 
-#define DEFAULT_PICTURE_WIDTH  640
-#define DEFAULT_PICTURE_HEIGHT 480
+#define DEFAULT_PICTURE_WIDTH  1024
+#define DEFAULT_PICTURE_HEIGHT 768
 #define THUMBNAIL_BUFFER_SIZE (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 3/2)
 #define MAX_ZOOM_LEVEL 20
 #define NOT_FOUND -1
 // Number of video buffers held by kernal (initially 1,2 &3)
 #define ACTIVE_VIDEO_BUFFERS 3
-
-#define PAD_TO_2K(x) (((x)+2047)& ~2047)
-#define APP_ORIENTATION 90
 
 #if DLOPEN_LIBMMCAMERA
 #include <dlfcn.h>
@@ -95,7 +91,7 @@ bool  (*LINK_jpeg_encoder_encode)(const cam_ctrl_dimension_t *dimen,
                                   const uint8_t *thumbnailbuf, int thumbnailfd,
                                   const uint8_t *snapshotbuf, int snapshotfd,
                                   common_crop_t *scaling_parms, exif_tags_info_t *exif_data,
-                                  int exif_table_numEntries, int jpegPadding, const int32_t cbcroffset);
+                                  int exif_table_numEntries, int jpegPadding);
 void (*LINK_camframe_terminate)(void);
 //for 720p
 // Function to add a video buffer to free Q
@@ -108,23 +104,15 @@ void (*LINK_cam_frame_flush_free_video)(void);
 int8_t (*LINK_jpeg_encoder_setMainImageQuality)(uint32_t quality);
 int8_t (*LINK_jpeg_encoder_setThumbnailQuality)(uint32_t quality);
 int8_t (*LINK_jpeg_encoder_setRotation)(uint32_t rotation);
-int8_t (*LINK_jpeg_encoder_get_buffer_offset)(uint32_t width, uint32_t height,
-                                               uint32_t* p_y_offset,
-                                               uint32_t* p_cbcr_offset,
-                                               uint32_t* p_buf_size);
-//int8_t (*LINK_jpeg_encoder_setLocation)(const camera_position_type *location);
-//const struct camera_size_type *(*LINK_default_sensor_get_snapshot_sizes)(int *len);
+int8_t (*LINK_jpeg_encoder_setLocation)(const camera_position_type *location);
+const struct camera_size_type *(*LINK_default_sensor_get_snapshot_sizes)(int *len);
 int (*LINK_launch_cam_conf_thread)(void);
 int (*LINK_release_cam_conf_thread)(void);
-//mm_camera_status_t (*LINK_mm_camera_config_init)(mm_camera_config *);
-//mm_camera_status_t (*LINK_mm_camera_config_deinit)(mm_camera_config *);
-// C3C0 20120503 - doesn't exist in Gio's liboemcamera.so
-//int8_t (*LINK_zoom_crop_upscale)(uint32_t width, uint32_t height,
-//    uint32_t cropped_width, uint32_t cropped_height, uint8_t *img_buf);
+int8_t (*LINK_zoom_crop_upscale)(uint32_t width, uint32_t height,
+    uint32_t cropped_width, uint32_t cropped_height, uint8_t *img_buf);
 
 // callbacks
 void  (**LINK_mmcamera_camframe_callback)(struct msm_frame *frame);
-//void  (**LINK_mmcamera_camstats_callback)(camstats_type stype, camera_preview_histogram_info* histinfo);
 void  (**LINK_mmcamera_jpegfragment_callback)(uint8_t *buff_ptr,
                                               uint32_t buff_size);
 void  (**LINK_mmcamera_jpeg_callback)(jpeg_event_t status);
@@ -140,17 +128,12 @@ void  (**LINK_camframe_timeout_callback)(void);
 #define LINK_jpeg_encoder_setMainImageQuality jpeg_encoder_setMainImageQuality
 #define LINK_jpeg_encoder_setThumbnailQuality jpeg_encoder_setThumbnailQuality
 #define LINK_jpeg_encoder_setRotation jpeg_encoder_setRotation
-#define LINK_jpeg_encoder_get_buffer_offset jpeg_encoder_get_buffer_offset
-//#define LINK_jpeg_encoder_setLocation jpeg_encoder_setLocation
-//#define LINK_default_sensor_get_snapshot_sizes default_sensor_get_snapshot_sizes
+#define LINK_jpeg_encoder_setLocation jpeg_encoder_setLocation
+#define LINK_default_sensor_get_snapshot_sizes default_sensor_get_snapshot_sizes
 #define LINK_launch_cam_conf_thread launch_cam_conf_thread
 #define LINK_release_cam_conf_thread release_cam_conf_thread
-// C3C0 20120503 - doesn't exist in Gio's liboemcamera.so
-//#define LINK_zoom_crop_upscale zoom_crop_upscale
-//#define LINK_mm_camera_config_init mm_camera_config_init
-//#define LINK_mm_camera_config_deinit mm_camera_config_deinit
+#define LINK_zoom_crop_upscale zoom_crop_upscale
 extern void (*mmcamera_camframe_callback)(struct msm_frame *frame);
-//extern void (*mmcamera_camstats_callback)(camstats_type stype, camera_preview_histogram_info* histinfo);
 extern void (*mmcamera_jpegfragment_callback)(uint8_t *buff_ptr,
                                       uint32_t buff_size);
 extern void (*mmcamera_jpeg_callback)(jpeg_event_t status);
@@ -167,10 +150,10 @@ struct camera_size_type {
 #endif
 
 typedef struct crop_info_struct {
-    int32_t x;
-    int32_t y;
-    int32_t w;
-    int32_t h;
+    uint32_t x;
+    uint32_t y;
+    uint32_t w;
+    uint32_t h;
 } zoom_crop_info;
 
 union zoomimage
@@ -180,8 +163,8 @@ union zoomimage
 } zoomImage;
 
 //Default to QVGA
-#define DEFAULT_PREVIEW_WIDTH 480
-#define DEFAULT_PREVIEW_HEIGHT 320
+#define DEFAULT_PREVIEW_WIDTH 320
+#define DEFAULT_PREVIEW_HEIGHT 240
 
 /*
  * Modifying preview size requires modification
@@ -189,7 +172,6 @@ union zoomimage
  */
 
 static const camera_size_type preview_sizes[] = {
-    { 1920, 1088 }, //1080p
     { 1280, 720 }, // 720P, reserved
     { 800, 480 }, // WVGA
     { 768, 432 },
@@ -209,14 +191,10 @@ static camera_size_type supportedPreviewSizes[PREVIEW_SIZE_COUNT];
 static unsigned int previewSizeCount;
 
 board_property boardProperties[] = {
-        {TARGET_MSM7227, 0x00000fff, false, false},
-        {TARGET_MSM7625, 0x00000fff, false, false},
-        {TARGET_MSM7625A, 0x00000fff, false, false},
-        {TARGET_MSM7627, 0x000006ff, false, false},
-        {TARGET_MSM7627A, 0x000006ff, false, false},
-        {TARGET_MSM7630, 0x00000fff, true, true},
-        {TARGET_MSM8660, 0x00001fff, true, true},
-        {TARGET_QSD8250, 0x00000fff, false, false}
+        {TARGET_MSM7625, 0x00000fff},
+        {TARGET_MSM7627, 0x000006ff},
+        {TARGET_MSM7630, 0x00000fff},
+        {TARGET_QSD8250, 0x00000fff}
 };
 
 //static const camera_size_type* picture_sizes;
@@ -229,28 +207,29 @@ board_property boardProperties[] = {
  */
 //sorted on column basis
 static const camera_size_type picture_sizes[] = {
-#ifdef BOARD_CAMERA_12MP
-   { 4000, 3000 }, // 12MP
-#endif
-#ifdef BOARD_CAMERA_8MP
-   { 3200, 2400 }, // 8MP
-#endif
-#ifdef BOARD_CAMERA_5MP
+// 5MP
+#if (SENSOR_SIZE > 3)
     { 2592, 1944 }, // 5MP
-    { 2560, 1920 }, // 5MP (slightly reduced)
+//    { 2560, 1920 }, // 5MP (slightly reduced)
 #endif
+// 3MP
+#if (SENSOR_SIZE > 2)
     { 2048, 1536 }, // 3MP QXGA
-    { 1920, 1080 }, //HD1080
+//    { 1920, 1080 }, //HD1080
+#endif
+// 2MP
+#if (SENSOR_SIZE > 1)
     { 1600, 1200 }, // 2MP UXGA
-    { 1280, 768 }, //WXGA
-    { 1280, 720 }, //HD720
+//    { 1280, 768 }, //WXGA
+//    { 1280, 720 }, //HD720
     { 1024, 768}, // 1MP XGA
-    { 800, 600 }, //SVGA
-    { 800, 480 }, // WVGA
-    { 640, 480 }, // VGA
-    { 352, 288 }, //CIF
-    { 320, 240 }, // QVGA
-    { 176, 144 } // QCIF
+//    { 800, 600 }, //SVGA
+//    { 800, 480 }, // WVGA
+//    { 640, 480 }, // VGA
+//    { 352, 288 }, //CIF
+//    { 320, 240 }, // QVGA
+//    { 176, 144 } // QCIF
+#endif
 };
 static int PICTURE_SIZE_COUNT = sizeof(picture_sizes)/sizeof(camera_size_type);
 static const camera_size_type * picture_sizes_ptr;
@@ -263,17 +242,12 @@ static int supportedPictureSizesCount;
 #define Q12 4096
 
 static const target_map targetList [] = {
-    { "msm7x27", TARGET_MSM7227 },
-    { "msm7x25", TARGET_MSM7625 },
-    { "msm7x25a", TARGET_MSM7625A },
+    { "msm7625", TARGET_MSM7625 },
     { "msm7627", TARGET_MSM7627 },
-    { "msm7x27a", TARGET_MSM7627A },
     { "qsd8250", TARGET_QSD8250 },
-    { "msm7x30", TARGET_MSM7630 },
-    { "msm8660", TARGET_MSM8660 }
-
+    { "msm7630", TARGET_MSM7630 }
 };
-static targetType mCurrentTarget = TARGET_MSM7227;
+static targetType mCurrentTarget = TARGET_MSM7627;
 
 typedef struct {
     uint32_t aspect_ratio;
@@ -284,7 +258,6 @@ typedef struct {
 static thumbnail_size_type thumbnail_sizes[] = {
     { 7281, 512, 288 }, //1.777778
     { 6826, 480, 288 }, //1.666667
-    { 6808, 256, 154 }, //1.662337
     { 6144, 432, 288 }, //1.5
     { 5461, 512, 384 }, //1.333333
     { 5006, 352, 288 }, //1.222222
@@ -294,20 +267,7 @@ static thumbnail_size_type thumbnail_sizes[] = {
 #define THUMBNAIL_WIDTH_STR "512"
 #define THUMBNAIL_HEIGHT_STR "384"
 #define THUMBNAIL_SMALL_HEIGHT 144
-static camera_size_type jpeg_thumbnail_sizes[]  = {
-    { 512, 288 },
-    { 480, 288 },
-    { 432, 288 },
-    { 512, 384 },
-    { 352, 288 },
-    {0,0}
-};
-//supported preview fps ranges should be added to this array in the form (minFps,maxFps)
-static  android::FPSRange FpsRangesSupported[] = {{MINIMUM_FPS*1000,MAXIMUM_FPS*1000}};
 
-#define FPS_RANGES_SUPPORTED_COUNT (sizeof(FpsRangesSupported)/sizeof(FpsRangesSupported[0]))
-
-#define JPEG_THUMBNAIL_SIZE_COUNT (sizeof(jpeg_thumbnail_sizes)/sizeof(camera_size_type))
 static int attr_lookup(const str_map arr[], int len, const char *name)
 {
     if (name) {
@@ -336,14 +296,10 @@ static int exif_table_numEntries = 0;
 exif_tags_info_t exif_data[MAX_EXIF_TABLE_ENTRIES];
 static zoom_crop_info zoomCropInfo;
 static void *mLastQueuedFrame = NULL;
-#define RECORD_BUFFERS 9
+#define RECORD_BUFFERS_7x30 8
 #define RECORD_BUFFERS_8x50 8
 static int kRecordBufferCount;
-static mm_camera_config mCfgControl;
 
-static int HAL_numOfCameras = 0;
-static camera_info_t HAL_cameraInfo[MSM_MAX_CAMERA_SENSORS];
-static int HAL_currentCameraId = 0;
 
 namespace android {
 
@@ -366,10 +322,10 @@ static const str_map effects[] = {
     { CameraParameters::EFFECT_NEGATIVE,   CAMERA_EFFECT_NEGATIVE },
     { CameraParameters::EFFECT_SOLARIZE,   CAMERA_EFFECT_SOLARIZE },
     { CameraParameters::EFFECT_SEPIA,      CAMERA_EFFECT_SEPIA },
-    { CameraParameters::EFFECT_POSTERIZE,  CAMERA_EFFECT_POSTERIZE },
+//    { CameraParameters::EFFECT_POSTERIZE,  CAMERA_EFFECT_POSTERIZE },
     { CameraParameters::EFFECT_WHITEBOARD, CAMERA_EFFECT_WHITEBOARD },
     { CameraParameters::EFFECT_BLACKBOARD, CAMERA_EFFECT_BLACKBOARD },
-    { CameraParameters::EFFECT_AQUA,       CAMERA_EFFECT_AQUA }
+//    { CameraParameters::EFFECT_AQUA,       CAMERA_EFFECT_AQUA }
 };
 
 // from qcamera/common/camera.h
@@ -593,39 +549,7 @@ static struct country_map country_numeric[] = {
     { 750, CAMERA_ANTIBANDING_50HZ }, // Falkland Islands
 };
 
-static const str_map scenemode[] = {
-    { CameraParameters::SCENE_MODE_AUTO,           CAMERA_BESTSHOT_OFF },
-    { CameraParameters::SCENE_MODE_ACTION,         CAMERA_BESTSHOT_ACTION },
-    { CameraParameters::SCENE_MODE_PORTRAIT,       CAMERA_BESTSHOT_PORTRAIT },
-    { CameraParameters::SCENE_MODE_LANDSCAPE,      CAMERA_BESTSHOT_LANDSCAPE },
-    { CameraParameters::SCENE_MODE_NIGHT,          CAMERA_BESTSHOT_NIGHT },
-    { CameraParameters::SCENE_MODE_NIGHT_PORTRAIT, CAMERA_BESTSHOT_NIGHT_PORTRAIT },
-    { CameraParameters::SCENE_MODE_THEATRE,        CAMERA_BESTSHOT_THEATRE },
-    { CameraParameters::SCENE_MODE_BEACH,          CAMERA_BESTSHOT_BEACH },
-    { CameraParameters::SCENE_MODE_SNOW,           CAMERA_BESTSHOT_SNOW },
-    { CameraParameters::SCENE_MODE_SUNSET,         CAMERA_BESTSHOT_SUNSET },
-    { CameraParameters::SCENE_MODE_STEADYPHOTO,    CAMERA_BESTSHOT_ANTISHAKE },
-    { CameraParameters::SCENE_MODE_FIREWORKS ,     CAMERA_BESTSHOT_FIREWORKS },
-    { CameraParameters::SCENE_MODE_SPORTS ,        CAMERA_BESTSHOT_SPORTS },
-    { CameraParameters::SCENE_MODE_PARTY,          CAMERA_BESTSHOT_PARTY },
-    { CameraParameters::SCENE_MODE_CANDLELIGHT,    CAMERA_BESTSHOT_CANDLELIGHT },
-    { CameraParameters::SCENE_MODE_BACKLIGHT,      CAMERA_BESTSHOT_BACKLIGHT },
-    { CameraParameters::SCENE_MODE_FLOWERS,        CAMERA_BESTSHOT_FLOWERS },
-    { CameraParameters::SCENE_MODE_AR,             CAMERA_BESTSHOT_AR },
-};
-
-static const str_map scenedetect[] = {
-    { CameraParameters::SCENE_DETECT_OFF, FALSE  },
-    { CameraParameters::SCENE_DETECT_ON, TRUE },
-};
-
 #define country_number (sizeof(country_numeric) / sizeof(country_map))
-/* TODO : setting dummy values as of now, need to query for correct
- * values from sensor in future
- */
-#define CAMERA_FOCAL_LENGTH_DEFAULT 4.31
-#define CAMERA_HORIZONTAL_VIEW_ANGLE_DEFAULT 54.8
-#define CAMERA_VERTICAL_VIEW_ANGLE_DEFAULT  42.5
 
 /* Look up pre-sorted antibanding_type table by current MCC. */
 static camera_antibanding_type camera_get_location(void) {
@@ -639,7 +563,7 @@ static camera_antibanding_type camera_get_location(void) {
     }
     memcpy(country_value, value, 3);
     country_code = atoi(country_value);
-    ALOGD("value:%s, country value:%s, country code:%d\n",
+    LOGD("value:%s, country value:%s, country code:%d\n",
             value, country_value, country_code);
     int left = 0;
     int right = country_number - 1;
@@ -667,16 +591,10 @@ static const str_map flash[] = {
 static const str_map iso[] = {
     { CameraParameters::ISO_AUTO,  CAMERA_ISO_AUTO},
     { CameraParameters::ISO_HJR,   CAMERA_ISO_DEBLUR},
-#ifdef ADDITIONAL_ISO_MODES
-    { CameraParameters::ISO_SPORTS,CAMERA_ISO_SPORTS},
-    { CameraParameters::ISO_NIGHT, CAMERA_ISO_NIGHT},
-    { CameraParameters::ISO_MOVIE, CAMERA_ISO_MOVIE},
-#endif
     { CameraParameters::ISO_100,   CAMERA_ISO_100},
     { CameraParameters::ISO_200,   CAMERA_ISO_200},
     { CameraParameters::ISO_400,   CAMERA_ISO_400},
-    { CameraParameters::ISO_800,   CAMERA_ISO_800 },
-    { CameraParameters::ISO_1600,  CAMERA_ISO_1600 }
+    { CameraParameters::ISO_800,   CAMERA_ISO_800 }
 };
 
 
@@ -688,31 +606,9 @@ static const str_map focus_modes[] = {
     { CameraParameters::FOCUS_MODE_MACRO,    AF_MODE_MACRO }
 };
 
-/*static const str_map lensshade[] = {
+static const str_map lensshade[] = {
     { CameraParameters::LENSSHADE_ENABLE, TRUE },
     { CameraParameters::LENSSHADE_DISABLE, FALSE }
-};*/
-
-/*static const str_map continuous_af[] = {
-    { CameraParameters::CONTINUOUS_AF_OFF, FALSE },
-    { CameraParameters::CONTINUOUS_AF_ON, TRUE }
-};*/
-
-/*static const str_map histogram[] = {
-    { CameraParameters::HISTOGRAM_ENABLE, TRUE },
-    { CameraParameters::HISTOGRAM_DISABLE, FALSE }
-};*/
-
-static const str_map skinToneEnhancement[] = {
-    { CameraParameters::SKIN_TONE_ENHANCEMENT_ENABLE, TRUE },
-    { CameraParameters::SKIN_TONE_ENHANCEMENT_DISABLE, FALSE }
-};
-
-static const str_map selectable_zone_af[] = {
-    { CameraParameters::SELECTABLE_ZONE_AF_AUTO,  AUTO },
-    { CameraParameters::SELECTABLE_ZONE_AF_SPOT_METERING, SPOT },
-    { CameraParameters::SELECTABLE_ZONE_AF_CENTER_WEIGHTED, CENTER_WEIGHTED },
-    { CameraParameters::SELECTABLE_ZONE_AF_FRAME_AVERAGE, AVERAGE }
 };
 
 struct SensorType {
@@ -725,20 +621,13 @@ struct SensorType {
     int bitMask;
 };
 
-/*#define CAMERA_HISTOGRAM_ENABLE 1
-#define CAMERA_HISTOGRAM_DISABLE 0
-#define HISTOGRAM_STATS_SIZE 257*/
-
 static SensorType sensorTypes[] = {
-        { "12mp", 4096, 3120, false, 4096, 3120,0x00001fff },
-        { "12mp_sn12m0pz",4032, 3024, true,  4000, 3000,0x00000fff },
         { "5mp", 2608, 1960, true,  2592, 1944,0x00000fff },
         { "5mp", 5184, 1944, true,  2592, 1944,0x00000fff }, // actual 5MP blade
         { "5mp", 2560, 1920, true,  2560, 1920,0x00000fff }, //should be 5MP blade
         { "3mp", 2064, 1544, false, 2048, 1536,0x000007ff },
         { "3mp", 4096, 1536, true, 2048, 1536,0x000007ff }, // 3MP blade
-        { "2mp", 3200, 1200, false, 1600, 1200,0x000007ff },
-        { "ov7692", 640, 480, false, 640, 480, 0x000000ff } }; //Web Camera
+        { "2mp", 3200, 1200, false, 1600, 1200,0x000007ff } };
 
 
 static SensorType * sensorType;
@@ -748,22 +637,9 @@ static const str_map picture_formats[] = {
         {CameraParameters::PIXEL_FORMAT_RAW, PICTURE_FORMAT_RAW}
 };
 
-static int mPreviewFormat;
-static const str_map preview_formats[] = {
-        {CameraParameters::PIXEL_FORMAT_YUV420SP,   CAMERA_YUV_420_NV21},
-        {CameraParameters::PIXEL_FORMAT_YUV420SP_ADRENO, CAMERA_YUV_420_NV21_ADRENO}
-};
-
-static const str_map frame_rate_modes[] = {
-        {CameraParameters::KEY_PREVIEW_FRAME_RATE_AUTO_MODE, FPS_MODE_AUTO},
-        {CameraParameters::KEY_PREVIEW_FRAME_RATE_FIXED_MODE, FPS_MODE_FIXED}
-};
-
 static bool parameter_string_initialized = false;
 static String8 preview_size_values;
 static String8 picture_size_values;
-static String8 fps_ranges_supported_values;
-static String8 jpeg_thumbnail_size_values;
 static String8 antibanding_values;
 static String8 effect_values;
 static String8 autoexposure_values;
@@ -771,18 +647,9 @@ static String8 whitebalance_values;
 static String8 flash_values;
 static String8 focus_mode_values;
 static String8 iso_values;
-//static String8 lensshade_values;
+static String8 lensshade_values;
 static String8 picture_format_values;
-static String8 scenemode_values;
-//static String8 continuous_af_values;
-static String8 zoom_ratio_values;
 static String8 preview_frame_rate_values;
-static String8 frame_rate_mode_values;
-static String8 scenedetect_values;
-static String8 preview_format_values;
-//static String8 histogram_values;
-static String8 skinToneEnhancement_values;
-static String8 selectable_zone_af_values;
 
 static String8 create_sizes_str(const camera_size_type *sizes, int len) {
     String8 str;
@@ -794,21 +661,6 @@ static String8 create_sizes_str(const camera_size_type *sizes, int len) {
     }
     for (int i = 1; i < len; i++) {
         sprintf(buffer, ",%dx%d", sizes[i].width, sizes[i].height);
-        str.append(buffer);
-    }
-    return str;
-}
-
-static String8 create_fps_str(const android:: FPSRange* fps, int len) {
-    String8 str;
-    char buffer[32];
-
-    if (len > 0) {
-        sprintf(buffer, "(%d,%d)", fps[0].minFPS, fps[0].maxFPS);
-        str.append(buffer);
-    }
-    for (int i = 1; i < len; i++) {
-        sprintf(buffer, ",(%d,%d)", fps[i].minFPS, fps[i].maxFPS);
         str.append(buffer);
     }
     return str;
@@ -843,23 +695,6 @@ static String8 create_values_range_str(int min, int max){
     return str;
 }
 
-static String8 create_str(int16_t *arr, int length){
-    String8 str;
-    char buffer[32];
-
-    if(length > 0){
-        snprintf(buffer, sizeof(buffer), "%d", arr[0]);
-        str.append(buffer);
-    }
-
-    for (int i =1;i<length;i++){
-        snprintf(buffer, sizeof(buffer), ",%d",arr[i]);
-        str.append(buffer);
-    }
-    return str;
-}
-
-
 extern "C" {
 //------------------------------------------------------------------------
 //   : 720p busyQ funcitons
@@ -875,11 +710,11 @@ static struct fifo_queue g_busy_frame_queue =
 
 static void cam_frame_wait_video (void)
 {
-    ALOGV("cam_frame_wait_video E ");
+    LOGV("cam_frame_wait_video E ");
     if ((g_busy_frame_queue.num_of_frames) <=0){
         pthread_cond_wait(&(g_busy_frame_queue.wait), &(g_busy_frame_queue.mut));
     }
-    ALOGV("cam_frame_wait_video X");
+    LOGV("cam_frame_wait_video X");
     return;
 }
 
@@ -890,7 +725,7 @@ static void cam_frame_wait_video (void)
  * ===========================================================================*/
 void cam_frame_flush_video (void)
 {
-    ALOGV("cam_frame_flush_video: in n = %d\n", g_busy_frame_queue.num_of_frames);
+    LOGV("cam_frame_flush_video: in n = %d\n", g_busy_frame_queue.num_of_frames);
     pthread_mutex_lock(&(g_busy_frame_queue.mut));
 
     while (g_busy_frame_queue.front)
@@ -900,10 +735,10 @@ void cam_frame_flush_video (void)
        if(node)
            free(node);
 
-       ALOGV("cam_frame_flush_video: node \n");
+       LOGV("cam_frame_flush_video: node \n");
     }
     pthread_mutex_unlock(&(g_busy_frame_queue.mut));
-    ALOGV("cam_frame_flush_video: out n = %d\n", g_busy_frame_queue.num_of_frames);
+    LOGV("cam_frame_flush_video: out n = %d\n", g_busy_frame_queue.num_of_frames);
     return ;
 }
 /*===========================================================================
@@ -914,8 +749,8 @@ void cam_frame_flush_video (void)
 static struct msm_frame * cam_frame_get_video()
 {
     struct msm_frame *p = NULL;
-    ALOGV("cam_frame_get_video... in\n");
-    ALOGV("cam_frame_get_video... got lock\n");
+    LOGV("cam_frame_get_video... in\n");
+    LOGV("cam_frame_get_video... got lock\n");
     if (g_busy_frame_queue.front)
     {
         //dequeue
@@ -925,7 +760,7 @@ static struct msm_frame * cam_frame_get_video()
            p = (struct msm_frame *)node->f;
            free (node);
        }
-       ALOGV("cam_frame_get_video... out = %lx\n", p->buffer);
+       LOGV("cam_frame_get_video... out = %x\n", p->buffer);
     }
     return p;
 }
@@ -939,55 +774,47 @@ static void cam_frame_post_video (struct msm_frame *p)
 {
     if (!p)
     {
-        ALOGV("post video , buffer is null");
+        LOGE("post video , buffer is null");
         return;
     }
-    ALOGV("cam_frame_post_video... in = %x\n", (unsigned int)(p->buffer));
+    LOGV("cam_frame_post_video... in = %x\n", (unsigned int)(p->buffer));
     pthread_mutex_lock(&(g_busy_frame_queue.mut));
-    ALOGV("post_video got lock. q count before enQ %d", g_busy_frame_queue.num_of_frames);
+    LOGV("post_video got lock. q count before enQ %d", g_busy_frame_queue.num_of_frames);
     //enqueue to busy queue
     struct fifo_node *node = (struct fifo_node *)malloc (sizeof (struct fifo_node));
     if (node)
     {
-        ALOGV(" post video , enqueing in busy queue");
+        LOGV(" post video , enqueing in busy queue");
         node->f = p;
         node->next = NULL;
         enqueue (&g_busy_frame_queue, node);
-        ALOGV("post_video got lock. q count after enQ %d", g_busy_frame_queue.num_of_frames);
+        LOGV("post_video got lock. q count after enQ %d", g_busy_frame_queue.num_of_frames);
     }
     else
     {
-        ALOGV("cam_frame_post_video error... out of memory\n");
+        LOGE("cam_frame_post_video error... out of memory\n");
     }
 
     pthread_mutex_unlock(&(g_busy_frame_queue.mut));
     pthread_cond_signal(&(g_busy_frame_queue.wait));
 
-    ALOGV("cam_frame_post_video... out = %lx\n", p->buffer);
+    LOGV("cam_frame_post_video... out = %x\n", p->buffer);
 
     return;
 }
 
 void QualcommCameraHardware::storeTargetType(void) {
     char mDeviceName[PROPERTY_VALUE_MAX];
-    property_get("ro.board.platform",mDeviceName," ");
+    property_get("ro.product.device",mDeviceName," ");
     mCurrentTarget = TARGET_MAX;
     for( int i = 0; i < TARGET_MAX ; i++) {
         if( !strncmp(mDeviceName, targetList[i].targetStr, 7)) {
             mCurrentTarget = targetList[i].targetEnum;
-            if(mCurrentTarget == TARGET_MSM7625) {
-                if(!strncmp(mDeviceName, "msm7625a" , 8))
-                    mCurrentTarget = TARGET_MSM7625A;
-            }
-            if(mCurrentTarget == TARGET_MSM7627) {
-                if(!strncmp(mDeviceName, "msm7627a" , 8))
-                    mCurrentTarget = TARGET_MSM7627A;
-            }
             break;
         }
     }
-    mCurrentTarget = TARGET_MSM7227;
-    ALOGV(" Storing the current target type as %d ", mCurrentTarget );
+    mCurrentTarget = TARGET_MSM7627;
+    LOGV(" Storing the current target type as %d ", mCurrentTarget );
     return;
 }
 
@@ -1000,7 +827,6 @@ static const nsecs_t SINGLETON_RELEASING_RECHECK_TIMEOUT = seconds_to_nanosecond
 static Condition singleton_wait;
 
 static void receive_camframe_callback(struct msm_frame *frame);
-//static void receive_camstats_callback(camstats_type stype, camera_preview_histogram_info* histinfo);
 static void receive_camframe_video_callback(struct msm_frame *frame); // 720p
 static void receive_jpeg_fragment_callback(uint8_t *buff_ptr, uint32_t buff_size);
 static void receive_jpeg_callback(jpeg_event_t status);
@@ -1008,9 +834,7 @@ static void receive_shutter_callback(common_crop_t *crop);
 static void receive_camframetimeout_callback(void);
 static int fb_fd = -1;
 static int32_t mMaxZoom = 0;
-static bool zoomSupported = false;
 static bool native_get_maxzoom(int camfd, void *pZm);
-static bool native_get_zoomratios(int camfd, void *pZr, int maxZoomLevel);
 
 static int dstOffset = 0;
 
@@ -1019,11 +843,6 @@ pthread_t w_thread;
 
 void *opencamerafd(void *data) {
     camerafd = open(MSM_CAMERA_CONTROL, O_RDWR);
-    if (camerafd < 0)
-        ALOGE("Camera control %s open failed: %s!", MSM_CAMERA_CONTROL, strerror(errno));
-    else
-        ALOGV("opening %s fd: %d", MSM_CAMERA_CONTROL, camerafd);
-
     return NULL;
 }
 
@@ -1051,21 +870,16 @@ QualcommCameraHardware::QualcommCameraHardware()
       mFrameThreadRunning(false),
       mVideoThreadRunning(false),
       mSnapshotThreadRunning(false),
-      mJpegThreadRunning(false),
       mInSnapshotMode(false),
-      mEncodePending(false),
+      mJpegThreadRunning(false),
       mSnapshotFormat(0),
-      mFirstFrame(true),
       mReleasedRecordingFrame(false),
       mPreviewFrameSize(0),
       mRawSize(0),
-      mCbCrOffsetRaw(0),
       mCameraControlFd(-1),
       mAutoFocusThreadRunning(false),
       mAutoFocusFd(-1),
-      mInitialized(false),
       mBrightness(0),
-      mSkinToneEnhancement(0),
       mHJR(0),
       mInPreviewCallback(false),
       mUseOverlay(0),
@@ -1075,68 +889,56 @@ QualcommCameraHardware::QualcommCameraHardware()
       mDataCallback(0),
       mDataCallbackTimestamp(0),
       mCallbackCookie(0),
-      mDebugFps(0),
-      mSnapshotDone(0),
-      mSnapshotPrepare(0),
-      mResetOverlayCrop(false),
-      mThumbnailWidth(0),
-      mThumbnailHeight(0),
-      strTexturesOn(false)
+      mInitialized(false),
+      mDebugFps(0)
 {
-    ALOGI("QualcommCameraHardware constructor E");
-    mMMCameraDLRef = MMCameraDL::getInstance();
-    libmmcamera = mMMCameraDLRef->pointer();
-    char value[PROPERTY_VALUE_MAX];
-
-    storeTargetType();
 
     // Start opening camera device in a separate thread/ Since this
     // initializes the sensor hardware, this can take a long time. So,
     // start the process here so it will be ready by the time it's
     // needed.
     if ((pthread_create(&w_thread, NULL, opencamerafd, NULL)) != 0) {
-        ALOGV("Camera open thread creation failed");
+        LOGE("Camera open thread creation failed");
     }
 
     memset(&mDimension, 0, sizeof(mDimension));
     memset(&mCrop, 0, sizeof(mCrop));
     memset(&zoomCropInfo, 0, sizeof(zoom_crop_info));
+    storeTargetType();
+    char value[PROPERTY_VALUE_MAX];
     property_get("persist.debug.sf.showfps", value, "0");
     mDebugFps = atoi(value);
-    kPreviewBufferCountActual = kPreviewBufferCount + NUM_MORE_BUFS;
+    if( mCurrentTarget == TARGET_MSM7630 ) {
+        kPreviewBufferCountActual = kPreviewBufferCount;
+        kRecordBufferCount = RECORD_BUFFERS_7x30;
+        recordframes = new msm_frame[kRecordBufferCount];
+    }
+    else {
+        kPreviewBufferCountActual = kPreviewBufferCount + NUM_MORE_BUFS;
+        if( mCurrentTarget == TARGET_QSD8250 ) {
+            kRecordBufferCount = RECORD_BUFFERS_8x50;
+            recordframes = new msm_frame[kRecordBufferCount];
+        }
+    }
 
     switch(mCurrentTarget){
-        case TARGET_MSM7227:
-        case TARGET_MSM7627A:
-            jpegPadding = 0; // to be checked.
-            break;
+        case TARGET_MSM7627:
         case TARGET_QSD8250:
         case TARGET_MSM7630:
-        case TARGET_MSM8660:
             jpegPadding = 0;
             break;
         default:
             jpegPadding = 0;
             break;
     }
-    // Initialize with default format values. The format values can be
-    // overriden when application requests.
-    mDimension.prev_format     = CAMERA_YUV_420_NV21;
-    mPreviewFormat             = CAMERA_YUV_420_NV21;
-    mDimension.enc_format      = CAMERA_YUV_420_NV21;
-    if( mCurrentTarget == TARGET_MSM7630 )
-        mDimension.enc_format  = CAMERA_YUV_420_NV12;
-
-    mDimension.main_img_format = CAMERA_YUV_420_NV21;
-    mDimension.thumb_format    = CAMERA_YUV_420_NV21;
-
-    ALOGV("constructor EX");
+    LOGV("constructor EX");
 }
+
 
 void QualcommCameraHardware::filterPreviewSizes(){
 
     unsigned int boardMask = 0;
-    unsigned int prop = 0;
+    int prop = 0;
     for(prop=0;prop<sizeof(boardProperties)/sizeof(board_property);prop++){
         if(mCurrentTarget == boardProperties[prop].target){
             boardMask = boardProperties[prop].previewSizeMask;
@@ -1177,41 +979,14 @@ void QualcommCameraHardware::filterPictureSizes(){
     }
 }
 
-bool QualcommCameraHardware::supportsSceneDetection() {
-   unsigned int prop = 0;
-   for(prop=0; prop<sizeof(boardProperties)/sizeof(board_property); prop++) {
-       if((mCurrentTarget == boardProperties[prop].target)
-          && boardProperties[prop].hasSceneDetect == true) {
-           return true;
-           break;
-       }
-   }
-   return false;
-}
-
-bool QualcommCameraHardware::supportsSelectableZoneAf() {
-   unsigned prop = 0;
-   for(prop=0; prop<sizeof(boardProperties)/sizeof(board_property); prop++) {
-       if((mCurrentTarget == boardProperties[prop].target)
-          && boardProperties[prop].hasSelectableZoneAf == true) {
-           return true;
-           break;
-       }
-   }
-   return false;
-}
-
 void QualcommCameraHardware::initDefaultParameters()
 {
-    ALOGI("initDefaultParameters E");
+    LOGV("initDefaultParameters E");
 
-    findSensorType();
-    //Disable DIS for Web Camera
-    /*if(!strcmp(sensorType->name, "ov7692"))
-        mDisEnabled = 0;*/
     // Initialize constant parameter strings. This will happen only once in the
     // lifetime of the mediaserver process.
     if (!parameter_string_initialized) {
+        findSensorType();
         antibanding_values = create_values_str(
             antibanding, sizeof(antibanding) / sizeof(str_map));
         effect_values = create_values_str(
@@ -1230,13 +1005,6 @@ void QualcommCameraHardware::initDefaultParameters()
         picture_size_values = create_sizes_str(
                 picture_sizes_ptr, supportedPictureSizesCount);
 
-        fps_ranges_supported_values = create_fps_str(
-            FpsRangesSupported,FPS_RANGES_SUPPORTED_COUNT );
-        mParameters.set(
-            CameraParameters::KEY_SUPPORTED_PREVIEW_FPS_RANGE,
-            fps_ranges_supported_values);
-        mParameters.setPreviewFpsRange(MINIMUM_FPS*1000,MAXIMUM_FPS*1000);
-
         flash_values = create_values_str(
             flash, sizeof(flash) / sizeof(str_map));
         if(sensorType->hasAutoFocusSupport){
@@ -1245,66 +1013,12 @@ void QualcommCameraHardware::initDefaultParameters()
         }
         iso_values = create_values_str(
             iso,sizeof(iso)/sizeof(str_map));
-        /*lensshade_values = create_values_str(
-            lensshade,sizeof(lensshade)/sizeof(str_map));*/
-        /*if(sensorType->hasAutoFocusSupport){
-            continuous_af_values = create_values_str(
-                continuous_af, sizeof(continuous_af) / sizeof(str_map));
-        }*/
-        /*//Currently Enabling Histogram for 8x60
-        if(mCurrentTarget == TARGET_MSM8660) {
-          histogram_values = create_values_str(
-                histogram,sizeof(histogram)/sizeof(str_map));
-        }*/
-        //Currently Enabling Skin Tone Enhancement for 8x60 and 7630
-        if((mCurrentTarget == TARGET_MSM8660)||(mCurrentTarget == TARGET_MSM7630)) {
-            skinToneEnhancement_values = create_values_str(
-                skinToneEnhancement,sizeof(skinToneEnhancement)/sizeof(str_map));
-        }
+        lensshade_values = create_values_str(
+            lensshade,sizeof(lensshade)/sizeof(str_map));
         picture_format_values = create_values_str(
             picture_formats, sizeof(picture_formats)/sizeof(str_map));
         preview_frame_rate_values = create_values_range_str(
             MINIMUM_FPS, MAXIMUM_FPS);
-
-        scenemode_values = create_values_str(
-            scenemode, sizeof(scenemode) / sizeof(str_map));
-
-        if(supportsSceneDetection()) {
-            scenedetect_values = create_values_str(
-                scenedetect, sizeof(scenedetect) / sizeof(str_map));
-        }
-
-        if(sensorType->hasAutoFocusSupport && supportsSelectableZoneAf()){
-            selectable_zone_af_values = create_values_str(
-                selectable_zone_af, sizeof(selectable_zone_af) / sizeof(str_map));
-        }
-
-        if(native_get_maxzoom(mCameraControlFd,
-                (void *)&mMaxZoom) == true){
-            ALOGD("Maximum zoom value is %d", mMaxZoom);
-            zoomSupported = true;
-            if(mMaxZoom > 0){
-                //if max zoom is available find the zoom ratios
-                int16_t * zoomRatios = new int16_t[mMaxZoom+1];
-                if(zoomRatios != NULL){
-                    if(native_get_zoomratios(mCameraControlFd,
-                            (void *)zoomRatios, mMaxZoom + 1) == true){
-                        zoom_ratio_values =
-                                create_str(zoomRatios, mMaxZoom + 1);
-                    }else {
-                        ALOGE("Failed to get zoomratios...");
-                    }
-                    delete zoomRatios;
-                } else {
-                    ALOGE("zoom ratios failed to acquire memory");
-                }
-            }
-        } else {
-            zoomSupported = false;
-            ALOGE("Failed to get maximum zoom value...setting max "
-                    "zoom to zero");
-            mMaxZoom = 0;
-        }
         parameter_string_initialized = true;
     }
 
@@ -1313,8 +1027,9 @@ void QualcommCameraHardware::initDefaultParameters()
     mDimension.display_height = DEFAULT_PREVIEW_HEIGHT;
 
     mParameters.setPreviewFrameRate(DEFAULT_FPS);
-    if((strcmp(sensorType->name, "2mp")) &&
-       (strcmp(sensorType->name, "ov7692"))){
+    if((strcmp(mSensorInfo.name, "vx6953")) &&
+        (strcmp(mSensorInfo.name, "VX6953")) &&
+        (strcmp(sensorType->name, "2mp"))){
         mParameters.set(
             CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES,
             preview_frame_rate_values.string());
@@ -1323,7 +1038,6 @@ void QualcommCameraHardware::initDefaultParameters()
             CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATES,
             DEFAULT_FPS);
     }
-    mParameters.setPreviewFrameRateMode("frame-rate-auto");
     mParameters.setPreviewFormat("yuv420sp"); // informative
 
     mParameters.setPictureSize(DEFAULT_PICTURE_WIDTH, DEFAULT_PICTURE_HEIGHT);
@@ -1339,22 +1053,6 @@ void QualcommCameraHardware::initDefaultParameters()
     mDimension.ui_thumbnail_height =
             thumbnail_sizes[DEFAULT_THUMBNAIL_SETTING].height;
     mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY, "90");
-    mDimension.thumbnail_width = mDimension.ui_thumbnail_width;
-    mDimension.thumbnail_height = mDimension.ui_thumbnail_height;
-
-     String8 valuesStr = create_sizes_str(jpeg_thumbnail_sizes, JPEG_THUMBNAIL_SIZE_COUNT);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES,
-                valuesStr.string());
-
-    if(zoomSupported){
-        mParameters.set(CameraParameters::KEY_ZOOM_SUPPORTED, "true");
-        ALOGV("max zoom is %d", mMaxZoom);
-        mParameters.set("max-zoom",mMaxZoom);
-        mParameters.set(CameraParameters::KEY_ZOOM_RATIOS,
-                            zoom_ratio_values);
-    } else {
-        mParameters.set(CameraParameters::KEY_ZOOM_SUPPORTED, "false");
-    }
 
     mParameters.set(CameraParameters::KEY_ANTIBANDING,
                     CameraParameters::ANTIBANDING_OFF);
@@ -1366,32 +1064,11 @@ void QualcommCameraHardware::initDefaultParameters()
                     CameraParameters::WHITE_BALANCE_AUTO);
     mParameters.set(CameraParameters::KEY_FOCUS_MODE,
                     CameraParameters::FOCUS_MODE_AUTO);
-    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_QSD8250)
-        && (mCurrentTarget != TARGET_MSM8660)) {
     mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS,
                     "yuv420sp");
-    }
-    else {
-        preview_format_values = create_values_str(
-            preview_formats, sizeof(preview_formats) / sizeof(str_map));
-        mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FORMATS,
-                preview_format_values.string());
-    }
-
-    frame_rate_mode_values = create_values_str(
-            frame_rate_modes, sizeof(frame_rate_modes) / sizeof(str_map));
-    if((strcmp(sensorType->name, "2mp")) &&
-       (strcmp(sensorType->name, "ov7692"))){
-        mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_FRAME_RATE_MODES,
-                    frame_rate_mode_values.string());
-    }
 
     mParameters.set(CameraParameters::KEY_SUPPORTED_PREVIEW_SIZES,
                     preview_size_values.string());
-
-    mParameters.set(CameraParameters::KEY_SUPPORTED_VIDEO_SIZES,
-                            preview_size_values.string());
-
     mParameters.set(CameraParameters::KEY_SUPPORTED_PICTURE_SIZES,
                     picture_size_values.string());
     mParameters.set(CameraParameters::KEY_SUPPORTED_ANTIBANDING,
@@ -1400,15 +1077,8 @@ void QualcommCameraHardware::initDefaultParameters()
     mParameters.set(CameraParameters::KEY_SUPPORTED_AUTO_EXPOSURE, autoexposure_values);
     mParameters.set(CameraParameters::KEY_SUPPORTED_WHITE_BALANCE,
                     whitebalance_values);
-    if((strcmp(mSensorInfo.name, "vx6953")) &&
-        (strcmp(mSensorInfo.name, "VX6953")))
-
-       mParameters.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,
+    mParameters.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,
                     focus_mode_values);
-    else
-       mParameters.set(CameraParameters::KEY_SUPPORTED_FOCUS_MODES,
-                   CameraParameters::FOCUS_MODE_INFINITY);
-
     mParameters.set(CameraParameters::KEY_SUPPORTED_PICTURE_FORMATS,
                     picture_format_values);
 
@@ -1419,17 +1089,17 @@ void QualcommCameraHardware::initDefaultParameters()
                         flash_values);
     }
 
-    /*mParameters.set(CameraParameters::KEY_MAX_SHARPNESS,
-            CAMERA_MAX_SHARPNESS);*/
+    mParameters.set(CameraParameters::KEY_MAX_SHARPNESS,
+            CAMERA_MAX_SHARPNESS);
     mParameters.set(CameraParameters::KEY_MAX_CONTRAST,
             CAMERA_MAX_CONTRAST);
     mParameters.set(CameraParameters::KEY_MAX_SATURATION,
             CAMERA_MAX_SATURATION);
 
-    /*mParameters.set("sharpness-max",
-            CAMERA_MAX_SHARPNESS);*/
-    /*mParameters.set("sharpness-def",
-            CAMERA_DEF_SHARPNESS);*/
+    mParameters.set("sharpness-max",
+            CAMERA_MAX_SHARPNESS);
+    mParameters.set("sharpness-def",
+            CAMERA_DEF_SHARPNESS);
     mParameters.set("contrast-max",
             CAMERA_MAX_CONTRAST);
     mParameters.set("contrast-def",
@@ -1447,14 +1117,15 @@ void QualcommCameraHardware::initDefaultParameters()
             CAMERA_EXPOSURE_COMPENSATION_STEP);
 
     mParameters.set("luma-adaptation", "3");
-    mParameters.set("skinToneEnhancement", "0");
     mParameters.set("zoom-supported", "true");
+    mParameters.set("zoom-ratios", "100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200");
+    mParameters.set("max-zoom", MAX_ZOOM_LEVEL);
     mParameters.set("zoom", 0);
     mParameters.set(CameraParameters::KEY_PICTURE_FORMAT,
                     CameraParameters::PIXEL_FORMAT_JPEG);
 
-    /*mParameters.set(CameraParameters::KEY_SHARPNESS,
-                    CAMERA_DEF_SHARPNESS);*/
+    mParameters.set(CameraParameters::KEY_SHARPNESS,
+                    CAMERA_DEF_SHARPNESS);
     mParameters.set(CameraParameters::KEY_CONTRAST,
                     CAMERA_DEF_CONTRAST);
     mParameters.set(CameraParameters::KEY_SATURATION,
@@ -1464,68 +1135,36 @@ void QualcommCameraHardware::initDefaultParameters()
 
     mParameters.set(CameraParameters::KEY_ISO_MODE,
                     CameraParameters::ISO_AUTO);
-    /*mParameters.set(CameraParameters::KEY_LENSSHADE,
-                    CameraParameters::LENSSHADE_ENABLE);*/
+    mParameters.set(CameraParameters::KEY_LENSSHADE,
+                    CameraParameters::LENSSHADE_ENABLE);
     mParameters.set(CameraParameters::KEY_SUPPORTED_ISO_MODES,
                     iso_values);
 
-    /*if( (!strcmp(sensorType->name, "2mp")) ||
+    if( (!strcmp(sensorType->name, "2mp")) ||
         (!strcmp(mSensorInfo.name, "vx6953")) ||
 		(!strcmp(mSensorInfo.name, "ov5642")) ||
+		(!strcmp(mSensorInfo.name, "isx005")) ||
 		(!strcmp(mSensorInfo.name, "VX6953")) ) {
-        ALOGI("Parameter Rolloff is not supported for this sensor");
+        LOGI("Parameter Rolloff is not supported for this sensor");
     } else {
         mParameters.set(CameraParameters::KEY_SUPPORTED_LENSSHADE_MODES,
                     lensshade_values);
-    }*/
-    /*mParameters.set(CameraParameters::KEY_HISTOGRAM,
-                    CameraParameters::HISTOGRAM_DISABLE);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_HISTOGRAM_MODES,
-                    histogram_values);*/
-     mParameters.set(CameraParameters::KEY_SKIN_TONE_ENHANCEMENT,
-                    CameraParameters::SKIN_TONE_ENHANCEMENT_DISABLE);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_SKIN_TONE_ENHANCEMENT_MODES,
-                    skinToneEnhancement_values);
-     mParameters.set(CameraParameters::KEY_SCENE_MODE,
-                    CameraParameters::SCENE_MODE_AUTO);
-    mParameters.set("strtextures", "OFF");
-
-    mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_MODES,
-                    scenemode_values);
-    /*mParameters.set(CameraParameters::KEY_CONTINUOUS_AF,
-                    CameraParameters::CONTINUOUS_AF_OFF);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_CONTINUOUS_AF,
-                    continuous_af_values)*/
-     mParameters.set(CameraParameters::KEY_SCENE_DETECT,
-                    CameraParameters::SCENE_DETECT_OFF);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_SCENE_DETECT,
-                    scenedetect_values);
-    mParameters.setFloat(CameraParameters::KEY_FOCAL_LENGTH,
-                    CAMERA_FOCAL_LENGTH_DEFAULT);
-    mParameters.setFloat(CameraParameters::KEY_HORIZONTAL_VIEW_ANGLE,
-                    CAMERA_HORIZONTAL_VIEW_ANGLE_DEFAULT);
-    mParameters.setFloat(CameraParameters::KEY_VERTICAL_VIEW_ANGLE,
-                    CAMERA_VERTICAL_VIEW_ANGLE_DEFAULT);
-    mParameters.set(CameraParameters::KEY_SELECTABLE_ZONE_AF,
-                    CameraParameters::SELECTABLE_ZONE_AF_AUTO);
-    mParameters.set(CameraParameters::KEY_SUPPORTED_SELECTABLE_ZONE_AF,
-                    selectable_zone_af_values);
-    if (setParameters(mParameters) != NO_ERROR) {
-        ALOGE("Failed to set default parameters?!");
     }
+
+    if (setParameters(mParameters) != NO_ERROR) {
+        LOGE("Failed to set default parameters?!");
+    }
+
     mUseOverlay = useOverlay();
 
     /* Initialize the camframe_timeout_flag*/
     Mutex::Autolock l(&mCamframeTimeoutLock);
     camframe_timeout_flag = FALSE;
     mPostViewHeap = NULL;
-    mDisplayHeap = NULL;
-    mThumbnailHeap = NULL;
 
     mInitialized = true;
-    strTexturesOn = false;
 
-    ALOGI("initDefaultParameters X");
+    LOGV("initDefaultParameters X");
 }
 
 void QualcommCameraHardware::findSensorType(){
@@ -1544,7 +1183,7 @@ void QualcommCameraHardware::findSensorType(){
         }
     }
     //default to 5 mp
-    ALOGD("Failed to find a match for %d x %d, using 5M default",mDimension.raw_picture_width,mDimension.raw_picture_height);
+    LOGD("Failed to find a match for %d x %d, using 5M default",mDimension.raw_picture_width,mDimension.raw_picture_height);
     sensorType = sensorTypes;
     return;
 }
@@ -1553,14 +1192,16 @@ void QualcommCameraHardware::findSensorType(){
 
 bool QualcommCameraHardware::startCamera()
 {
-    ALOGV("startCamera E");
+    LOGV("startCamera E");
     if( mCurrentTarget == TARGET_MAX ) {
-        ALOGV(" Unable to determine the target type. Camera will not work ");
+        LOGE(" Unable to determine the target type. Camera will not work ");
         return false;
     }
 #if DLOPEN_LIBMMCAMERA
+    libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
+    LOGV("loading liboemcamera at %p", libmmcamera);
     if (!libmmcamera) {
-        ALOGV("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+        LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
         return false;
     }
 
@@ -1583,11 +1224,6 @@ bool QualcommCameraHardware::startCamera()
 
     *LINK_mmcamera_camframe_callback = receive_camframe_callback;
 
-    /**(void **)&LINK_mmcamera_camstats_callback =
-        ::dlsym(libmmcamera, "mmcamera_camstats_callback");
-
-    *LINK_mmcamera_camstats_callback = receive_camstats_callback;*/
-
     *(void **)&LINK_mmcamera_jpegfragment_callback =
         ::dlsym(libmmcamera, "mmcamera_jpegfragment_callback");
 
@@ -1603,6 +1239,7 @@ bool QualcommCameraHardware::startCamera()
 
     *LINK_camframe_timeout_callback = receive_camframetimeout_callback;
 
+    // 720 p new recording functions
     *(void **)&LINK_cam_frame_flush_free_video = ::dlsym(libmmcamera, "cam_frame_flush_free_video");
 
     *(void **)&LINK_camframe_free_video = ::dlsym(libmmcamera, "cam_frame_add_free_video");
@@ -1624,39 +1261,30 @@ bool QualcommCameraHardware::startCamera()
     *(void**)&LINK_jpeg_encoder_setRotation =
         ::dlsym(libmmcamera, "jpeg_encoder_setRotation");
 
-     *(void**)&LINK_jpeg_encoder_get_buffer_offset =
-        ::dlsym(libmmcamera, "jpeg_encoder_get_buffer_offset");
-
 /* Disabling until support is available.
     *(void**)&LINK_jpeg_encoder_setLocation =
         ::dlsym(libmmcamera, "jpeg_encoder_setLocation");
 */
-
     *(void **)&LINK_cam_conf =
         ::dlsym(libmmcamera, "cam_conf");
 
-/* C3C0 20120503 - doesn't exist in Gio's liboemcamera.so
+/* Disabling until support is available.
     *(void **)&LINK_default_sensor_get_snapshot_sizes =
         ::dlsym(libmmcamera, "default_sensor_get_snapshot_sizes");
 */
-
     *(void **)&LINK_launch_cam_conf_thread =
         ::dlsym(libmmcamera, "launch_cam_conf_thread");
 
     *(void **)&LINK_release_cam_conf_thread =
         ::dlsym(libmmcamera, "release_cam_conf_thread");
-    /*(void **)&LINK_mm_camera_config_init =
-        ::dlsym(libmmcamera, "mm_camera_config_init");*/
 
-     /*(void **)&LINK_mm_camera_config_deinit =
-        ::dlsym(libmmcamera, "mm_camera_config_deinit");*/
-/* C3C0 20120503 - doesn't exist in Gio's liboemcamera.so
+/* Disabling until support is available.
     *(void **)&LINK_zoom_crop_upscale =
         ::dlsym(libmmcamera, "zoom_crop_upscale");
 */
+
 #else
     mmcamera_camframe_callback = receive_camframe_callback;
-    mmcamera_camstats_callback = receive_camstats_callback;
     mmcamera_jpegfragment_callback = receive_jpeg_fragment_callback;
     mmcamera_jpeg_callback = receive_jpeg_callback;
     mmcamera_shutter_callback = receive_shutter_callback;
@@ -1664,27 +1292,24 @@ bool QualcommCameraHardware::startCamera()
 
     /* The control thread is in libcamera itself. */
     if (pthread_join(w_thread, NULL) != 0) {
-        ALOGV("Camera open thread exit failed");
+        LOGE("Camera open thread exit failed");
         return false;
     }
     mCameraControlFd = camerafd;
 
     if (mCameraControlFd < 0) {
-        ALOGV("startCamera X: %s open failed: %s!",
+        LOGE("startCamera X: %s open failed: %s!",
              MSM_CAMERA_CONTROL,
              strerror(errno));
         return false;
     }
 
-    /*if (MM_CAMERA_STATUS_SUCCESS != LINK_mm_camera_config_init(&mCfgControl)) {
-            ALOGE("startCamera: mm_camera_config_init failed:");
+    if( mCurrentTarget != TARGET_MSM7630 ){
+        fb_fd = open("/dev/graphics/fb0", O_RDWR);
+        if (fb_fd < 0) {
+            LOGE("startCamera: fb0 open failed: %s!", strerror(errno));
             return FALSE;
-    }*/
-
-    fb_fd = open("/dev/graphics/fb0", O_RDWR);
-    if (fb_fd < 0) {
-        ALOGV("startCamera: fb0 open failed: %s!", strerror(errno));
-        return FALSE;
+        }
     }
 
     /* This will block until the control thread is launched. After that, sensor
@@ -1692,7 +1317,7 @@ bool QualcommCameraHardware::startCamera()
      */
 
     if (LINK_launch_cam_conf_thread()) {
-        ALOGE("failed to launch the camera config thread");
+        LOGE("failed to launch the camera config thread");
         return false;
     }
 
@@ -1700,19 +1325,18 @@ bool QualcommCameraHardware::startCamera()
     if (ioctl(mCameraControlFd,
               MSM_CAM_IOCTL_GET_SENSOR_INFO,
               &mSensorInfo) < 0)
-        ALOGW("%s: cannot retrieve sensor info!", __FUNCTION__);
+        LOGW("%s: cannot retrieve sensor info!", __FUNCTION__);
     else
-        ALOGI("%s: camsensor name %s, flash %d", __FUNCTION__,
+        LOGI("%s: camsensor name %s, flash %d", __FUNCTION__,
              mSensorInfo.name, mSensorInfo.flash_enabled);
-
-   /* mCfgControl.mm_camera_query_parms(CAMERA_PARM_PICT_SIZE, (void **)&picture_sizes, &PICTURE_SIZE_COUNT);
+/* Disabling until support is available.
+    picture_sizes = LINK_default_sensor_get_snapshot_sizes(&PICTURE_SIZE_COUNT);
     if (!picture_sizes || !PICTURE_SIZE_COUNT) {
-        ALOGE("startCamera X: could not get snapshot sizes");
+        LOGE("startCamera X: could not get snapshot sizes");
         return false;
-    }*/
-     ALOGV("startCamera picture_sizes %p PICTURE_SIZE_COUNT %d", picture_sizes, PICTURE_SIZE_COUNT);
-
-    ALOGV("startCamera X");
+    }
+*/
+    LOGV("startCamera X");
     return true;
 }
 
@@ -1757,7 +1381,7 @@ status_t QualcommCameraHardware::dump(int fd,
 
 static bool native_get_maxzoom(int camfd, void *pZm)
 {
-    ALOGV("native_get_maxzoom E");
+    LOGV("native_get_maxzoom E");
 
     struct msm_ctrl_cmd ctrlCmd;
     int32_t *pZoom = (int32_t *)pZm;
@@ -1769,43 +1393,17 @@ static bool native_get_maxzoom(int camfd, void *pZm)
     ctrlCmd.resp_fd    = camfd;
 
     if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGV("native_get_maxzoom: ioctl fd %d error %s",
+        LOGE("native_get_maxzoom: ioctl fd %d error %s",
              camfd,
              strerror(errno));
         return false;
     }
-    ALOGD("ctrlCmd.value = %d", *(int32_t *)ctrlCmd.value);
+    LOGD("ctrlCmd.value = %d", *(int32_t *)ctrlCmd.value);
     memcpy(pZoom, (int32_t *)ctrlCmd.value, sizeof(int32_t));
 
-    ALOGV("native_get_maxzoom X");
+    LOGV("native_get_maxzoom X");
     return true;
 }
-
-static bool native_get_zoomratios(int camfd, void *pZr, int maxZoomSize)
-{
-    ALOGV("native_get_zoomratios E");
-    struct msm_ctrl_cmd ctrlCmd;
-    int16_t *zoomRatios = (int16_t *)pZr;
-
-    if(maxZoomSize <= 0)
-        return false;
-
-    ctrlCmd.type       = CAMERA_GET_PARM_ZOOMRATIOS;
-    ctrlCmd.timeout_ms = 5000;
-    ctrlCmd.length     = sizeof(int16_t)* (maxZoomSize);
-    ctrlCmd.value      = zoomRatios;
-    ctrlCmd.resp_fd    = camfd;
-
-    if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGE("native_get_zoomratios: ioctl fd %d error %s",
-             camfd,
-             strerror(errno));
-        return false;
-    }
-    ALOGV("native_get_zoomratios X");
-    return true;
-}
-
 
 static bool native_set_afmode(int camfd, isp3a_af_mode_t af_type)
 {
@@ -1819,11 +1417,11 @@ static bool native_set_afmode(int camfd, isp3a_af_mode_t af_type)
     ctrlCmd.resp_fd = camfd; // FIXME: this will be put in by the kernel
 
     if ((rc = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0)
-        ALOGV("native_set_afmode: ioctl fd %d error %s\n",
+        LOGE("native_set_afmode: ioctl fd %d error %s\n",
              camfd,
              strerror(errno));
 
-    ALOGV("native_set_afmode: ctrlCmd.status == %d\n", ctrlCmd.status);
+    LOGV("native_set_afmode: ctrlCmd.status == %d\n", ctrlCmd.status);
     return rc >= 0 && ctrlCmd.status == CAMERA_EXIT_CB_DONE;
 }
 
@@ -1840,7 +1438,7 @@ static bool native_cancel_afmode(int camfd, int af_fd)
 
     if ((rc = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND_2, &ctrlCmd)) < 0)
     {
-        ALOGV("native_cancel_afmode: ioctl fd %d error %s\n",
+        LOGE("native_cancel_afmode: ioctl fd %d error %s\n",
              camfd,
              strerror(errno));
         return false;
@@ -1859,7 +1457,7 @@ static bool native_start_preview(int camfd)
     ctrlCmd.resp_fd    = camfd; // FIXME: this will be put in by the kernel
 
     if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGV("native_start_preview: MSM_CAM_IOCTL_CTRL_COMMAND fd %d error %s",
+        LOGE("native_start_preview: MSM_CAM_IOCTL_CTRL_COMMAND fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -1877,23 +1475,23 @@ static bool native_get_picture (int camfd, common_crop_t *crop)
     ctrlCmd.value      = crop;
 
     if(ioctl(camfd, MSM_CAM_IOCTL_GET_PICTURE, &ctrlCmd) < 0) {
-        ALOGV("native_get_picture: MSM_CAM_IOCTL_GET_PICTURE fd %d error %s",
+        LOGE("native_get_picture: MSM_CAM_IOCTL_GET_PICTURE fd %d error %s",
              camfd,
              strerror(errno));
         return false;
     }
 
-    ALOGV("crop: in1_w %d", crop->in1_w);
-    ALOGV("crop: in1_h %d", crop->in1_h);
-    ALOGV("crop: out1_w %d", crop->out1_w);
-    ALOGV("crop: out1_h %d", crop->out1_h);
+    LOGV("crop: in1_w %d", crop->in1_w);
+    LOGV("crop: in1_h %d", crop->in1_h);
+    LOGV("crop: out1_w %d", crop->out1_w);
+    LOGV("crop: out1_h %d", crop->out1_h);
 
-    ALOGV("crop: in2_w %d", crop->in2_w);
-    ALOGV("crop: in2_h %d", crop->in2_h);
-    ALOGV("crop: out2_w %d", crop->out2_w);
-    ALOGV("crop: out2_h %d", crop->out2_h);
+    LOGV("crop: in2_w %d", crop->in2_w);
+    LOGV("crop: in2_h %d", crop->in2_h);
+    LOGV("crop: out2_w %d", crop->out2_w);
+    LOGV("crop: out2_h %d", crop->out2_h);
 
-    ALOGV("crop: update %d", crop->update_flag);
+    LOGV("crop: update %d", crop->update_flag);
 
     return true;
 }
@@ -1907,7 +1505,7 @@ static bool native_stop_preview(int camfd)
     ctrlCmd.resp_fd    = camfd; // FIXME: this will be put in by the kernel
 
     if(ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGV("native_stop_preview: ioctl fd %d error %s",
+        LOGE("native_stop_preview: ioctl fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -1928,7 +1526,7 @@ static bool native_prepare_snapshot(int camfd)
     ctrlCmd.resp_fd = camfd;
 
     if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGV("native_prepare_snapshot: ioctl fd %d error %s",
+        LOGE("native_prepare_snapshot: ioctl fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -1946,7 +1544,7 @@ static bool native_start_snapshot(int camfd)
     ctrlCmd.resp_fd    = camfd; // FIXME: this will be put in by the kernel
 
     if(ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0) {
-        ALOGV("native_start_snapshot: ioctl fd %d error %s",
+        LOGE("native_start_snapshot: ioctl fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -1967,7 +1565,7 @@ static bool native_start_raw_snapshot(int camfd)
     ctrlCmd.resp_fd = camfd;
 
     if ((ret = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0) {
-        ALOGV("native_start_raw_snapshot: ioctl failed. ioctl return value "\
+        LOGE("native_start_raw_snapshot: ioctl failed. ioctl return value "\
              "is %d \n", ret);
         return false;
     }
@@ -1985,7 +1583,7 @@ static bool native_stop_snapshot (int camfd)
     ctrlCmd.resp_fd    = -1;
 
     if (ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND_2, &ctrlCmd) < 0) {
-        ALOGV("native_stop_snapshot: ioctl fd %d error %s",
+        LOGE("native_stop_snapshot: ioctl fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -2010,11 +1608,11 @@ static bool native_start_recording(int camfd)
     ctrlCmd.resp_fd = camfd;
 
     if ((ret = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0) {
-        ALOGV("native_start_recording: ioctl failed. ioctl return value "\
+        LOGE("native_start_recording: ioctl failed. ioctl return value "\
             "is %d \n", ret);
         return false;
     }
-    ALOGV("native_start_recording: ioctl good. ioctl return value is %d \n",ret);
+    LOGV("native_start_recording: ioctl good. ioctl return value is %d \n",ret);
 
   /* TODO: Check status of postprocessing if there is any,
    *       PP status should be in  ctrlCmd */
@@ -2031,7 +1629,7 @@ static bool native_stop_recording(int camfd)
 {
     int ret;
     struct msm_ctrl_cmd ctrlCmd;
-    ALOGV("in native_stop_recording ");
+    LOGV("in native_stop_recording ");
     ctrlCmd.timeout_ms = 1000;
     ctrlCmd.type = CAMERA_STOP_RECORDING;
     ctrlCmd.length = 0;
@@ -2039,11 +1637,11 @@ static bool native_stop_recording(int camfd)
     ctrlCmd.resp_fd = camfd;
 
     if ((ret = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0) {
-        ALOGV("native_stop_video: ioctl failed. ioctl return value is %d \n",
+        LOGE("native_stop_video: ioctl failed. ioctl return value is %d \n",
         ret);
         return false;
     }
-    ALOGV("in native_stop_recording returned %d", ret);
+    LOGV("in native_stop_recording returned %d", ret);
     return true;
 }
 /*===========================================================================
@@ -2061,13 +1659,12 @@ static bool native_start_video(int camfd)
     ctrlCmd.length = 0;
     ctrlCmd.value = NULL;
     ctrlCmd.resp_fd = camfd;
-    ALOGI("%s : E", __FUNCTION__);
+
     if ((ret = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0) {
-        ALOGV("native_start_video: ioctl failed. ioctl return value is %d \n",
+        LOGE("native_start_video: ioctl failed. ioctl return value is %d \n",
         ret);
         return false;
     }
-    ALOGI("%s : X", __FUNCTION__);
 
   /* TODO: Check status of postprocessing if there is any,
    *       PP status should be in  ctrlCmd */
@@ -2090,13 +1687,12 @@ static bool native_stop_video(int camfd)
     ctrlCmd.length = 0;
     ctrlCmd.value = NULL;
     ctrlCmd.resp_fd = camfd;
-    ALOGI("%s: E", __FUNCTION__);
+
     if ((ret = ioctl(camfd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd)) < 0) {
-        ALOGV("native_stop_video: ioctl failed. ioctl return value is %d \n",
+        LOGE("native_stop_video: ioctl failed. ioctl return value is %d \n",
         ret);
         return false;
     }
-    ALOGI("%s: X", __FUNCTION__);
 
     return true;
 }
@@ -2116,7 +1712,7 @@ static void addExifTag(exif_tag_id_t tagid, exif_tag_type_t type,
                         uint32_t count, uint8_t copy, void *data) {
 
     if(exif_table_numEntries == MAX_EXIF_TABLE_ENTRIES) {
-        ALOGV("Number of entries exceeded limit");
+        LOGE("Number of entries exceeded limit");
         return;
     }
 
@@ -2235,42 +1831,30 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
 {
     int jpeg_quality = mParameters.getInt("jpeg-quality");
     if (jpeg_quality >= 0) {
-        //Application can pass quality of zero
-        //when there is no back sensor connected.
-        //as jpeg quality of zero is not accepted at
-        //camera stack, pass default value.
-        if(jpeg_quality == 0) jpeg_quality = 85;
-        ALOGV("native_jpeg_encode, current jpeg main img quality =%d",
+        LOGV("native_jpeg_encode, current jpeg main img quality =%d",
              jpeg_quality);
         if(!LINK_jpeg_encoder_setMainImageQuality(jpeg_quality)) {
-            ALOGV("native_jpeg_encode set jpeg-quality failed");
+            LOGE("native_jpeg_encode set jpeg-quality failed");
             return false;
         }
     }
 
     int thumbnail_quality = mParameters.getInt("jpeg-thumbnail-quality");
     if (thumbnail_quality >= 0) {
-        //Application can pass quality of zero
-        //when there is no back sensor connected.
-        //as quality of zero is not accepted at
-        //camera stack, pass default value.
-        if(thumbnail_quality == 0) thumbnail_quality = 85;
-        ALOGV("native_jpeg_encode, current jpeg thumbnail quality =%d",
+        LOGV("native_jpeg_encode, current jpeg thumbnail quality =%d",
              thumbnail_quality);
         if(!LINK_jpeg_encoder_setThumbnailQuality(thumbnail_quality)) {
-            ALOGV("native_jpeg_encode set thumbnail-quality failed");
+            LOGE("native_jpeg_encode set thumbnail-quality failed");
             return false;
         }
     }
 
-    if( (mCurrentTarget != TARGET_MSM7630) && (mCurrentTarget != TARGET_MSM7227) && (mCurrentTarget != TARGET_MSM8660) ) {
-        int rotation = mParameters.getInt("rotation");
-        if (rotation >= 0) {
-            ALOGV("native_jpeg_encode, rotation = %d", rotation);
-            if(!LINK_jpeg_encoder_setRotation(rotation)) {
-                ALOGE("native_jpeg_encode set rotation failed");
-                return false;
-            }
+    int rotation = mParameters.getInt("rotation");
+    if (rotation >= 0) {
+        LOGV("native_jpeg_encode, rotation = %d", rotation);
+        if(!LINK_jpeg_encoder_setRotation(rotation)) {
+            LOGE("native_jpeg_encode set rotation failed");
+            return false;
         }
     }
 
@@ -2305,94 +1889,16 @@ bool QualcommCameraHardware::native_jpeg_encode(void)
     addExifTag(EXIFTAGID_EXIF_CAMERA_MODEL, EXIF_ASCII,
                   modelLen, 1, (void *)model);
 
-    uint8_t * thumbnailHeap = NULL;
-    int thumbfd = -1;
-
-    int width = mParameters.getInt(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH);
-    int height = mParameters.getInt(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT);
-
-    ALOGV("width %d and height %d", width , height);
-
-    if(width != 0 && height != 0){
-        if((mCurrentTarget == TARGET_MSM7630) ||
-           (mCurrentTarget == TARGET_MSM8660) ||
-           (mCurrentTarget == TARGET_MSM7227) ||
-           (strTexturesOn == true)) {
-            thumbnailHeap = (uint8_t *)mRawHeap->mHeap->base();
-            thumbfd =  mRawHeap->mHeap->getHeapID();
-        } else {
-            thumbnailHeap = (uint8_t *)mThumbnailHeap->mHeap->base();
-            thumbfd =  mThumbnailHeap->mHeap->getHeapID();
-        }
-    }else {
-        thumbnailHeap = NULL;
-        thumbfd = 0;
-    }
-
-    if( (mCurrentTarget == TARGET_MSM7630) ||
-        (mCurrentTarget == TARGET_MSM8660) ||
-        (mCurrentTarget == TARGET_MSM7227) ||
-        (strTexturesOn == true) ) {
-        // Pass the main image as thumbnail buffer, so that jpeg encoder will
-        // generate thumbnail based on main image.
-        // Set the input and output dimensions for thumbnail generation to main
-        // image dimensions and required thumbanail size repectively, for the
-       // encoder to do downscaling of the main image accordingly.
-        mCrop.in1_w  = mDimension.orig_picture_dx;
-        mCrop.in1_h  = mDimension.orig_picture_dy;
-         /* For Adreno format on targets that don't use VFE other output
-         * for postView, thumbnail_width and thumbnail_height has the
-         * actual thumbnail dimensions.
-         */
-        mCrop.out1_w = mDimension.thumbnail_width;
-        mCrop.out1_h = mDimension.thumbnail_height;
-       /* For targets, that uses VFE other output for postview,
-         * thumbnail_width and thumbnail_height has values based on postView
-         * dimensions(mostly previewWidth X previewHeight), but not based on
-         * required thumbnail dimensions. So, while downscaling, we need to
-         * pass the actual thumbnail dimensions, not the postview dimensions.
-         * mThumbnailWidth/Height has the required thumbnail dimensions, so
-         * use them here.
-         */
-        if( (mCurrentTarget == TARGET_MSM7630)||
-            (mCurrentTarget == TARGET_MSM7227) ||
-            (mCurrentTarget == TARGET_MSM8660)) {
-            mCrop.out1_w = mThumbnailWidth;
-            mCrop.out1_h = mThumbnailHeight;
-        }
-        mDimension.thumbnail_width = mDimension.orig_picture_dx;
-        mDimension.thumbnail_height = mDimension.orig_picture_dy;
-        ALOGV("mCrop.in1_w = %d, mCrop.in1_h = %d", mCrop.in1_w, mCrop.in1_h);
-        ALOGV("mCrop.out1_w = %d, mCrop.out1_h = %d", mCrop.out1_w, mCrop.out1_h);
-        ALOGV("mDimension.thumbnail_width = %d, mDimension.thumbnail_height = %d", mDimension.thumbnail_width, mDimension.thumbnail_height);
-        int CbCrOffset = -1;
-        if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO)
-            CbCrOffset = mCbCrOffsetRaw;
-        mCrop.in1_w = mDimension.orig_picture_dx - jpegPadding; // when cropping is enabled
-        mCrop.in1_h = mDimension.orig_picture_dy - jpegPadding; // when cropping is enabled
-        if (!LINK_jpeg_encoder_encode(&mDimension,
-                                      thumbnailHeap,
-                                      thumbfd,
-                                      (uint8_t *)mRawHeap->mHeap->base(),
-                                      mRawHeap->mHeap->getHeapID(),
-                                      &mCrop, exif_data, exif_table_numEntries,
-                                      jpegPadding/2, CbCrOffset)) {
-            ALOGE("native_jpeg_encode: jpeg_encoder_encode failed.");
-            return false;
-        }
-    } else {
     if (!LINK_jpeg_encoder_encode(&mDimension,
-                    thumbnailHeap,
-                                     thumbfd,
-                                     (uint8_t *)mRawHeap->mHeap->base(),
-                                     mRawHeap->mHeap->getHeapID(),
-                                     &mCrop, exif_data, exif_table_numEntries,
-                                     jpegPadding/2, -1)) {
-            ALOGE("native_jpeg_encode: jpeg_encoder_encode failed.");
-            return false;
-        }
+                                  (uint8_t *)mThumbnailHeap->mHeap->base(),
+                                  mThumbnailHeap->mHeap->getHeapID(),
+                                  (uint8_t *)mRawHeap->mHeap->base(),
+                                  mRawHeap->mHeap->getHeapID(),
+                                  &mCrop, exif_data, exif_table_numEntries,
+                                  jpegPadding/2)) {
+        LOGE("native_jpeg_encode: jpeg_encoder_encode failed.");
+        return false;
     }
-
     return true;
 }
 
@@ -2408,44 +1914,18 @@ bool QualcommCameraHardware::native_set_parm(
     ctrlCmd.resp_fd    = mCameraControlFd;
     ctrlCmd.value = value;
 
-    ALOGV("%s: fd %d, type %d, length %d", __FUNCTION__,
+    LOGV("%s: fd %d, type %d, length %d", __FUNCTION__,
          mCameraControlFd, type, length);
     if (ioctl(mCameraControlFd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0 ||
                 ctrlCmd.status != CAM_CTRL_SUCCESS) {
-        ALOGV("%s: error (%s): fd %d, type %d, length %d, status %d",
+        LOGE("%s: error (%s): fd %d, type %d, length %d, status %d",
              __FUNCTION__, strerror(errno),
              mCameraControlFd, type, length, ctrlCmd.status);
         return false;
     }
     return true;
 }
-//overloaded funtion which takes an extra parameter ie  ctrlCmd.status Value
-bool QualcommCameraHardware::native_set_parm(
-    cam_ctrl_type type, uint16_t length, void *value, int *result)
-{
-    struct msm_ctrl_cmd ctrlCmd;
 
-    ctrlCmd.timeout_ms = 5000;
-    ctrlCmd.type       = (uint16_t)type;
-    ctrlCmd.length     = length;
-    // FIXME: this will be put in by the kernel
-    ctrlCmd.resp_fd    = mCameraControlFd;
-    ctrlCmd.value = value;
-
-    ALOGV("%s: fd %d, type %d, length %d", __FUNCTION__,
-         mCameraControlFd, type, length);
-    if (ioctl(mCameraControlFd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) > 0 ||
-        ctrlCmd.status == CAM_CTRL_SUCCESS || ctrlCmd.status == CAM_CTRL_INVALID_PARM)  {
-        *result = ctrlCmd.status ;
-        return true;
-    } else {
-        ALOGE("%s: error (%s): fd %d, type %d, length %d, status %d",
-             __FUNCTION__, strerror(errno),
-             mCameraControlFd, type, length, ctrlCmd.status);
-        *result = ctrlCmd.status;
-        return false;
-    }
-}
 void QualcommCameraHardware::jpeg_set_location()
 {
     bool encode_location = true;
@@ -2454,19 +1934,19 @@ void QualcommCameraHardware::jpeg_set_location()
 #define PARSE_LOCATION(what,type,fmt,desc) do {                                \
         pt.what = 0;                                                           \
         const char *what##_str = mParameters.get("gps-"#what);                 \
-        ALOGV("GPS PARM %s --> [%s]", "gps-"#what, what##_str);                 \
+        LOGV("GPS PARM %s --> [%s]", "gps-"#what, what##_str);                 \
         if (what##_str) {                                                      \
             type what = 0;                                                     \
             if (sscanf(what##_str, fmt, &what) == 1)                           \
                 pt.what = what;                                                \
             else {                                                             \
-                ALOGV("GPS " #what " %s could not"                              \
+                LOGE("GPS " #what " %s could not"                              \
                      " be parsed as a " #desc, what##_str);                    \
                 encode_location = false;                                       \
             }                                                                  \
         }                                                                      \
         else {                                                                 \
-            ALOGV("GPS " #what " not specified: "                               \
+            LOGV("GPS " #what " not specified: "                               \
                  "defaulting to zero in EXIF header.");                        \
             encode_location = false;                                           \
        }                                                                       \
@@ -2481,44 +1961,61 @@ void QualcommCameraHardware::jpeg_set_location()
 #undef PARSE_LOCATION
 
     if (encode_location) {
-        ALOGD("setting image location ALT %d LAT %lf LON %lf",
+        LOGD("setting image location ALT %d LAT %lf LON %lf",
              pt.altitude, pt.latitude, pt.longitude);
-
-/* C3C0 20120503 - method doesn't exist in Gio's liboemcamera.so
+/* Disabling until support is available.
         if (!LINK_jpeg_encoder_setLocation(&pt)) {
-            ALOGV("jpeg_set_location: LINK_jpeg_encoder_setLocation failed.");
+            LOGE("jpeg_set_location: LINK_jpeg_encoder_setLocation failed.");
         }
 */
     }
-    else ALOGV("not setting image location");
+    else LOGV("not setting image location");
 }
 
 void QualcommCameraHardware::runFrameThread(void *data)
 {
-    ALOGV("runFrameThread E");
+    LOGV("runFrameThread E");
 
     int cnt;
 
-    if(libmmcamera)
+#if DLOPEN_LIBMMCAMERA
+    // We need to maintain a reference to libqcamera.so for the duration of the
+    // frame thread, because we do not know when it will exit relative to the
+    // lifetime of this object.  We do not want to dlclose() libqcamera while
+    // LINK_cam_frame is still running.
+    void *libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
+    LOGV("FRAME: loading libqcamera at %p", libhandle);
+    if (!libhandle) {
+        LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+    }
+    if (libhandle)
+#endif
     {
         LINK_cam_frame(data);
     }
 
     mPreviewHeap.clear();
-    if(( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660))
-         mRecordHeap.clear();
+    if(( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250))
+        mRecordHeap.clear();
+
+#if DLOPEN_LIBMMCAMERA
+    if (libhandle) {
+        ::dlclose(libhandle);
+        LOGV("FRAME: dlclose(libqcamera)");
+    }
+#endif
 
     mFrameThreadWaitLock.lock();
     mFrameThreadRunning = false;
     mFrameThreadWait.signal();
     mFrameThreadWaitLock.unlock();
 
-    ALOGV("runFrameThread X");
+    LOGV("runFrameThread X");
 }
 
 void QualcommCameraHardware::runVideoThread(void *data)
 {
-    ALOGD("runVideoThread E");
+    LOGD("runVideoThread E");
     msm_frame* vframe = NULL;
 
     while(true) {
@@ -2527,23 +2024,23 @@ void QualcommCameraHardware::runVideoThread(void *data)
         // Exit the thread , in case of stop recording..
         mVideoThreadWaitLock.lock();
         if(mVideoThreadExit){
-            ALOGV("Exiting video thread..");
+            LOGV("Exiting video thread..");
             mVideoThreadWaitLock.unlock();
             pthread_mutex_unlock(&(g_busy_frame_queue.mut));
             break;
         }
         mVideoThreadWaitLock.unlock();
 
-        ALOGV("in video_thread : wait for video frame ");
+        LOGV("in video_thread : wait for video frame ");
         // check if any frames are available in busyQ and give callback to
         // services/video encoder
         cam_frame_wait_video();
-        ALOGV("video_thread, wait over..");
+        LOGV("video_thread, wait over..");
 
         // Exit the thread , in case of stop recording..
         mVideoThreadWaitLock.lock();
         if(mVideoThreadExit){
-            ALOGV("Exiting video thread..");
+            LOGV("Exiting video thread..");
             mVideoThreadWaitLock.unlock();
             pthread_mutex_unlock(&(g_busy_frame_queue.mut));
             break;
@@ -2553,7 +2050,7 @@ void QualcommCameraHardware::runVideoThread(void *data)
         // Get the video frame to be encoded
         vframe = cam_frame_get_video ();
         pthread_mutex_unlock(&(g_busy_frame_queue.mut));
-        ALOGV("in video_thread : got video frame ");
+        LOGV("in video_thread : got video frame ");
 
         if (UNLIKELY(mDebugFps)) {
             debugShowVideoFPS();
@@ -2561,14 +2058,12 @@ void QualcommCameraHardware::runVideoThread(void *data)
 
         if(vframe != NULL) {
             // Find the offset within the heap of the current buffer.
-            ALOGV("Got video frame :  buffer %lu base %lu ", vframe->buffer, (unsigned long)mRecordHeap->mHeap->base());
+            LOGV("Got video frame :  buffer %d base %d ", vframe->buffer, mRecordHeap->mHeap->base());
             ssize_t offset =
                 (ssize_t)vframe->buffer - (ssize_t)mRecordHeap->mHeap->base();
-            ALOGV("offset = %x , alignsize = %x , offset later = %x", (unsigned int)offset, mRecordHeap->mAlignedBufferSize, (unsigned int)(offset / mRecordHeap->mAlignedBufferSize));
+            LOGV("offset = %d , alignsize = %d , offset later = %d", offset, mRecordHeap->mAlignedBufferSize, (offset / mRecordHeap->mAlignedBufferSize));
 
             offset /= mRecordHeap->mAlignedBufferSize;
-            /* Extract the timestamp of this frame */
-            nsecs_t timeStamp = nsecs_t(vframe->ts.tv_sec)*1000000000LL + vframe->ts.tv_nsec;
 
             // dump frames for test purpose
 #ifdef DUMP_VIDEO_FRAMES
@@ -2577,9 +2072,9 @@ void QualcommCameraHardware::runVideoThread(void *data)
                 char buf[128];
                 sprintf(buf, "/data/%d_v.yuv", frameCnt);
                 int file_fd = open(buf, O_RDWR | O_CREAT, 0777);
-                ALOGV("dumping video frame %d", frameCnt);
+                LOGV("dumping video frame %d", frameCnt);
                 if (file_fd < 0) {
-                    ALOGV("cannot open file\n");
+                    LOGE("cannot open file\n");
                 }
                 else
                 {
@@ -2592,7 +2087,7 @@ void QualcommCameraHardware::runVideoThread(void *data)
 #endif
             // Enable IF block to give frames to encoder , ELSE block for just simulation
 #if 1
-            ALOGV("in video_thread : got video frame, before if check giving frame to services/encoder");
+            LOGV("in video_thread : got video frame, before if check giving frame to services/encoder");
             mCallbackLock.lock();
             int msgEnabled = mMsgEnabled;
             data_callback_timestamp rcb = mDataCallbackTimestamp;
@@ -2600,16 +2095,16 @@ void QualcommCameraHardware::runVideoThread(void *data)
             mCallbackLock.unlock();
 
             if(rcb != NULL && (msgEnabled & CAMERA_MSG_VIDEO_FRAME) ) {
-                ALOGV("in video_thread : got video frame, giving frame to services/encoder");
-                rcb(timeStamp, CAMERA_MSG_VIDEO_FRAME, mRecordHeap->mBuffers[offset], rdata);
+                LOGV("in video_thread : got video frame, giving frame to services/encoder");
+                rcb(systemTime(), CAMERA_MSG_VIDEO_FRAME, mRecordHeap->mBuffers[offset], rdata);
             }
 #else
             // 720p output2  : simulate release frame here:
-            ALOGV("in video_thread simulation , releasing the video frame");
+            LOGE("in video_thread simulation , releasing the video frame");
             LINK_camframe_free_video(vframe);
 #endif
 
-        } else ALOGV("in video_thread get frame returned null");
+        } else LOGE("in video_thread get frame returned null");
 
 
     } // end of while loop
@@ -2619,30 +2114,30 @@ void QualcommCameraHardware::runVideoThread(void *data)
     mVideoThreadWait.signal();
     mVideoThreadWaitLock.unlock();
 
-    ALOGV("runVideoThread X");
+    LOGV("runVideoThread X");
 }
 
 void *video_thread(void *user)
 {
-    ALOGV("video_thread E");
+    LOGV("video_thread E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
         obj->runVideoThread(user);
     }
-    else ALOGV("not starting video thread: the object went away!");
-    ALOGV("video_thread X");
+    else LOGE("not starting video thread: the object went away!");
+    LOGV("video_thread X");
     return NULL;
 }
 
 void *frame_thread(void *user)
 {
-    ALOGD("frame_thread E");
+    LOGD("frame_thread E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
         obj->runFrameThread(user);
     }
-    else ALOGW("not starting frame thread: the object went away!");
-    ALOGD("frame_thread X");
+    else LOGW("not starting frame thread: the object went away!");
+    LOGD("frame_thread X");
     return NULL;
 }
 
@@ -2651,87 +2146,84 @@ bool QualcommCameraHardware::initPreview()
     // See comments in deinitPreview() for why we have to wait for the frame
     // thread here, and why we can't use pthread_join().
     int videoWidth, videoHeight;
-    const char * pmem_region;
     mParameters.getPreviewSize(&previewWidth, &previewHeight);
 
     videoWidth = previewWidth;  // temporary , should be configurable later
     videoHeight = previewHeight;
-    ALOGV("initPreview E: preview size=%dx%d videosize = %d x %d", previewWidth, previewHeight, videoWidth, videoHeight );
+    LOGV("initPreview E: preview size=%dx%d videosize = %d x %d", previewWidth, previewHeight, videoWidth, videoHeight );
+
+    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250)) {
+        mDimension.video_width = videoWidth;
+        mDimension.video_width = CEILING16(mDimension.video_width);
+        mDimension.video_height = videoHeight;
+        // for 720p , preview can be 768X432
+        previewWidth = mDimension.display_width;
+        previewHeight= mDimension.display_height;
+        LOGV("initPreview : preview size=%dx%d videosize = %d x %d", previewWidth, previewHeight, mDimension.video_width, mDimension.video_height );
+    }
+
 
     mFrameThreadWaitLock.lock();
     while (mFrameThreadRunning) {
-        ALOGV("initPreview: waiting for old frame thread to complete.");
+        LOGV("initPreview: waiting for old frame thread to complete.");
         mFrameThreadWait.wait(mFrameThreadWaitLock);
-        ALOGV("initPreview: old frame thread completed.");
+        LOGV("initPreview: old frame thread completed.");
     }
     mFrameThreadWaitLock.unlock();
 
     mInSnapshotModeWaitLock.lock();
     while (mInSnapshotMode) {
-        ALOGV("initPreview: waiting for snapshot mode to complete.");
+        LOGV("initPreview: waiting for snapshot mode to complete.");
         mInSnapshotModeWait.wait(mInSnapshotModeWaitLock);
-        ALOGV("initPreview: snapshot mode completed.");
+        LOGV("initPreview: snapshot mode completed.");
     }
     mInSnapshotModeWaitLock.unlock();
 
-     /*Temporary migrating the preview buffers to smi pool for 8x60 till the bug is resolved in the pmem_adsp pool*/
-    if(mCurrentTarget == TARGET_MSM8660)
-        pmem_region = "/dev/pmem_smipool";
-    else
-        pmem_region = "/dev/pmem_adsp";
-
-
     int cnt = 0;
     mPreviewFrameSize = previewWidth * previewHeight * 3/2;
-    int CbCrOffset = PAD_TO_WORD(previewWidth * previewHeight);
-
-    //Pass the yuv formats, display dimensions,
-    //so that vfe will be initialized accordingly.
-    mDimension.display_luma_width = previewWidth;
-    mDimension.display_luma_height = previewHeight;
-    mDimension.display_chroma_width = previewWidth;
-    mDimension.display_chroma_height = previewHeight;
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
-        mPreviewFrameSize = PAD_TO_4K(CEILING32(previewWidth) * CEILING32(previewHeight)) +
-                                     2 * (CEILING32(previewWidth/2) * CEILING32(previewHeight/2));
-        CbCrOffset = PAD_TO_4K(CEILING32(previewWidth) * CEILING32(previewHeight));
-        mDimension.prev_format = CAMERA_YUV_420_NV21_ADRENO;
-        mDimension.display_luma_width = CEILING32(previewWidth);
-        mDimension.display_luma_height = CEILING32(previewHeight);
-        mDimension.display_chroma_width = 2 * CEILING32(previewWidth/2);
-        //Chroma Height is not needed as of now. Just sending with other dimensions.
-        mDimension.display_chroma_height = CEILING32(previewHeight/2);
-    }
-    ALOGV("mDimension.prev_format = %d", mDimension.prev_format);
-    ALOGV("mDimension.display_luma_width = %d", mDimension.display_luma_width);
-    ALOGV("mDimension.display_luma_height = %d", mDimension.display_luma_height);
-    ALOGV("mDimension.display_chroma_width = %d", mDimension.display_chroma_width);
-    ALOGV("mDimension.display_chroma_height = %d", mDimension.display_chroma_height);
-
     dstOffset = 0;
-    mPreviewHeap = new PmemPool(pmem_region,
+    mPreviewHeap = new PmemPool("/dev/pmem_adsp",
                                 MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
                                 mCameraControlFd,
                                 MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
                                 mPreviewFrameSize,
                                 kPreviewBufferCountActual,
                                 mPreviewFrameSize,
-                                CbCrOffset,
-                                0,
                                 "preview");
 
     if (!mPreviewHeap->initialized()) {
         mPreviewHeap.clear();
-        ALOGV("initPreview X: could not initialize Camera preview heap.");
+        LOGE("initPreview X: could not initialize Camera preview heap.");
         return false;
     }
+    if( mCurrentTarget == TARGET_MSM7630 ) {
+        mPostViewHeap.clear();
+	if(mPostViewHeap == NULL) {
+	    LOGV(" Allocating Postview heap ");
+	    /* mPostViewHeap should be declared only for 7630 target */
+	    mPostViewHeap =
+		new PmemPool("/dev/pmem_adsp",
+			MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
+			mCameraControlFd,
+			MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
+			mPreviewFrameSize,
+			1,
+			mPreviewFrameSize,
+			"postview");
 
-    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660)) {
+	    if (!mPostViewHeap->initialized()) {
+		mPostViewHeap.clear();
+		LOGE(" Failed to initialize Postview Heap");
+		return false;
+	    }
+	}
+    }
+
+    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) ) {
 
         // Allocate video buffers after allocating preview buffers.
         initRecord();
     }
-
 
     // mDimension will be filled with thumbnail_width, thumbnail_height,
     // orig_picture_dx, and orig_picture_dy after this function call. We need to
@@ -2745,8 +2237,8 @@ bool QualcommCameraHardware::initPreview()
             frames[cnt].buffer =
                 (uint32_t)mPreviewHeap->mHeap->base() + mPreviewHeap->mAlignedBufferSize * cnt;
             frames[cnt].y_off = 0;
-            frames[cnt].cbcr_off = CbCrOffset;
-            frames[cnt].path = MSM_FRAME_ENC; //OUTPUT_TYPE_P
+            frames[cnt].cbcr_off = previewWidth * previewHeight;
+            frames[cnt].path = MSM_FRAME_ENC;
         }
 
         mFrameThreadWaitLock.lock();
@@ -2756,32 +2248,29 @@ bool QualcommCameraHardware::initPreview()
 
         frame_parms.frame = frames[kPreviewBufferCount - 2];
 
-        frame_parms.video_frame =  frames[kPreviewBufferCount - 2];
+        if( mCurrentTarget == TARGET_MSM7630 || mCurrentTarget == TARGET_QSD8250 )
+            frame_parms.video_frame =  recordframes[kPreviewBufferCount - 1];
+        else
+            frame_parms.video_frame =  frames[kPreviewBufferCount - 2];
 
-        ALOGV ("initpreview before cam_frame thread create , video frame  buffer=0x%x fd=%d y_off=%d cbcr_off=%d \n",
-          (unsigned int)frame_parms.video_frame.buffer, frame_parms.video_frame.fd, frame_parms.video_frame.y_off,
+        LOGV ("initpreview before cam_frame thread carete , video frame  buffer=%lu fd=%d y_off=%d cbcr_off=%d \n",
+          (unsigned long)frame_parms.video_frame.buffer, frame_parms.video_frame.fd, frame_parms.video_frame.y_off,
           frame_parms.video_frame.cbcr_off);
         mFrameThreadRunning = !pthread_create(&mFrameThread,
                                               &attr,
                                               frame_thread,
                                               (void*)&(frame_parms));
-	if (mFrameThreadRunning)
-		ALOGV("Preview thread created");
-	else
-		ALOGE("Preview thread error");
-
         ret = mFrameThreadRunning;
         mFrameThreadWaitLock.unlock();
     }
-    mFirstFrame = true;
 
-    ALOGV("initPreview X: %d", ret);
+    LOGV("initPreview X: %d", ret);
     return ret;
 }
 
 void QualcommCameraHardware::deinitPreview(void)
 {
-    ALOGI("deinitPreview E");
+    LOGI("deinitPreview E");
 
     // When we call deinitPreview(), we signal to the frame thread that it
     // needs to exit, but we DO NOT WAIT for it to complete here.  The problem
@@ -2798,57 +2287,50 @@ void QualcommCameraHardware::deinitPreview(void)
     // detached, and use a separate mechanism to wait for it to complete.
 
     LINK_camframe_terminate();
-    ALOGI("deinitPreview X");
+    LOGI("deinitPreview X");
 }
 
 bool QualcommCameraHardware::initRawSnapshot()
 {
-    ALOGV("initRawSnapshot E");
-    const char * pmem_region;
+    LOGV("initRawSnapshot E");
 
     //get width and height from Dimension Object
     bool ret = native_set_parm(CAMERA_SET_PARM_DIMENSION,
                                sizeof(cam_ctrl_dimension_t), &mDimension);
 
     if(!ret){
-        ALOGV("initRawSnapshot X: failed to set dimension");
+        LOGE("initRawSnapshot X: failed to set dimension");
         return false;
     }
     int rawSnapshotSize = mDimension.raw_picture_height *
                            mDimension.raw_picture_width;
 
-    ALOGV("raw_snapshot_buffer_size = %d, raw_picture_height = %d, "\
+    LOGV("raw_snapshot_buffer_size = %d, raw_picture_height = %d, "\
          "raw_picture_width = %d",
           rawSnapshotSize, mDimension.raw_picture_height,
           mDimension.raw_picture_width);
 
     if (mRawSnapShotPmemHeap != NULL) {
-        ALOGV("initRawSnapshot: clearing old mRawSnapShotPmemHeap.");
+        LOGV("initRawSnapshot: clearing old mRawSnapShotPmemHeap.");
         mRawSnapShotPmemHeap.clear();
     }
-    if(mCurrentTarget == TARGET_MSM8660)
-       pmem_region = "/dev/pmem_smipool";
-    else
-       pmem_region = "/dev/pmem_adsp";
 
     //Pmem based pool for Camera Driver
-    mRawSnapShotPmemHeap = new PmemPool(pmem_region,
+    mRawSnapShotPmemHeap = new PmemPool("/dev/pmem_adsp",
                                     MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
                                     mCameraControlFd,
                                     MSM_PMEM_RAW_MAINIMG,
                                     rawSnapshotSize,
                                     1,
                                     rawSnapshotSize,
-                                    0,
-                                    0,
                                     "raw pmem snapshot camera");
 
     if (!mRawSnapShotPmemHeap->initialized()) {
         mRawSnapShotPmemHeap.clear();
-        ALOGV("initRawSnapshot X: error initializing mRawSnapshotHeap");
+        LOGE("initRawSnapshot X: error initializing mRawSnapshotHeap");
         return false;
     }
-    ALOGV("initRawSnapshot X");
+    LOGV("initRawSnapshot X");
     return true;
 
 }
@@ -2856,10 +2338,9 @@ bool QualcommCameraHardware::initRawSnapshot()
 bool QualcommCameraHardware::initRaw(bool initJpegHeap)
 {
     int rawWidth, rawHeight;
-    const char * pmem_region;
 
     mParameters.getPictureSize(&rawWidth, &rawHeight);
-    ALOGV("initRaw E: picture size=%dx%d", rawWidth, rawHeight);
+    LOGV("initRaw E: picture size=%dx%d", rawWidth, rawHeight);
 
     int thumbnailBufferSize;
     //Thumbnail height should be smaller than Picture height
@@ -2886,42 +2367,12 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
                 (THUMBNAIL_SMALL_HEIGHT * rawWidth)/ rawHeight;
     }
 
-    if((mCurrentTarget == TARGET_MSM7630) ||
-       (mCurrentTarget == TARGET_MSM7227) ||
-       (mCurrentTarget == TARGET_MSM8660)) {
-        if(rawHeight < previewHeight) {
-            mDimension.ui_thumbnail_height = THUMBNAIL_SMALL_HEIGHT;
-            mDimension.ui_thumbnail_width =
-                    (THUMBNAIL_SMALL_HEIGHT * rawWidth)/ rawHeight;
-        }
-        /* store the thumbanil dimensions which are needed
-         * by the jpeg downscaler to generate thumbnails from
-         * main YUV image.
-         */
-        mThumbnailWidth = mDimension.ui_thumbnail_width;
-        mThumbnailHeight = mDimension.ui_thumbnail_height;
-        /* As thumbnail is generated from main YUV image,
-         * configure and use the VFE other output to get
-         * an image of preview dimensions for postView use.
-         * So, mThumbnailHeap will be used for postview rather than
-         * as thumbnail(Not changing the terminology to keep changes minimum).
-         */
-        if((rawHeight >= previewHeight) &&
-           (mCurrentTarget != TARGET_MSM7227)) {
-            mDimension.ui_thumbnail_height = previewHeight;
-            mDimension.ui_thumbnail_width =
-                        (previewHeight * rawWidth) / rawHeight;
-        }
-    }
-
-    ALOGV("Thumbnail Size Width %d Height %d",
+    LOGV("Thumbnail Size Width %d Height %d",
             mDimension.ui_thumbnail_width,
             mDimension.ui_thumbnail_height);
 
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO){
-        mDimension.main_img_format = CAMERA_YUV_420_NV21_ADRENO;
-        mDimension.thumb_format = CAMERA_YUV_420_NV21_ADRENO;
-    }
+    thumbnailBufferSize = mDimension.ui_thumbnail_width *
+                          mDimension.ui_thumbnail_height * 3 / 2;
 
     // mDimension will be filled with thumbnail_width, thumbnail_height,
     // orig_picture_dx, and orig_picture_dy after this function call. We need to
@@ -2929,110 +2380,48 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
     bool ret = native_set_parm(CAMERA_SET_PARM_DIMENSION,
                                sizeof(cam_ctrl_dimension_t), &mDimension);
     if(!ret) {
-        ALOGV("initRaw X: failed to set dimension");
+        LOGE("initRaw X: failed to set dimension");
         return false;
     }
 
-    thumbnailBufferSize = mDimension.ui_thumbnail_width *
-                          mDimension.ui_thumbnail_height * 3 / 2;
-    int CbCrOffsetThumb = PAD_TO_WORD(mDimension.ui_thumbnail_width *
-                          mDimension.ui_thumbnail_height);
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO){
-        thumbnailBufferSize = PAD_TO_4K(CEILING32(mDimension.ui_thumbnail_width) *
-                              CEILING32(mDimension.ui_thumbnail_height)) +
-                              2 * (CEILING32(mDimension.ui_thumbnail_width/2) *
-                                CEILING32(mDimension.ui_thumbnail_height/2));
-        CbCrOffsetThumb = PAD_TO_4K(CEILING32(mDimension.ui_thumbnail_width) *
-                              CEILING32(mDimension.ui_thumbnail_height));
-    }
-
     if (mJpegHeap != NULL) {
-        ALOGV("initRaw: clearing old mJpegHeap.");
+        LOGV("initRaw: clearing old mJpegHeap.");
         mJpegHeap.clear();
     }
 
     // Snapshot
     mRawSize = rawWidth * rawHeight * 3 / 2;
-    mCbCrOffsetRaw = PAD_TO_WORD(rawWidth * rawHeight);
-    if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO) {
-        mRawSize = PAD_TO_4K(CEILING32(rawWidth) * CEILING32(rawHeight)) +
-                            2 * (CEILING32(rawWidth/2) * CEILING32(rawHeight/2));
-        mCbCrOffsetRaw = PAD_TO_4K(CEILING32(rawWidth) * CEILING32(rawHeight));
-    }
 
-    if( mCurrentTarget == TARGET_MSM7227 )
+    if( mCurrentTarget == TARGET_MSM7627 )
              mJpegMaxSize = CEILING16(rawWidth) * CEILING16(rawHeight) * 3 / 2;
-    else {
-        mJpegMaxSize = rawWidth * rawHeight * 3 / 2;
-        if(mPreviewFormat == CAMERA_YUV_420_NV21_ADRENO){
-            mJpegMaxSize =
-               PAD_TO_4K(CEILING32(rawWidth) * CEILING32(rawHeight)) +
-                    2 * (CEILING32(rawWidth/2) * CEILING32(rawHeight/2));
-        }
-    }
-
-    //For offline jpeg hw encoder, jpeg encoder will provide us the
-    //required offsets and buffer size depending on the rotation.
-    int yOffset = 0;
-    if( (mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM7227) || (mCurrentTarget == TARGET_MSM8660)) {
-        int rotation = mParameters.getInt("rotation");
-        if (rotation >= 0) {
-            ALOGV("initRaw, jpeg_rotation = %d", rotation);
-            if(!LINK_jpeg_encoder_setRotation(rotation)) {
-                ALOGE("native_jpeg_encode set rotation failed");
-                return false;
-            }
-        }
-        //Don't call the get_buffer_offset() for ADRENO, as the width and height
-        //for Adreno format will be of CEILING32.
-        if(mPreviewFormat != CAMERA_YUV_420_NV21_ADRENO) {
-            LINK_jpeg_encoder_get_buffer_offset(rawWidth, rawHeight, (uint32_t *)&yOffset,
-                                            (uint32_t *)&mCbCrOffsetRaw, (uint32_t *)&mRawSize);
-            mJpegMaxSize = mRawSize;
-        }
-        ALOGV("initRaw: yOffset = %d, mCbCrOffsetRaw = %d, mRawSize = %d",
-                     yOffset, mCbCrOffsetRaw, mRawSize);
-    }
-
-    if(mCurrentTarget == TARGET_MSM8660)
-        pmem_region = "/dev/pmem_smipool";
     else
-        pmem_region = "/dev/pmem_adsp";
+             mJpegMaxSize = rawWidth * rawHeight * 3 / 2;
 
-    ALOGV("initRaw: initializing mRawHeap.");
+    LOGV("initRaw: initializing mRawHeap.");
     mRawHeap =
-        new PmemPool(pmem_region,
+        new PmemPool("/dev/pmem_adsp",
                      MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
                      mCameraControlFd,
                      MSM_PMEM_MAINIMG,
                      mJpegMaxSize,
                      kRawBufferCount,
                      mRawSize,
-                     mCbCrOffsetRaw,
-                     yOffset,
                      "snapshot camera");
 
     if (!mRawHeap->initialized()) {
-       ALOGE("initRaw X failed ");
-       mRawHeap.clear();
-       ALOGE("initRaw X: error initializing mRawHeap");
-       return false;
+	LOGE("initRaw X failed ");
+	mRawHeap.clear();
+	LOGE("initRaw X: error initializing mRawHeap");
+	return false;
     }
 
-    //This is kind of workaround for the GPU limitation, as it can't
-    //output in line to correct NV21 adreno formula for some snapshot
-    //sizes (like 3264x2448). This change of cbcr offset will ensure that
-    //chroma plane always starts at the beginning of a row.
-    if(mPreviewFormat != CAMERA_YUV_420_NV21_ADRENO)
-        mCbCrOffsetRaw = CEILING32(rawWidth) * CEILING32(rawHeight);
-
-    ALOGV("do_mmap snapshot pbuf = %p, pmem_fd = %d",
+    LOGV("do_mmap snapshot pbuf = %p, pmem_fd = %d",
          (uint8_t *)mRawHeap->mHeap->base(), mRawHeap->mHeap->getHeapID());
 
     // Jpeg
 
     if (initJpegHeap) {
-        ALOGV("initRaw: initializing mJpegHeap.");
+        LOGV("initRaw: initializing mJpegHeap.");
         mJpegHeap =
             new AshmemPool(mJpegMaxSize,
                            kJpegBufferCount,
@@ -3042,89 +2431,71 @@ bool QualcommCameraHardware::initRaw(bool initJpegHeap)
         if (!mJpegHeap->initialized()) {
             mJpegHeap.clear();
             mRawHeap.clear();
-            ALOGV("initRaw X failed: error initializing mJpegHeap.");
+            LOGE("initRaw X failed: error initializing mJpegHeap.");
             return false;
         }
 
         // Thumbnails
-        /* With the recent jpeg encoder downscaling changes for thumbnail padding,
-         *  HAL needs to call this API to get the offsets and buffer size.
-         */
-        int yOffsetThumb = 0;
-        if((mPreviewFormat != CAMERA_YUV_420_NV21_ADRENO)
-            && (mCurrentTarget != TARGET_MSM7630)
-            && (mCurrentTarget != TARGET_MSM8660)) {
-            LINK_jpeg_encoder_get_buffer_offset(mDimension.thumbnail_width,
-                                                 mDimension.thumbnail_height,
-                                                  (uint32_t *)&yOffsetThumb,
-                                                   (uint32_t *)&CbCrOffsetThumb,
-                                                    (uint32_t *)&thumbnailBufferSize);
-        }
-        pmem_region = "/dev/pmem_adsp";
 
         mThumbnailHeap =
-            new PmemPool(pmem_region,
+            new PmemPool("/dev/pmem_adsp",
                          MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
                          mCameraControlFd,
                          MSM_PMEM_THUMBNAIL,
                          thumbnailBufferSize,
                          1,
                          thumbnailBufferSize,
-                         CbCrOffsetThumb,
-                         yOffsetThumb,
                          "thumbnail");
 
         if (!mThumbnailHeap->initialized()) {
             mThumbnailHeap.clear();
             mJpegHeap.clear();
             mRawHeap.clear();
-            ALOGV("initRaw X failed: error initializing mThumbnailHeap.");
+            LOGE("initRaw X failed: error initializing mThumbnailHeap.");
             return false;
         }
     }
 
-    ALOGV("initRaw X");
+    LOGV("initRaw X");
     return true;
 }
 
 
 void QualcommCameraHardware::deinitRawSnapshot()
 {
-    ALOGV("deinitRawSnapshot E");
+    LOGV("deinitRawSnapshot E");
     mRawSnapShotPmemHeap.clear();
-    ALOGV("deinitRawSnapshot X");
+    LOGV("deinitRawSnapshot X");
 }
 
 void QualcommCameraHardware::deinitRaw()
 {
-    ALOGV("deinitRaw E");
+    LOGV("deinitRaw E");
 
+    mThumbnailHeap.clear();
     mJpegHeap.clear();
     mRawHeap.clear();
-    if(mCurrentTarget != TARGET_MSM8660){
-       mThumbnailHeap.clear();
-       mDisplayHeap.clear();
-    }
+    mDisplayHeap.clear();
 
-    ALOGV("deinitRaw X");
+    LOGV("deinitRaw X");
 }
 
 void QualcommCameraHardware::release()
 {
-    ALOGI("release E");
+    LOGD("release E");
     Mutex::Autolock l(&mLock);
 
-   {
-        Mutex::Autolock checkLock(&singleton_lock);
-        if(singleton_releasing){
-            ALOGE("ERROR: multiple release!");
-            return;
-        }
+#if DLOPEN_LIBMMCAMERA
+    if (libmmcamera == NULL) {
+        LOGE("ERROR: multiple release!");
+        return;
     }
+#else
+#warning "Cannot detect multiple release when not dlopen()ing libqcamera!"
+#endif
 
     int cnt, rc;
     struct msm_ctrl_cmd ctrlCmd;
-    ALOGI("release: mCameraRunning = %d", mCameraRunning);
     if (mCameraRunning) {
         if(mDataCallbackTimestamp && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME)) {
             mRecordFrameLock.lock();
@@ -3133,51 +2504,32 @@ void QualcommCameraHardware::release()
             mRecordFrameLock.unlock();
         }
         stopPreviewInternal();
-        ALOGI("release: stopPreviewInternal done.");
     }
-    if(mCurrentTarget == TARGET_MSM8660) {
-       ALOGV("release : Clearing the mThumbnailHeap and mDisplayHeap");
-       mPostViewHeap.clear();
-       mPostViewHeap = NULL;
-       mThumbnailHeap.clear();
-       mThumbnailHeap = NULL;
-       mDisplayHeap.clear();
-       mDisplayHeap = NULL;
+
+    if( mCurrentTarget == TARGET_MSM7630 ) {
+	mPostViewHeap.clear();
+        mPostViewHeap = NULL;
     }
     LINK_jpeg_encoder_join();
-
+    {
+        deinitRaw();
+    }
     //Signal the snapshot thread
     mJpegThreadWaitLock.lock();
     mJpegThreadRunning = false;
     mJpegThreadWait.signal();
     mJpegThreadWaitLock.unlock();
 
-    // Wait for snapshot thread to complete before clearing the
-    // resources.
-    mSnapshotThreadWaitLock.lock();
-    while (mSnapshotThreadRunning) {
-        ALOGV("takePicture: waiting for old snapshot thread to complete.");
-        mSnapshotThreadWait.wait(mSnapshotThreadWaitLock);
-        ALOGV("takePicture: old snapshot thread completed.");
-    }
-    mSnapshotThreadWaitLock.unlock();
-
-    {
-        Mutex::Autolock l (&mRawPictureHeapLock);
-        deinitRaw();
-    }
-
     deinitRawSnapshot();
-
+    
     ctrlCmd.timeout_ms = 5000;
     ctrlCmd.length = 0;
     ctrlCmd.type = (uint16_t)CAMERA_EXIT;
     ctrlCmd.resp_fd = mCameraControlFd; // FIXME: this will be put in by the kernel
     if (ioctl(mCameraControlFd, MSM_CAM_IOCTL_CTRL_COMMAND, &ctrlCmd) < 0)
-          ALOGV("ioctl CAMERA_EXIT fd %d error %s",
+          LOGE("ioctl CAMERA_EXIT fd %d error %s",
               mCameraControlFd, strerror(errno));
 
-    //LINK_mm_camera_config_deinit(&mCfgControl);
     LINK_release_cam_conf_thread();
     close(mCameraControlFd);
     mCameraControlFd = -1;
@@ -3185,27 +2537,28 @@ void QualcommCameraHardware::release()
         close(fb_fd);
         fb_fd = -1;
     }
+#if DLOPEN_LIBMMCAMERA
+    if (libmmcamera) {
+        ::dlclose(libmmcamera);
+        LOGV("dlclose(libqcamera)");
+        libmmcamera = NULL;
+    }
+#endif
 
     singleton_lock.lock();
     singleton_releasing = true;
     singleton_releasing_start_time = systemTime();
     singleton_lock.unlock();
 
-    ALOGI("release X: mCameraRunning = %d, mFrameThreadRunning = %d", mCameraRunning, mFrameThreadRunning);
-    ALOGI("mVideoThreadRunning = %d, mSnapshotThreadRunning = %d, mJpegThreadRunning = %d", mVideoThreadRunning, mSnapshotThreadRunning, mJpegThreadRunning);
-    ALOGI("camframe_timeout_flag = %d, mAutoFocusThreadRunning = %d", camframe_timeout_flag, mAutoFocusThreadRunning);
+    LOGD("release X");
 }
 
 QualcommCameraHardware::~QualcommCameraHardware()
 {
-    ALOGD("~QualcommCameraHardware E");
-
-    libmmcamera = NULL;
-    mMMCameraDLRef.clear();
-
+    LOGD("~QualcommCameraHardware E");
     singleton_lock.lock();
 
-    if( mCurrentTarget == TARGET_MSM7630 || mCurrentTarget == TARGET_QSD8250 || mCurrentTarget == TARGET_MSM8660 ) {
+    if( mCurrentTarget == TARGET_MSM7630 || mCurrentTarget == TARGET_QSD8250 ) {
         delete [] recordframes;
         recordframes = NULL;
     }
@@ -3214,26 +2567,26 @@ QualcommCameraHardware::~QualcommCameraHardware()
     singleton_releasing_start_time = 0;
     singleton_wait.signal();
     singleton_lock.unlock();
-    ALOGI("~QualcommCameraHardware X");
+    LOGD("~QualcommCameraHardware X");
 }
 
 sp<IMemoryHeap> QualcommCameraHardware::getRawHeap() const
 {
-    ALOGV("getRawHeap");
+    LOGV("getRawHeap");
     return mDisplayHeap != NULL ? mDisplayHeap->mHeap : NULL;
 }
 
 sp<IMemoryHeap> QualcommCameraHardware::getPreviewHeap() const
 {
-    ALOGV("getPreviewHeap");
+    LOGV("getPreviewHeap");
     return mPreviewHeap != NULL ? mPreviewHeap->mHeap : NULL;
 }
 
 status_t QualcommCameraHardware::startPreviewInternal()
 {
-    ALOGV("in startPreviewInternal : E");
+    LOGV("in startPreviewInternal : E");
     if(mCameraRunning) {
-        ALOGV("startPreview X: preview already running.");
+        LOGV("startPreview X: preview already running.");
         return NO_ERROR;
     }
 
@@ -3241,7 +2594,7 @@ status_t QualcommCameraHardware::startPreviewInternal()
         mLastQueuedFrame = NULL;
         mPreviewInitialized = initPreview();
         if (!mPreviewInitialized) {
-            ALOGV("startPreview X initPreview failed.  Not starting preview.");
+            LOGE("startPreview X initPreview failed.  Not starting preview.");
             return UNKNOWN_ERROR;
         }
     }
@@ -3249,7 +2602,7 @@ status_t QualcommCameraHardware::startPreviewInternal()
     {
         Mutex::Autolock cameraRunningLock(&mCameraRunningLock);
         if(( mCurrentTarget != TARGET_MSM7630 ) &&
-                (mCurrentTarget != TARGET_QSD8250) && (mCurrentTarget != TARGET_MSM8660))
+                (mCurrentTarget != TARGET_QSD8250))
             mCameraRunning = native_start_preview(mCameraControlFd);
         else
             mCameraRunning = native_start_video(mCameraControlFd);
@@ -3259,29 +2612,37 @@ status_t QualcommCameraHardware::startPreviewInternal()
         deinitPreview();
         mPreviewInitialized = false;
         mOverlay = NULL;
-        ALOGV("startPreview X: native_start_preview failed!");
+        LOGE("startPreview X: native_start_preview failed!");
         return UNKNOWN_ERROR;
     }
-
-    ALOGV("C3C0: native_start_preview success");
 
     //Reset the Gps Information
     exif_table_numEntries = 0;
 
-    ALOGV("startPreviewInternal X");
+    if(native_get_maxzoom(mCameraControlFd, (void *)&mMaxZoom) == true){
+        LOGD("Maximum zoom value is %d", mMaxZoom);
+        mParameters.set("zoom-supported", "true");
+    } else {
+        LOGE("Failed to get maximum zoom value...setting max zoom to zero");
+        mParameters.set("zoom-supported", "false");
+        mMaxZoom = 0;
+    }
+    mParameters.set("max-zoom",mMaxZoom);
+
+    LOGV("startPreviewInternal X");
     return NO_ERROR;
 }
 
 status_t QualcommCameraHardware::startPreview()
 {
-    ALOGV("startPreview E");
+    LOGV("startPreview E");
     Mutex::Autolock l(&mLock);
     return startPreviewInternal();
 }
 
 void QualcommCameraHardware::stopPreviewInternal()
 {
-    ALOGV("stopPreviewInternal E: %d", mCameraRunning);
+    LOGV("stopPreviewInternal E: %d", mCameraRunning);
     if (mCameraRunning) {
         // Cancel auto focus.
         {
@@ -3295,7 +2656,7 @@ void QualcommCameraHardware::stopPreviewInternal()
             Mutex::Autolock cameraRunningLock(&mCameraRunningLock);
             if(!camframe_timeout_flag) {
                 if (( mCurrentTarget != TARGET_MSM7630 ) &&
-                        (mCurrentTarget != TARGET_QSD8250) && (mCurrentTarget != TARGET_MSM8660))
+                        (mCurrentTarget != TARGET_QSD8250))
                     mCameraRunning = !native_stop_preview(mCameraControlFd);
                 else
                     mCameraRunning = !native_stop_video(mCameraControlFd);
@@ -3310,9 +2671,9 @@ void QualcommCameraHardware::stopPreviewInternal()
 
 	if (!mCameraRunning && mPreviewInitialized) {
 	    deinitPreview();
-	    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660)) {
+	    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250)) {
 		mVideoThreadWaitLock.lock();
-		ALOGV("in stopPreviewInternal: making mVideoThreadExit 1");
+		LOGV("in stopPreviewInternal: making mVideoThreadExit 1");
 		mVideoThreadExit = 1;
 		mVideoThreadWaitLock.unlock();
 		//  720p : signal the video thread , and check in video thread if stop is called, if so exit video thread.
@@ -3326,22 +2687,21 @@ void QualcommCameraHardware::stopPreviewInternal()
 	    }
 	    mPreviewInitialized = false;
 	}
-	else ALOGV("stopPreviewInternal: failed to stop preview");
+	else LOGE("stopPreviewInternal: failed to stop preview");
     }
-
-    ALOGI("stopPreviewInternal X: %d", mCameraRunning);
+    LOGV("stopPreviewInternal X: %d", mCameraRunning);
 }
 
 void QualcommCameraHardware::stopPreview()
 {
-    ALOGV("stopPreview: E");
+    LOGV("stopPreview: E");
     Mutex::Autolock l(&mLock);
     {
         if (mDataCallbackTimestamp && (mMsgEnabled & CAMERA_MSG_VIDEO_FRAME))
             return;
     }
     stopPreviewInternal();
-    ALOGV("stopPreview: X");
+    LOGV("stopPreview: X");
 }
 
 void QualcommCameraHardware::runAutoFocus()
@@ -3373,7 +2733,7 @@ void QualcommCameraHardware::runAutoFocus()
 
     mAutoFocusFd = open(MSM_CAMERA_CONTROL, O_RDWR);
     if (mAutoFocusFd < 0) {
-        ALOGV("autofocus: cannot open %s: %s",
+        LOGE("autofocus: cannot open %s: %s",
              MSM_CAMERA_CONTROL,
              strerror(errno));
         mAutoFocusThreadRunning = false;
@@ -3381,31 +2741,39 @@ void QualcommCameraHardware::runAutoFocus()
         return;
     }
 
-    if(!libmmcamera){
-        ALOGV("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
+#if DLOPEN_LIBMMCAMERA
+    // We need to maintain a reference to libqcamera.so for the duration of the
+    // AF thread, because we do not know when it will exit relative to the
+    // lifetime of this object.  We do not want to dlclose() libqcamera while
+    // LINK_cam_frame is still running.
+    libhandle = ::dlopen("liboemcamera.so", RTLD_NOW);
+    LOGV("AF: loading libqcamera at %p", libhandle);
+    if (!libhandle) {
+        LOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
         close(mAutoFocusFd);
         mAutoFocusFd = -1;
         mAutoFocusThreadRunning = false;
         mAutoFocusThreadLock.unlock();
         return;
     }
+#endif
 
     afMode = (isp3a_af_mode_t)attr_lookup(focus_modes,
                                 sizeof(focus_modes) / sizeof(str_map),
                                 mParameters.get(CameraParameters::KEY_FOCUS_MODE));
 
     /* This will block until either AF completes or is cancelled. */
-    ALOGV("af start (fd %d mode %d)", mAutoFocusFd, afMode);
+    LOGV("af start (fd %d mode %d)", mAutoFocusFd, afMode);
     status_t err;
     err = mAfLock.tryLock();
     if(err == NO_ERROR) {
         {
             Mutex::Autolock cameraRunningLock(&mCameraRunningLock);
             if(mCameraRunning){
-                ALOGV("Start AF");
+                LOGV("Start AF");
                 status = native_set_afmode(mAutoFocusFd, afMode);
             }else{
-                ALOGV("As Camera preview is not running, AF not issued");
+                LOGV("As Camera preview is not running, AF not issued");
                 status = false;
             }
         }
@@ -3414,12 +2782,12 @@ void QualcommCameraHardware::runAutoFocus()
     else{
         //AF Cancel would have acquired the lock,
         //so, no need to perform any AF
-        ALOGV("As Cancel auto focus is in progress, auto focus request "
+        LOGV("As Cancel auto focus is in progress, auto focus request "
                 "is ignored");
         status = FALSE;
     }
 
-    ALOGV("af done: %d", (int)status);
+    LOGV("af done: %d", (int)status);
     close(mAutoFocusFd);
     mAutoFocusFd = -1;
 
@@ -3434,20 +2802,27 @@ done:
     mCallbackLock.unlock();
     if (autoFocusEnabled)
         cb(CAMERA_MSG_FOCUS, status, 0, data);
+
+#if DLOPEN_LIBMMCAMERA
+    if (libhandle) {
+        ::dlclose(libhandle);
+        LOGV("AF: dlclose(libqcamera)");
+    }
+#endif
 }
 
 status_t QualcommCameraHardware::cancelAutoFocusInternal()
 {
-    ALOGV("cancelAutoFocusInternal E");
+    LOGV("cancelAutoFocusInternal E");
 
     if(!sensorType->hasAutoFocusSupport){
-        ALOGV("cancelAutoFocusInternal X");
+        LOGV("cancelAutoFocusInternal X");
         return NO_ERROR;
     }
 
 #if 0
     if (mAutoFocusFd < 0) {
-        ALOGV("cancelAutoFocusInternal X: not in progress");
+        LOGV("cancelAutoFocusInternal X: not in progress");
         return NO_ERROR;
     }
 #endif
@@ -3458,13 +2833,13 @@ status_t QualcommCameraHardware::cancelAutoFocusInternal()
     if(err == NO_ERROR) {
         //Got Lock, means either AF hasn't started or
         // AF is done. So no need to cancel it, just change the state
-        ALOGV("As Auto Focus is not in progress, Cancel Auto Focus "
+        LOGV("As Auto Focus is not in progress, Cancel Auto Focus "
                 "is ignored");
         mAfLock.unlock();
     }
     else {
         //AF is in Progess, So cancel it
-        ALOGV("Lock busy...cancel AF");
+        LOGV("Lock busy...cancel AF");
         rc = native_cancel_afmode(mCameraControlFd, mAutoFocusFd) ?
                 NO_ERROR :
                 UNKNOWN_ERROR;
@@ -3472,29 +2847,29 @@ status_t QualcommCameraHardware::cancelAutoFocusInternal()
 
 
 
-    ALOGV("cancelAutoFocusInternal X: %d", rc);
+    LOGV("cancelAutoFocusInternal X: %d", rc);
     return rc;
 }
 
 void *auto_focus_thread(void *user)
 {
-    ALOGV("auto_focus_thread E");
+    LOGV("auto_focus_thread E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
         obj->runAutoFocus();
     }
-    else ALOGW("not starting autofocus: the object went away!");
-    ALOGV("auto_focus_thread X");
+    else LOGW("not starting autofocus: the object went away!");
+    LOGV("auto_focus_thread X");
     return NULL;
 }
 
 status_t QualcommCameraHardware::autoFocus()
 {
-    ALOGV("autoFocus E");
+    LOGV("autoFocus E");
     Mutex::Autolock l(&mLock);
 
     if (mCameraControlFd < 0) {
-        ALOGV("not starting autofocus: main control fd %d", mCameraControlFd);
+        LOGE("not starting autofocus: main control fd %d", mCameraControlFd);
         return UNKNOWN_ERROR;
     }
 
@@ -3502,11 +2877,9 @@ status_t QualcommCameraHardware::autoFocus()
         mAutoFocusThreadLock.lock();
         if (!mAutoFocusThreadRunning) {
             if (native_prepare_snapshot(mCameraControlFd) == FALSE) {
-               ALOGV("native_prepare_snapshot failed!\n");
+               LOGE("native_prepare_snapshot failed!\n");
                mAutoFocusThreadLock.unlock();
                return UNKNOWN_ERROR;
-            } else {
-                mSnapshotPrepare = TRUE;
             }
 
             // Create a detached thread here so that we don't have to wait
@@ -3519,7 +2892,7 @@ status_t QualcommCameraHardware::autoFocus()
                 !pthread_create(&thr, &attr,
                                 auto_focus_thread, NULL);
             if (!mAutoFocusThreadRunning) {
-                ALOGV("failed to start autofocus thread");
+                LOGE("failed to start autofocus thread");
                 mAutoFocusThreadLock.unlock();
                 return UNKNOWN_ERROR;
             }
@@ -3527,13 +2900,13 @@ status_t QualcommCameraHardware::autoFocus()
         mAutoFocusThreadLock.unlock();
     }
 
-    ALOGV("autoFocus X");
+    LOGV("autoFocus X");
     return NO_ERROR;
 }
 
 status_t QualcommCameraHardware::cancelAutoFocus()
 {
-    ALOGV("cancelAutoFocus E");
+    LOGV("cancelAutoFocus E");
     Mutex::Autolock l(&mLock);
 
     int rc = NO_ERROR;
@@ -3541,33 +2914,23 @@ status_t QualcommCameraHardware::cancelAutoFocus()
         rc = cancelAutoFocusInternal();
     }
 
-    ALOGV("cancelAutoFocus X");
+    LOGV("cancelAutoFocus X");
     return rc;
 }
 
 void QualcommCameraHardware::runSnapshotThread(void *data)
 {
-    bool ret = true;
-    CAMERA_HAL_UNUSED(data);
-    ALOGV("runSnapshotThread E");
-
-    if(!libmmcamera){
-        ALOGE("FATAL ERROR: could not dlopen liboemcamera.so: %s", dlerror());
-    }
-
+    LOGV("runSnapshotThread E");
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
         if (native_start_snapshot(mCameraControlFd))
-             ret = receiveRawPicture();
-        else {
-            ALOGV("main: native_start_snapshot failed!");
-            ret = false;
-        }
+            receiveRawPicture();
+        else
+            LOGE("main: native_start_snapshot failed!");
     } else if(mSnapshotFormat == PICTURE_FORMAT_RAW){
         if(native_start_raw_snapshot(mCameraControlFd)){
-           ret = receiveRawSnapshot();
+           receiveRawSnapshot();
         } else {
-           ALOGV("main: native_start_raw_snapshot failed!");
-           ret = false;
+           LOGE("main: native_start_raw_snapshot failed!");
         }
     }
     mInSnapshotModeWaitLock.lock();
@@ -3576,73 +2939,57 @@ void QualcommCameraHardware::runSnapshotThread(void *data)
     mInSnapshotModeWaitLock.unlock();
 
     mSnapshotFormat = 0;
-    if(strTexturesOn != true ) {
-        mJpegThreadWaitLock.lock();
-        while (mJpegThreadRunning) {
-            ALOGV("runSnapshotThread: waiting for jpeg thread to complete.");
-            mJpegThreadWait.wait(mJpegThreadWaitLock);
-            ALOGV("runSnapshotThread: jpeg thread completed.");
-        }
-        mJpegThreadWaitLock.unlock();
-        //clear the resources
-        if(libmmcamera != NULL)
-        {
-            LINK_jpeg_encoder_join();
-        }
-        deinitRaw();
+
+    mJpegThreadWaitLock.lock();
+    while (mJpegThreadRunning) {
+        LOGV("runSnapshotThread: waiting for jpeg thread to complete.");
+        mJpegThreadWait.wait(mJpegThreadWaitLock);
+        LOGV("runSnapshotThread: jpeg thread completed.");
     }
+    mJpegThreadWaitLock.unlock();
+    //clear the resources
+    LINK_jpeg_encoder_join();
+    deinitRaw();
 
     mSnapshotThreadWaitLock.lock();
     mSnapshotThreadRunning = false;
     mSnapshotThreadWait.signal();
     mSnapshotThreadWaitLock.unlock();
 
-    if( (ret == false) && mDataCallback
-        && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
-        /* get picture failed. Give jpeg callback with NULL data
-         * to the application to restore to preview mode
-         */
-        ALOGE("get picture failed, giving jpeg callback with NULL data");
-        mDataCallback(CAMERA_MSG_COMPRESSED_IMAGE, NULL, mCallbackCookie);
-    }
-
-    ALOGV("runSnapshotThread X");
+    LOGV("runSnapshotThread X");
 }
 
 void *snapshot_thread(void *user)
 {
-    ALOGD("snapshot_thread E");
+    LOGD("snapshot_thread E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
         obj->runSnapshotThread(user);
     }
-    else ALOGW("not starting snapshot thread: the object went away!");
-    ALOGD("snapshot_thread X");
+    else LOGW("not starting snapshot thread: the object went away!");
+    LOGD("snapshot_thread X");
     return NULL;
 }
 
 status_t QualcommCameraHardware::takePicture()
 {
-    ALOGV("takePicture(%d)", mMsgEnabled);
+    LOGV("takePicture(%d)", mMsgEnabled);
     Mutex::Autolock l(&mLock);
-
-    if(strTexturesOn == true){
-        mEncodePendingWaitLock.lock();
-        while(mEncodePending) {
-            ALOGE("takePicture: Frame given to application, waiting for encode call");
-            mEncodePendingWait.wait(mEncodePendingWaitLock);
-            ALOGE("takePicture: Encode of the application data is done");
-        }
-        mEncodePendingWaitLock.unlock();
-    }
 
     // Wait for old snapshot thread to complete.
     mSnapshotThreadWaitLock.lock();
     while (mSnapshotThreadRunning) {
-        ALOGV("takePicture: waiting for old snapshot thread to complete.");
+        LOGV("takePicture: waiting for old snapshot thread to complete.");
         mSnapshotThreadWait.wait(mSnapshotThreadWaitLock);
-        ALOGV("takePicture: old snapshot thread completed.");
+        LOGV("takePicture: old snapshot thread completed.");
     }
+
+    if( mCurrentTarget == TARGET_MSM7630 ) {
+	/* Store the last frame queued for preview. This
+	 * shall be used as postview */
+	storePreviewFrameForPostview();
+    }
+
     //mSnapshotFormat is protected by mSnapshotThreadWaitLock
     if(mParameters.getPictureFormat() != 0 &&
             !strcmp(mParameters.getPictureFormat(),
@@ -3652,31 +2999,23 @@ status_t QualcommCameraHardware::takePicture()
         mSnapshotFormat = PICTURE_FORMAT_JPEG;
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
-        if(!mSnapshotPrepare){
-            if(!native_prepare_snapshot(mCameraControlFd)) {
-                mSnapshotThreadWaitLock.unlock();
-                return UNKNOWN_ERROR;
-            }
+        if(!native_prepare_snapshot(mCameraControlFd)) {
+            mSnapshotThreadWaitLock.unlock();
+            return UNKNOWN_ERROR;
         }
     }
-    mSnapshotPrepare = FALSE;
-    if(mCurrentTarget == TARGET_MSM8660) {
-       /* Store the last frame queued for preview. This
-        * shall be used as postview */
-        if (!(storePreviewFrameForPostview()))
-        return UNKNOWN_ERROR;
-    }
+
     stopPreviewInternal();
 
     if(mSnapshotFormat == PICTURE_FORMAT_JPEG){
         if (!initRaw(mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE))) {
-            ALOGV("initRaw failed.  Not taking picture.");
+            LOGE("initRaw failed.  Not taking picture.");
             mSnapshotThreadWaitLock.unlock();
             return UNKNOWN_ERROR;
         }
     } else if(mSnapshotFormat == PICTURE_FORMAT_RAW ){
         if(!initRawSnapshot()){
-            ALOGV("initRawSnapshot failed. Not taking picture.");
+            LOGE("initRawSnapshot failed. Not taking picture.");
             mSnapshotThreadWaitLock.unlock();
             return UNKNOWN_ERROR;
         }
@@ -3699,79 +3038,50 @@ status_t QualcommCameraHardware::takePicture()
     mInSnapshotMode = true;
     mInSnapshotModeWaitLock.unlock();
 
-    ALOGV("takePicture: X");
+    LOGV("takePicture: X");
     return mSnapshotThreadRunning ? NO_ERROR : UNKNOWN_ERROR;
 }
 
 status_t QualcommCameraHardware::cancelPicture()
 {
     status_t rc;
-    ALOGV("cancelPicture: E");
-    if (mCurrentTarget == TARGET_MSM7227 ||
-       (mCurrentTarget == TARGET_MSM7625A ||
-        mCurrentTarget == TARGET_MSM7627A)) {
-        mSnapshotDone = TRUE;
-        mSnapshotThreadWaitLock.lock();
-        while (mSnapshotThreadRunning) {
-            ALOGV("cancelPicture: waiting for snapshot thread to complete.");
-            mSnapshotThreadWait.wait(mSnapshotThreadWaitLock);
-            ALOGV("cancelPicture: snapshot thread completed.");
-        }
-        mSnapshotThreadWaitLock.unlock();
-    }
+    LOGV("cancelPicture: E");
     rc = native_stop_snapshot(mCameraControlFd) ? NO_ERROR : UNKNOWN_ERROR;
-    mSnapshotDone = FALSE;
-    ALOGV("cancelPicture: X: %d", rc);
+    LOGV("cancelPicture: X: %d", rc);
     return rc;
 }
 
 status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
 {
-    ALOGV("setParameters: E params = %p", &params);
+    LOGV("setParameters: E params = %p", &params);
 
     Mutex::Autolock l(&mLock);
     status_t rc, final_rc = NO_ERROR;
 
     if ((rc = setPreviewSize(params))) final_rc = rc;
+    if ((rc = setPreviewFrameRate(params))) final_rc = rc;
     if ((rc = setPictureSize(params)))  final_rc = rc;
-    if ((rc = setJpegThumbnailSize(params))) final_rc = rc;
     if ((rc = setJpegQuality(params)))  final_rc = rc;
+    if ((rc = setAntibanding(params)))  final_rc = rc;
+    //if ((rc = setAutoExposure(params))) final_rc = rc;
+    if ((rc = setWhiteBalance(params))) final_rc = rc;
     if ((rc = setEffect(params)))       final_rc = rc;
+    if ((rc = setFlash(params)))        final_rc = rc;
     if ((rc = setGpsLocation(params)))  final_rc = rc;
     if ((rc = setRotation(params)))     final_rc = rc;
     if ((rc = setZoom(params)))         final_rc = rc;
+    if ((rc = setFocusMode(params)))    final_rc = rc;
     if ((rc = setOrientation(params)))  final_rc = rc;
+    if ((rc = setBrightness(params)))   final_rc = rc;
     if ((rc = setExposureCompensation(params)))   final_rc = rc;
-    //if ((rc = setLensshadeValue(params)))  final_rc = rc;
+    if ((rc = setLensshadeValue(params)))  final_rc = rc;
+    if ((rc = setISOValue(params)))  final_rc = rc;
     if ((rc = setPictureFormat(params))) final_rc = rc;
-    //if ((rc = setSharpness(params)))    final_rc = rc;
-    if ((rc = setSaturation(params)))   final_rc = rc;
-    //if ((rc = setContinuousAf(params)))  final_rc = rc;
-    if ((rc = setSelectableZoneAf(params)))   final_rc = rc;
-    if ((rc = setSceneMode(params)))  final_rc = rc;
+    if ((rc = setSharpness(params)))    final_rc = rc;
     if ((rc = setContrast(params)))     final_rc = rc;
-    if ((rc = setSceneDetect(params)))  final_rc = rc;
-    if ((rc = setStrTextures(params)))   final_rc = rc;
-    if ((rc = setPreviewFormat(params)))   final_rc = rc;
-    if ((rc = setSkinToneEnhancement(params)))   final_rc = rc;
-    if ((rc = setAntibanding(params)))  final_rc = rc;
-    if ((rc = setPreviewFpsRange(params)))  final_rc = rc;
+    if ((rc = setSaturation(params)))   final_rc = rc;
 
-   const char *str = params.get(CameraParameters::KEY_SCENE_MODE);
-    int32_t value = attr_lookup(scenemode, sizeof(scenemode) / sizeof(str_map), str);
-
-    if((value != NOT_FOUND) && (value == CAMERA_BESTSHOT_OFF)) {
-        if ((rc = setPreviewFrameRate(params))) final_rc = rc;
-        if ((rc = setPreviewFrameRateMode(params))) final_rc = rc;
-        //if ((rc = setAutoExposure(params))) final_rc = rc;
-        if ((rc = setExposureCompensation(params))) final_rc = rc;
-        if ((rc = setWhiteBalance(params))) final_rc = rc;
-        if ((rc = setFlash(params)))        final_rc = rc;
-        if ((rc = setFocusMode(params)))    final_rc = rc;
-        if ((rc = setBrightness(params)))   final_rc = rc;
-        if ((rc = setISOValue(params)))  final_rc = rc;
-    }
-    ALOGV("setParameters: X");
+    LOGV("setParameters: X");
     //return final_rc;
     /* Just let whatever passed go through */
     return NO_ERROR;
@@ -3779,194 +3089,43 @@ status_t QualcommCameraHardware::setParameters(const CameraParameters& params)
 
 CameraParameters QualcommCameraHardware::getParameters() const
 {
-    //ALOGV("getParameters: EX");
+    LOGV("getParameters: EX");
     return mParameters;
 }
-
-/*status_t QualcommCameraHardware::setHistogramOn()
-{
-    ALOGV("setHistogramOn: EX");
-
-    mStatsWaitLock.lock();
-    mSendData = true;
-    if(mStatsOn == CAMERA_HISTOGRAM_ENABLE) {
-        mStatsWaitLock.unlock();
-        return NO_ERROR;
-     }
-
-    if (mStatHeap != NULL) {
-        ALOGV("setHistogram on: clearing old mStatHeap.");
-        mStatHeap.clear();
-    }
-
-    mStatSize = sizeof(uint32_t)* HISTOGRAM_STATS_SIZE;
-    mCurrent = -1;
-    //Currently the Ashmem is multiplying the buffer size with total number
-    //of buffers and page aligning. This causes a crash in JNI as each buffer
-    //individually expected to be page aligned
-    //int page_size_minus_1 = getpagesize() - 1;
-    int32_t mAlignedStatSize = ((mStatSize + page_size_minus_1) & (~page_size_minus_1));
-
-    mStatHeap =
-            new AshmemPool(mAlignedStatSize,
-                           3,
-                           mStatSize,
-                           "stat");
-      if (!mStatHeap->initialized()) {
-          ALOGE("Stat Heap X failed ");
-          mStatHeap.clear();
-          ALOGE("setHistogramOn X: error initializing mStatHeap");
-          mStatsWaitLock.unlock();
-          return UNKNOWN_ERROR;
-      }
-    mStatsOn = CAMERA_HISTOGRAM_ENABLE;
-
-    mStatsWaitLock.unlock();
-    mCfgControl.mm_camera_set_parm(CAMERA_PARM_HISTOGRAM, &mStatsOn);
-    return NO_ERROR;
-
-}
-
-status_t QualcommCameraHardware::setHistogramOff()
-{
-    ALOGV("setHistogramOff: EX");
-    mStatsWaitLock.lock();
-    if(mStatsOn == CAMERA_HISTOGRAM_DISABLE) {
-    mStatsWaitLock.unlock();
-        return NO_ERROR;
-     }
-    mStatsOn = CAMERA_HISTOGRAM_DISABLE;
-    mStatsWaitLock.unlock();
-
-    mCfgControl.mm_camera_set_parm(CAMERA_PARM_HISTOGRAM, &mStatsOn);
-
-    mStatsWaitLock.lock();
-    mStatHeap.clear();
-    mStatsWaitLock.unlock();
-
-    return NO_ERROR;
-}*/
-
 
 status_t QualcommCameraHardware::sendCommand(int32_t command, int32_t arg1,
                                              int32_t arg2)
 {
-    ALOGV("sendCommand: EX");
-    /*Mutex::Autolock l(&mLock);
-
-    switch(command)  {
-
-      case CAMERA_CMD_HISTOGRAM_ON:
-                                   ALOGV("histogram set to on");
-                                   return setHistogramOn();
-      case CAMERA_CMD_HISTOGRAM_OFF:
-                                   ALOGV("histogram set to off");
-                                   return setHistogramOff();
-      case CAMERA_CMD_HISTOGRAM_SEND_DATA:
-                                   mStatsWaitLock.lock();
-                                   if(mStatsOn == CAMERA_HISTOGRAM_ENABLE)
-                                       mSendData = true;
-                                   mStatsWaitLock.unlock();
-                                   return NO_ERROR;
-   }*/
+    LOGV("sendCommand: EX");
     return BAD_VALUE;
 }
 
 extern "C" sp<CameraHardwareInterface> openCameraHardware()
 {
-    ALOGI("openCameraHardware: call createInstance");
-    parameter_string_initialized = false;
+    LOGV("openCameraHardware: call createInstance");
     return QualcommCameraHardware::createInstance();
 }
 
-void QualcommCameraHardware::getCameraInfo()
-{
-#define CAMERA_MODE_2D 0x01
-#define CAMERA_MODE_3D 0x00
-    struct msm_camera_info camInfo;
-    int i, ret;
+static CameraInfo sCameraInfo[] = {
+	{
+		CAMERA_FACING_BACK,
+		90,  /* orientation */
+	}
+};
 
-    ALOGV("%s E", __FUNCTION__);
-    int camfd = open(MSM_CAMERA_CONTROL, O_RDWR);
-    if (camfd >= 0) {
-        ret = ioctl(camfd, MSM_CAM_IOCTL_GET_CAMERA_INFO, &camInfo);
-        close(camfd);
-
-        if (ret < 0) {
-             ALOGE("getCameraInfo: MSM_CAM_IOCTL_GET_CAMERA_INFO fd %d error %s",
-                  camfd, strerror(errno));
-             HAL_numOfCameras = 0;
-             return;
-        }
-
-        for (i = 0; i < camInfo.num_cameras; ++i) {
-             HAL_cameraInfo[i].camera_id = i + 1;
-             HAL_cameraInfo[i].position = camInfo.is_internal_cam[i] == 1 ? FRONT_CAMERA : BACK_CAMERA;
-             HAL_cameraInfo[i].sensor_mount_angle = camInfo.s_mount_angle[i];
-             HAL_cameraInfo[i].modes_supported = CAMERA_MODE_2D;
-             if (camInfo.has_3d_support[i])
-                  HAL_cameraInfo[i].modes_supported |= CAMERA_MODE_3D;
-
-             ALOGV("camera %d, facing: %d, orientation: %d, mode: %d\n", HAL_cameraInfo[i].camera_id,
-                  HAL_cameraInfo[i].position, HAL_cameraInfo[i].sensor_mount_angle, HAL_cameraInfo[i].modes_supported);
-        }
-        HAL_numOfCameras = camInfo.num_cameras;
-    }
-    ALOGV("HAL_numOfCameras: %d\n", HAL_numOfCameras);
-    ALOGV("%s X", __FUNCTION__);
-}
-
-/* Gingerbread API functions */
 extern "C" int HAL_getNumberOfCameras()
 {
-    QualcommCameraHardware::getCameraInfo();
-    return HAL_numOfCameras;
+	return sizeof(sCameraInfo) / sizeof(sCameraInfo[0]);
 }
 
 extern "C" void HAL_getCameraInfo(int cameraId, struct CameraInfo* cameraInfo)
 {
-    int i;
-    char mDeviceName[PROPERTY_VALUE_MAX];
-    if (cameraInfo == NULL) {
-        ALOGE("cameraInfo is NULL");
-        return;
-    }
-
-    property_get("ro.board.platform",mDeviceName," ");
-
-    for(i = 0; i < HAL_numOfCameras; i++) {
-        if(i == cameraId) {
-            ALOGI("Found a matching camera info for ID %d", cameraId);
-            cameraInfo->facing = (HAL_cameraInfo[i].position == BACK_CAMERA)?
-                                   CAMERA_FACING_BACK : CAMERA_FACING_FRONT;
-            // App Orientation not needed for 7x27 , sensor mount angle 0 is
-            // enough.
-            if(cameraInfo->facing == CAMERA_FACING_FRONT)
-                cameraInfo->orientation = HAL_cameraInfo[i].sensor_mount_angle;
-            else if( !strncmp(mDeviceName, "msm7227", 7))
-                cameraInfo->orientation = HAL_cameraInfo[i].sensor_mount_angle;
-            else if( !strncmp(mDeviceName, "msm8660", 7))
-                cameraInfo->orientation = HAL_cameraInfo[i].sensor_mount_angle;
-            else
-                cameraInfo->orientation = ((APP_ORIENTATION - HAL_cameraInfo[i].orientation) + 360)%360;
-
-            ALOGI("%s: orientation = %d", __FUNCTION__, cameraInfo->orientation);
-            cameraInfo->mode = 0;
-            if(HAL_cameraInfo[i].modes_supported & CAMERA_MODE_2D)
-                cameraInfo->mode |= CAMERA_SUPPORT_MODE_2D;
-            if(HAL_cameraInfo[i].modes_supported & CAMERA_MODE_3D)
-                cameraInfo->mode |= CAMERA_SUPPORT_MODE_3D;
-
-            ALOGI("%s: modes supported = %d", __FUNCTION__, cameraInfo->mode);
-            return;
-        }
-    }
-    ALOGE("Unable to find matching camera info for ID %d", cameraId);
+	memcpy(cameraInfo, &sCameraInfo[cameraId], sizeof(CameraInfo));
 }
 
 extern "C" sp<CameraHardwareInterface> HAL_openCameraHardware(int cameraId)
 {
-	ALOGV("openCameraHardware: call createInstance");
+	LOGV("openCameraHardware: call createInstance");
 	return QualcommCameraHardware::createInstance();
 }
 
@@ -3977,7 +3136,7 @@ wp<QualcommCameraHardware> QualcommCameraHardware::singleton;
 // and return it.
 sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
 {
-    ALOGD("createInstance: E");
+    LOGD("createInstance: E");
 
     singleton_lock.lock();
 
@@ -3985,21 +3144,21 @@ sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
     while (singleton_releasing) {
         if((singleton_releasing_start_time != 0) &&
                 (systemTime() - singleton_releasing_start_time) > SINGLETON_RELEASING_WAIT_TIME){
-            ALOGV("in createinstance system time is %lld %lld %lld ",
+            LOGV("in createinstance system time is %lld %lld %lld ",
                     systemTime(), singleton_releasing_start_time, SINGLETON_RELEASING_WAIT_TIME);
             singleton_lock.unlock();
-            ALOGV("Previous singleton is busy and time out exceeded. Returning null");
+            LOGE("Previous singleton is busy and time out exceeded. Returning null");
             return NULL;
         }
-        ALOGI("Wait for previous release.");
+        LOGI("Wait for previous release.");
         singleton_wait.waitRelative(singleton_lock, SINGLETON_RELEASING_RECHECK_TIMEOUT);
-        ALOGI("out of Wait for previous release.");
+        LOGI("out of Wait for previous release.");
     }
 
     if (singleton != 0) {
         sp<CameraHardwareInterface> hardware = singleton.promote();
         if (hardware != 0) {
-            ALOGD("createInstance: X return existing hardware=%p", &(*hardware));
+            LOGD("createInstance: X return existing hardware=%p", &(*hardware));
             singleton_lock.unlock();
             return hardware;
         }
@@ -4009,7 +3168,7 @@ sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
         struct stat st;
         int rc = stat("/dev/oncrpc", &st);
         if (rc < 0) {
-            ALOGD("createInstance: X failed to create hardware: %s", strerror(errno));
+            LOGD("createInstance: X failed to create hardware: %s", strerror(errno));
             singleton_lock.unlock();
             return NULL;
         }
@@ -4019,16 +3178,15 @@ sp<CameraHardwareInterface> QualcommCameraHardware::createInstance()
     sp<QualcommCameraHardware> hardware(cam);
     singleton = hardware;
 
-    ALOGI("createInstance: created hardware=%p", &(*hardware));
     if (!cam->startCamera()) {
-        ALOGV("%s: startCamera failed!", __FUNCTION__);
+        LOGE("%s: startCamera failed!", __FUNCTION__);
         singleton_lock.unlock();
         return NULL;
     }
 
     cam->initDefaultParameters();
+    LOGD("createInstance: X created hardware=%p", &(*hardware));
     singleton_lock.unlock();
-    ALOGI("createInstance: X");
     return hardware;
 }
 
@@ -4037,26 +3195,27 @@ sp<QualcommCameraHardware> QualcommCameraHardware::getInstance()
 {
     sp<CameraHardwareInterface> hardware = singleton.promote();
     if (hardware != 0) {
-        //    ALOGV("getInstance: X old instance of hardware");
+        //    LOGV("getInstance: X old instance of hardware");
         return sp<QualcommCameraHardware>(static_cast<QualcommCameraHardware*>(hardware.get()));
     } else {
-        ALOGV("getInstance: X new instance of hardware");
+        LOGV("getInstance: X new instance of hardware");
         return sp<QualcommCameraHardware>();
     }
 }
 void QualcommCameraHardware::receiveRecordingFrame(struct msm_frame *frame)
 {
-    ALOGV("receiveRecordingFrame E");
+    LOGV("receiveRecordingFrame E");
     // post busy frame
     if (frame)
     {
         cam_frame_post_video (frame);
     }
-    else ALOGV("in  receiveRecordingFrame frame is NULL");
-    ALOGV("receiveRecordingFrame X");
+    else LOGE("in  receiveRecordingFrame frame is NULL");
+    LOGV("receiveRecordingFrame X");
 }
 
-bool QualcommCameraHardware::native_zoom_image(int fd,int srcOffset,int dstOffSet, common_crop_t *crop)
+
+bool QualcommCameraHardware::native_zoom_image(int fd, int srcOffset, int dstOffSet, common_crop_t *crop)
 {
     int result = 0;
     struct mdp_blit_req *e;
@@ -4093,7 +3252,7 @@ bool QualcommCameraHardware::native_zoom_image(int fd,int srcOffset,int dstOffSe
         e->src_rect.w = previewWidth;
         e->src_rect.h = previewHeight;
     }
-    //ALOGV(" native_zoom : SRC_RECT : x,y = %d,%d \t w,h = %d, %d",
+    //LOGV(" native_zoom : SRC_RECT : x,y = %d,%d \t w,h = %d, %d",
     //        e->src_rect.x, e->src_rect.y, e->src_rect.w, e->src_rect.h);
 
     e->dst_rect.x = 0;
@@ -4103,7 +3262,7 @@ bool QualcommCameraHardware::native_zoom_image(int fd,int srcOffset,int dstOffSe
 
     result = ioctl(fb_fd, MSMFB_BLIT, &zoomImage.list);
     if (result < 0) {
-        ALOGV("MSM_FBIOBLT failed! line=%d\n", __LINE__);
+        LOGE("MSM_FBIOBLT failed! line=%d\n", __LINE__);
         return FALSE;
     }
     return TRUE;
@@ -4120,7 +3279,7 @@ void QualcommCameraHardware::debugShowPreviewFPS() const
     nsecs_t diff = now - mLastFpsTime;
     if (diff > ms2ns(250)) {
         mFps =  ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
-        ALOGI("Preview Frames Per Second: %.4f", mFps);
+        LOGI("Preview Frames Per Second: %.4f", mFps);
         mLastFpsTime = now;
         mLastFrameCount = mFrameCount;
     }
@@ -4137,16 +3296,17 @@ void QualcommCameraHardware::debugShowVideoFPS() const
     nsecs_t diff = now - mLastFpsTime;
     if (diff > ms2ns(250)) {
         mFps =  ((mFrameCount - mLastFrameCount) * float(s2ns(1))) / diff;
-        ALOGI("Video Frames Per Second: %.4f", mFps);
+        LOGI("Video Frames Per Second: %.4f", mFps);
         mLastFpsTime = now;
         mLastFrameCount = mFrameCount;
     }
 }
 void QualcommCameraHardware::receivePreviewFrame(struct msm_frame *frame)
 {
-//    ALOGV("receivePreviewFrame E");
+//    LOGV("receivePreviewFrame E");
+
     if (!mCameraRunning) {
-        ALOGV("ignoring preview callback--camera has been stopped");
+        LOGE("ignoring preview callback--camera has been stopped");
         return;
     }
 
@@ -4165,190 +3325,57 @@ void QualcommCameraHardware::receivePreviewFrame(struct msm_frame *frame)
     // Find the offset within the heap of the current buffer.
     ssize_t offset_addr =
         (ssize_t)frame->buffer - (ssize_t)mPreviewHeap->mHeap->base();
-	//ALOGV("offset_addr=0x%X", (unsigned int)offset_addr);
     ssize_t offset = offset_addr / mPreviewHeap->mAlignedBufferSize;
-	//ALOGV("offset=0x%X", (unsigned int)offset);
 
     common_crop_t *crop = (common_crop_t *) (frame->cropinfo);
-#ifdef DUMP_PREVIEW_FRAMES
-    static int frameCnt = 0;
-    int written;
-            if (frameCnt >= 0 && frameCnt <= 10 ) {
-                char buf[128];
-                sprintf(buf, "/data/%d_preview.yuv", frameCnt);
-                int file_fd = open(buf, O_RDWR | O_CREAT, 0777);
-                LOGV("dumping preview frame %d", frameCnt);
-                if (file_fd < 0) {
-                    LOGE("cannot open file\n");
-                }
-                else
-                {
-                    LOGV("dumping data");
-                    written = write(file_fd, (uint8_t *)frame->buffer,
-                        mPreviewFrameSize );
-                    if(written < 0)
-                      LOGE("error in data write");
-                }
-                close(file_fd);
-          }
-          frameCnt++;
-#endif
+
     mInPreviewCallback = true;
-    if(mUseOverlay) {
-        if(mOverlay != NULL) {
-            mOverlayLock.lock();
-            mOverlay->setFd(mPreviewHeap->mHeap->getHeapID());
-            if (crop->in2_w != 0 || crop->in2_h != 0) {
-                zoomCropInfo.x = (crop->out2_w - crop->in2_w + 1) / 2 - 1;
-                zoomCropInfo.y = (crop->out2_h - crop->in2_h + 1) / 2 - 1;
-                zoomCropInfo.w = crop->in2_w;
-                zoomCropInfo.h = crop->in2_h;
-                /* There can be scenarios where the in1_wXin1_h and
-                 * out1_wXout1_h are same. In those cases, reset the
-                 * x and y to zero instead of negative for proper zooming
-                 */
-                if(zoomCropInfo.x < 0) zoomCropInfo.x = 0;
-                if(zoomCropInfo.y < 0) zoomCropInfo.y = 0;
-                mOverlay->setCrop(zoomCropInfo.x, zoomCropInfo.y,
-                        zoomCropInfo.w, zoomCropInfo.h);
-                /* Set mResetOverlayCrop to true, so that when there is
-                 * no crop information, setCrop will be called
-                 * with zero crop values.
-                 */
-                mResetOverlayCrop = true;
-            } else {
-                // Reset zoomCropInfo variables. This will ensure that
-                // stale values wont be used for postview
-                zoomCropInfo.w = crop->in2_w;
-                zoomCropInfo.h = crop->in2_h;
-                /* This reset is required, if not, overlay driver continues
-                 * to use the old crop information for these preview
-                 * frames which is not the correct behavior. To avoid
-                 * multiple calls, reset once.
-                 */
-                if(mResetOverlayCrop == true){
-                    mOverlay->setCrop(0, 0,previewWidth, previewHeight);
-                    mResetOverlayCrop = false;
-                }
-            }
-            mOverlay->queueBuffer((void *)offset_addr);
-            /* To overcome a timing case where we could be having the overlay refer to deallocated
-               mDisplayHeap(and showing corruption), the mDisplayHeap is not deallocated untill the
-               first preview frame is queued to the overlay in 8660. Also adding the condition
-               to check if snapshot is currently in progress ensures that the resources being
-               used by the snapshot thread are not incorrectly deallocated by preview thread*/
-            if ((mCurrentTarget == TARGET_MSM8660)&&(mFirstFrame == true)&&(!mSnapshotThreadRunning)) {
-                ALOGD(" receivePreviewFrame : first frame queued, display heap being deallocated");
-                mThumbnailHeap.clear();
-                mDisplayHeap.clear();
-                mFirstFrame = false;
-                mPostViewHeap.clear();
-            }
-            mLastQueuedFrame = (void *)frame->buffer;
-            mOverlayLock.unlock();
-        }
-    } else {
-	    if (crop->in2_w != 0 || crop->in2_h != 0) {
-	        dstOffset = (dstOffset + 1) % NUM_MORE_BUFS;
-	        offset = kPreviewBufferCount + dstOffset;
-	        ssize_t dstOffset_addr = offset * mPreviewHeap->mAlignedBufferSize;
-	        if( !native_zoom_image(mPreviewHeap->mHeap->getHeapID(),
-			  offset_addr, dstOffset_addr, crop)) {
-		        ALOGE(" Error while doing MDP zoom ");
+	if (crop->in2_w != 0 || crop->in2_h != 0) {
+	    dstOffset = (dstOffset + 1) % NUM_MORE_BUFS;
+	    offset = kPreviewBufferCount + dstOffset;
+	    ssize_t dstOffset_addr = offset * mPreviewHeap->mAlignedBufferSize;
+	    if( !native_zoom_image(mPreviewHeap->mHeap->getHeapID(),
+			offset_addr, dstOffset_addr, crop)) {
+		LOGE(" Error while doing MDP zoom ");
                 offset = offset_addr / mPreviewHeap->mAlignedBufferSize;
-	        }
-        }
-        if (mCurrentTarget == TARGET_MSM7227  ||
-               (mCurrentTarget == TARGET_MSM7625A ||
-                mCurrentTarget == TARGET_MSM7627A)) {
-            mLastQueuedFrame = (void *)mPreviewHeap->mBuffers[offset]->pointer();
-        }
-    }
+	    }
+	}
     if (pcb != NULL && (msgEnabled & CAMERA_MSG_PREVIEW_FRAME))
         pcb(CAMERA_MSG_PREVIEW_FRAME, mPreviewHeap->mBuffers[offset],
             pdata);
 
-    // If output  is NOT enabled (targets otherthan 7x30 , 8x50 and 8x60 currently..)
-
-    nsecs_t timeStamp = nsecs_t(frame->ts.tv_sec)*1000000000LL + frame->ts.tv_nsec;
-
-    if( (mCurrentTarget != TARGET_MSM7630 ) &&  (mCurrentTarget != TARGET_QSD8250) && (mCurrentTarget != TARGET_MSM8660)) {
+    // If output  is NOT enabled (targets otherthan 7x30 currently..)
+    if( (mCurrentTarget != TARGET_MSM7630 ) &&  (mCurrentTarget != TARGET_QSD8250)) {
         if(rcb != NULL && (msgEnabled & CAMERA_MSG_VIDEO_FRAME)) {
-            rcb(timeStamp, CAMERA_MSG_VIDEO_FRAME, mPreviewHeap->mBuffers[offset], rdata);
+            rcb(systemTime(), CAMERA_MSG_VIDEO_FRAME, mPreviewHeap->mBuffers[offset], rdata);
             Mutex::Autolock rLock(&mRecordFrameLock);
             if (mReleasedRecordingFrame != true) {
-                ALOGV("block waiting for frame release");
+                LOGV("block waiting for frame release");
                 mRecordWait.wait(mRecordFrameLock);
-                ALOGV("frame released, continuing");
+                LOGV("frame released, continuing");
             }
             mReleasedRecordingFrame = false;
         }
     }
     mInPreviewCallback = false;
 
-//    ALOGV("receivePreviewFrame X");
+//    LOGV("receivePreviewFrame X");
 }
-/*void QualcommCameraHardware::receiveCameraStats(camstats_type stype, camera_preview_histogram_info* histinfo)
-{
-  //  ALOGV("receiveCameraStats E");
-
-    if (!mCameraRunning) {
-        ALOGE("ignoring stats callback--camera has been stopped");
-        return;
-    }
-
-    if(mOverlay == NULL) {
-       return;
-    }
-    mCallbackLock.lock();
-    int msgEnabled = mMsgEnabled;
-    data_callback scb = mDataCallback;
-    void *sdata = mCallbackCookie;
-    mCallbackLock.unlock();
-    mStatsWaitLock.lock();
-    if(mStatsOn == CAMERA_HISTOGRAM_DISABLE) {
-      mStatsWaitLock.unlock();
-      return;
-    }
-    if(!mSendData) {
-        mStatsWaitLock.unlock();
-     } else {
-        mSendData = false;
-        mCurrent = (mCurrent+1)%3;
-    // The first element of the array will contain the maximum hist value provided by driver.
-        *(uint32_t *)(mStatHeap->mHeap->base()+ (mStatHeap->mBufferSize * mCurrent)) = histinfo->max_value;
-        memcpy((uint32_t *)((unsigned int)mStatHeap->mHeap->base()+ (mStatHeap->mBufferSize * mCurrent)+ sizeof(int32_t)), (uint32_t *)histinfo->buffer,(sizeof(int32_t) * 256));
-
-        mStatsWaitLock.unlock();
-
-        if (scb != NULL && (msgEnabled & CAMERA_MSG_STATS_DATA))
-            scb(CAMERA_MSG_STATS_DATA, mStatHeap->mBuffers[mCurrent],
-                sdata);
-     }
-  //  ALOGV("receiveCameraStats X");
-}*/
 
 
 bool QualcommCameraHardware::initRecord()
 {
-    const char *pmem_region;
-    int CbCrOffset;
+    char *pmem_region;
 
-    ALOGV("initREcord E");
+    LOGV("initREcord E");
 
-    if((mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660))
+    mRecordFrameSize = (mDimension.video_width  * mDimension.video_height *3)/2;
+
+    if( mCurrentTarget == TARGET_QSD8250 )
         pmem_region = "/dev/pmem_smipool";
     else
         pmem_region = "/dev/pmem_adsp";
 
-    // for 8x60 the Encoder expects the CbCr offset should be aligned to 2K.
-    if(mCurrentTarget == TARGET_MSM8660) {
-        CbCrOffset = PAD_TO_2K(mDimension.video_width  * mDimension.video_height);
-        mRecordFrameSize = CbCrOffset + PAD_TO_2K((mDimension.video_width * mDimension.video_height)/2);
-    } else {
-        CbCrOffset = PAD_TO_WORD(mDimension.video_width  * mDimension.video_height);
-        mRecordFrameSize = (mDimension.video_width  * mDimension.video_height *3)/2;
-    }
     mRecordHeap = new PmemPool(pmem_region,
                                MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
                                 mCameraControlFd,
@@ -4356,13 +3383,11 @@ bool QualcommCameraHardware::initRecord()
                                 mRecordFrameSize,
                                 kRecordBufferCount,
                                 mRecordFrameSize,
-                                CbCrOffset,
-                                0,
                                 "record");
 
     if (!mRecordHeap->initialized()) {
         mRecordHeap.clear();
-        ALOGV("initRecord X: could not initialize record heap.");
+        LOGE("initRecord X: could not initialize record heap.");
         return false;
     }
     for (int cnt = 0; cnt < kRecordBufferCount; cnt++) {
@@ -4370,10 +3395,10 @@ bool QualcommCameraHardware::initRecord()
         recordframes[cnt].buffer =
             (uint32_t)mRecordHeap->mHeap->base() + mRecordHeap->mAlignedBufferSize * cnt;
         recordframes[cnt].y_off = 0;
-        recordframes[cnt].cbcr_off = CbCrOffset;
-        recordframes[cnt].path = CAMIF_TO_AXI_VIA_OUTPUT_2; //OUTPUT_TYPE_V;
+        recordframes[cnt].cbcr_off = mDimension.video_width  * mDimension.video_height;
+        recordframes[cnt].path = OUTPUT_TYPE_V;
 
-        ALOGV ("initRecord :  record heap , video buffers  buffer=%lu fd=%d y_off=%d cbcr_off=%d \n",
+        LOGV ("initRecord :  record heap , video buffers  buffer=%lu fd=%d y_off=%d cbcr_off=%d \n",
           (unsigned long)recordframes[cnt].buffer, recordframes[cnt].fd, recordframes[cnt].y_off,
           recordframes[cnt].cbcr_off);
     }
@@ -4384,9 +3409,9 @@ bool QualcommCameraHardware::initRecord()
 
     mVideoThreadWaitLock.lock();
     while (mVideoThreadRunning) {
-        ALOGV("initRecord: waiting for old video thread to complete.");
+        LOGV("initRecord: waiting for old video thread to complete.");
         mVideoThreadWait.wait(mVideoThreadWaitLock);
-        ALOGV("initRecord : old video thread completed.");
+        LOGV("initRecord : old video thread completed.");
     }
     mVideoThreadWaitLock.unlock();
 
@@ -4394,31 +3419,31 @@ bool QualcommCameraHardware::initRecord()
     LINK_cam_frame_flush_free_video();
     for(int i=ACTIVE_VIDEO_BUFFERS+1;i <kRecordBufferCount; i++)
         LINK_camframe_free_video(&recordframes[i]);
-    ALOGV("initREcord X");
+    LOGV("initREcord X");
 
     return true;
 }
 
 status_t QualcommCameraHardware::startRecording()
 {
-    ALOGV("startRecording E");
+    LOGV("startRecording E");
     int ret;
     Mutex::Autolock l(&mLock);
     mReleasedRecordingFrame = false;
     if( (ret=startPreviewInternal())== NO_ERROR){
-        if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM7227) )  {
-            ALOGV(" in startREcording : calling native_start_recording");
+        if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250))  {
+            LOGV(" in startREcording : calling native_start_recording");
             native_start_recording(mCameraControlFd);
             recordingState = 1;
             // Remove the left out frames in busy Q and them in free Q.
             // this should be done before starting video_thread so that,
             // frames in previous recording are flushed out.
-            ALOGV("frames in busy Q = %d", g_busy_frame_queue.num_of_frames);
+            LOGV("frames in busy Q = %d", g_busy_frame_queue.num_of_frames);
             while((g_busy_frame_queue.num_of_frames) >0){
                 msm_frame* vframe = cam_frame_get_video ();
                 LINK_camframe_free_video(vframe);
             }
-            ALOGV("frames in busy Q = %d after deQueing", g_busy_frame_queue.num_of_frames);
+            LOGV("frames in busy Q = %d after deQueing", g_busy_frame_queue.num_of_frames);
 
             // Start video thread and wait for busy frames to be encoded, this thread
             // should be closed in stopRecording
@@ -4440,7 +3465,7 @@ status_t QualcommCameraHardware::startRecording()
 
 void QualcommCameraHardware::stopRecording()
 {
-    ALOGV("stopRecording: E");
+    LOGV("stopRecording: E");
     Mutex::Autolock l(&mLock);
     {
         mRecordFrameLock.lock();
@@ -4450,12 +3475,12 @@ void QualcommCameraHardware::stopRecording()
 
         if(mDataCallback && !(mCurrentTarget == TARGET_QSD8250) &&
                          (mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME)) {
-            ALOGV("stopRecording: X, preview still in progress");
+            LOGV("stopRecording: X, preview still in progress");
             return;
         }
     }
     // If output2 enabled, exit video thread, invoke stop recording ioctl
-    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660))  {
+    if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250))  {
         mVideoThreadWaitLock.lock();
         mVideoThreadExit = 1;
         mVideoThreadWaitLock.unlock();
@@ -4469,28 +3494,28 @@ void QualcommCameraHardware::stopRecording()
         stopPreviewInternal();
 
     recordingState = 0; // recording not started
-    ALOGV("stopRecording: X");
+    LOGV("stopRecording: X");
 }
 
 void QualcommCameraHardware::releaseRecordingFrame(
        const sp<IMemory>& mem __attribute__((unused)))
 {
-    ALOGV("releaseRecordingFrame E");
+    LOGV("releaseRecordingFrame E");
     Mutex::Autolock rLock(&mRecordFrameLock);
     mReleasedRecordingFrame = true;
     mRecordWait.signal();
 
     // Ff 7x30 : add the frame to the free camframe queue
-    if( (mCurrentTarget == TARGET_MSM7630 )  || (mCurrentTarget == TARGET_QSD8250) || (mCurrentTarget == TARGET_MSM8660)) {
+    if( (mCurrentTarget == TARGET_MSM7630 )  || (mCurrentTarget == TARGET_QSD8250)) {
         ssize_t offset;
         size_t size;
         sp<IMemoryHeap> heap = mem->getMemory(&offset, &size);
         msm_frame* releaseframe = NULL;
-        ALOGV(" in release recording frame :  heap base %x offset %x buffer %lx ", (unsigned int)heap->base(), (unsigned int)offset, (unsigned int)heap->base() + offset );
+        LOGV(" in release recording frame :  heap base %d offset %d buffer %d ", heap->base(), offset, heap->base() + offset );
         int cnt;
         for (cnt = 0; cnt < kRecordBufferCount; cnt++) {
-            if((unsigned int)recordframes[cnt].buffer == ((unsigned int)heap->base()+ offset)){
-                ALOGV("in release recording frame found match , releasing buffer %x", (unsigned int)recordframes[cnt].buffer);
+            if((unsigned int)recordframes[cnt].buffer == (unsigned int)(heap->base()+ offset)){
+                LOGV("in release recording frame found match , releasing buffer %d", (unsigned int)recordframes[cnt].buffer);
                 releaseframe = &recordframes[cnt];
                 break;
             }
@@ -4503,14 +3528,14 @@ void QualcommCameraHardware::releaseRecordingFrame(
 
             mFrameThreadWaitLock.unlock();
         } else {
-            ALOGV("in release recordingframe XXXXX error , buffer not found");
+            LOGE("in release recordingframe XXXXX error , buffer not found");
             for (int i=0; i< kRecordBufferCount; i++) {
-                 ALOGV(" recordframes[%d].buffer = %d", i, (unsigned int)recordframes[i].buffer);
+                 LOGE(" recordframes[%d].buffer = %d", i, (unsigned int)recordframes[i].buffer);
             }
         }
     }
 
-    ALOGV("releaseRecordingFrame X");
+    LOGV("releaseRecordingFrame X");
 }
 
 bool QualcommCameraHardware::recordingEnabled()
@@ -4524,72 +3549,33 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
     image_rect_type size;
 
     if (mShutterPending && mNotifyCallback && (mMsgEnabled & CAMERA_MSG_SHUTTER)) {
-        ALOGV("out2_w=%d, out2_h=%d, in2_w=%d, in2_h=%d",
+        LOGV("out2_w=%d, out2_h=%d, in2_w=%d, in2_h=%d",
              crop->out2_w, crop->out2_h, crop->in2_w, crop->in2_h);
-        ALOGV("out1_w=%d, out1_h=%d, in1_w=%d, in1_h=%d",
+        LOGV("out1_w=%d, out1_h=%d, in1_w=%d, in1_h=%d",
              crop->out1_w, crop->out1_h, crop->in1_w, crop->in1_h);
 
         // To workaround a bug in MDP which happens if either
         // dimension > 2048, we display the thumbnail instead.
-
-        if (mCurrentTarget == TARGET_MSM7227)
-            mDisplayHeap = mThumbnailHeap;
-        else
-            mDisplayHeap = mRawHeap;
-
-       // In case of 7x27, we use output2 for postview , which is of
-       // preview size. Output2 was used for thumbnail previously.
-       // Now thumbnail is generated from main image for 7x27.
+        mDisplayHeap = mRawHeap;
         if (crop->in1_w == 0 || crop->in1_h == 0) {
             // Full size
-            if (mCurrentTarget == TARGET_MSM7227) {
-                jpegPadding = 0;
+            size.width = mDimension.picture_width;
+            size.height = mDimension.picture_height;
+            if (size.width > 2048 || size.height > 2048) {
                 size.width = mDimension.ui_thumbnail_width;
                 size.height = mDimension.ui_thumbnail_height;
-            } else {
-                size.width = mDimension.picture_width;
-                size.height = mDimension.picture_height;
-                if (size.width > 2048 || size.height > 2048) {
-                    size.width = mDimension.ui_thumbnail_width;
-                    size.height = mDimension.ui_thumbnail_height;
-                    mDisplayHeap = mThumbnailHeap;
-                }
+                mDisplayHeap = mThumbnailHeap;
             }
         } else {
             // Cropped
-            if (mCurrentTarget == TARGET_MSM7227) {
-                jpegPadding = 8;
+            size.width = (crop->in2_w + jpegPadding) & ~1;
+            size.height = (crop->in2_h + jpegPadding) & ~1;
+            if (size.width > 2048 || size.height > 2048) {
                 size.width = (crop->in1_w + jpegPadding) & ~1;
                 size.height = (crop->in1_h + jpegPadding) & ~1;
-            } else {
-                size.width = (crop->in2_w + jpegPadding) & ~1;
-                size.height = (crop->in2_h + jpegPadding) & ~1;
-                if (size.width > 2048 || size.height > 2048) {
-                    size.width = (crop->in1_w + jpegPadding) & ~1;
-                    size.height = (crop->in1_h + jpegPadding) & ~1;
-                    mDisplayHeap = mThumbnailHeap;
-                }
+                mDisplayHeap = mThumbnailHeap;
             }
         }
-        //We need to create overlay with dimensions that the VFE output
-        //is configured for post view.
-        if((mCurrentTarget == TARGET_MSM7630) ||
-           (mCurrentTarget == TARGET_MSM8660)) {
-            size.width = mDimension.ui_thumbnail_width;
-            size.height = mDimension.ui_thumbnail_height;
-            //Make ThumbnailHeap as Displayheap for post view.
-            mDisplayHeap = mThumbnailHeap;
-        }
-
-        //For streaming textures, we need to pass the main image in all the cases.
-        if(strTexturesOn == true) {
-            int rawWidth, rawHeight;
-            mParameters.getPictureSize(&rawWidth, &rawHeight);
-            size.width = rawWidth;
-            size.height = rawHeight;
-            mDisplayHeap = mRawHeap;
-        }
-
         /* Now, invoke Notify Callback to unregister preview buffer
          * and register postview buffer with surface flinger. */
         mNotifyCallback(CAMERA_MSG_SHUTTER, (int32_t)&size, 0,
@@ -4601,29 +3587,17 @@ void QualcommCameraHardware::notifyShutter(common_crop_t *crop)
 
 static void receive_shutter_callback(common_crop_t *crop)
 {
-    ALOGV("receive_shutter_callback: E");
-    ALOGV("receive_shutter_callback: X");
+    LOGV("receive_shutter_callback: E");
+    LOGV("receive_shutter_callback: X");
 }
 
 // Crop the picture in place.
 static void crop_yuv420(uint32_t width, uint32_t height,
                  uint32_t cropped_width, uint32_t cropped_height,
-                 uint8_t *image, const char *name)
+                 uint8_t *image)
 {
-    uint32_t i;
-    uint32_t x, y;
+    uint32_t i, x, y;
     uint8_t* chroma_src, *chroma_dst;
-    int yOffsetSrc, yOffsetDst, CbCrOffsetSrc, CbCrOffsetDst;
-    int mSrcSize, mDstSize;
-
-    //check if all fields needed eg. size and also how to set y offset. If condition for 7x27
-    //and need to check if needed for 7x30.
-
-    LINK_jpeg_encoder_get_buffer_offset(width, height, (uint32_t *)&yOffsetSrc,
-                                       (uint32_t *)&CbCrOffsetSrc, (uint32_t *)&mSrcSize);
-
-    LINK_jpeg_encoder_get_buffer_offset(cropped_width, cropped_height, (uint32_t *)&yOffsetDst,
-                                       (uint32_t *)&CbCrOffsetDst, (uint32_t *)&mDstSize);
 
     // Calculate the start position of the cropped area.
     x = (width - cropped_width) / 2;
@@ -4631,104 +3605,35 @@ static void crop_yuv420(uint32_t width, uint32_t height,
     x &= ~1;
     y &= ~1;
 
-    if((mCurrentTarget == TARGET_MSM7227)
-       || (mCurrentTarget == TARGET_MSM7630)
-       || (mCurrentTarget == TARGET_MSM8660)) {
-        if (!strcmp("snapshot camera", name)) {
-            chroma_src = image + CbCrOffsetSrc;
-            chroma_dst = image + CbCrOffsetDst;
-        } else {
-            chroma_src = image + width * height;
-            chroma_dst = image + cropped_width * cropped_height;
-            yOffsetSrc = 0;
-            yOffsetDst = 0;
-            CbCrOffsetSrc = width * height;
-            CbCrOffsetDst = cropped_width * cropped_height;
-        }
-    } else {
-       chroma_src = image + CbCrOffsetSrc;
-       chroma_dst = image + CbCrOffsetDst;
-    }
+    // Copy luma component.
+    for(i = 0; i < cropped_height; i++)
+        memcpy(image + i * cropped_width,
+               image + width * (y + i) + x,
+               cropped_width);
 
-    int32_t bufDst = yOffsetDst;
-    int32_t bufSrc = yOffsetSrc + (width * y) + x;
-
-    if( bufDst > bufSrc ){
-        ALOGV("crop yuv Y destination position follows source position");
-        /*
-         * If buffer destination follows buffer source, memcpy
-         * of lines will lead to overwriting subsequent lines. In order
-         * to prevent this, reverse copying of lines is performed
-         * for the set of lines where destination follows source and
-         * forward copying of lines is performed for lines where source
-         * follows destination. To calculate the position to switch,
-         * the initial difference between source and destination is taken
-         * and divided by difference between width and cropped width. For
-         * every line copied the difference between source destination
-         * drops by width - cropped width
-         */
-        //calculating inversion
-        int position = ( bufDst - bufSrc ) / (width - cropped_width);
-        // Copy luma component.
-        for(i=position+1; i < cropped_height; i++){
-            memmove(image + yOffsetDst + i * cropped_width,
-                    image + yOffsetSrc + width * (y + i) + x,
-                    cropped_width);
-        }
-        for(int j=position; j>=0; j--){
-            memmove(image + yOffsetDst + j * cropped_width,
-                    image + yOffsetSrc + width * (y + j) + x,
-                    cropped_width);
-        }
-    } else {
-        // Copy luma component.
-        for(i = 0; i < cropped_height; i++)
-            memcpy(image + yOffsetDst + i * cropped_width,
-                   image + yOffsetSrc + width * (y + i) + x,
-                   cropped_width);
-    }
+    chroma_src = image + width * height;
+    chroma_dst = image + cropped_width * cropped_height;
 
     // Copy chroma components.
     cropped_height /= 2;
     y /= 2;
-
-    bufDst = CbCrOffsetDst;
-    bufSrc = CbCrOffsetSrc + (width * y) + x;
-
-    if( bufDst > bufSrc ) {
-        ALOGV("crop yuv Chroma destination position follows source position");
-        /*
-         * Similar to y
-         */
-        int position = ( bufDst - bufSrc ) / (width - cropped_width);
-        for(i=position+1; i < cropped_height; i++){
-            memmove(chroma_dst + i * cropped_width,
-                    chroma_src + width * (y + i) + x,
-                    cropped_width);
-        }
-        for(int j=position; j >=0; j--){
-            memmove(chroma_dst + j * cropped_width,
-                    chroma_src + width * (y + j) + x,
-                    cropped_width);
-        }
-    } else {
-        for(i = 0; i < cropped_height; i++)
-            memcpy(chroma_dst + i * cropped_width,
-                   chroma_src + width * (y + i) + x,
-                   cropped_width);
-    }
+    for(i = 0; i < cropped_height; i++)
+        memcpy(chroma_dst + i * cropped_width,
+               chroma_src + width * (y + i) + x,
+               cropped_width);
 }
 
-bool QualcommCameraHardware::receiveRawSnapshot(){
-    ALOGV("receiveRawSnapshot E");
+
+void QualcommCameraHardware::receiveRawSnapshot(){
+    LOGV("receiveRawSnapshot E");
 
     Mutex::Autolock cbLock(&mCallbackLock);
 
     if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
 
         if(native_get_picture(mCameraControlFd, &mCrop) == false) {
-            ALOGV("receiveRawSnapshot X: native_get_picture failed!");
-            return false;
+            LOGE("receiveRawSnapshot X: native_get_picture failed!");
+            return;
         }
         /* Its necessary to issue another notifyShutter here with
          * mPlayShutterSoundOnly as FALSE, since that is when the
@@ -4746,23 +3651,20 @@ bool QualcommCameraHardware::receiveRawSnapshot(){
 
     //cleanup
     deinitRawSnapshot();
-    ALOGI("release: clearing resources done.");
 
-    ALOGV("receiveRawSnapshot X");
-    return true;
+    LOGV("receiveRawSnapshot X");
 }
 
-bool QualcommCameraHardware::receiveRawPicture()
+void QualcommCameraHardware::receiveRawPicture()
 {
-    ALOGV("receiveRawPicture: E");
+    LOGV("receiveRawPicture: E");
 
     Mutex::Autolock cbLock(&mCallbackLock);
-    if (mDataCallback && ((mMsgEnabled & CAMERA_MSG_RAW_IMAGE) || mSnapshotDone)) {
+    if (mDataCallback && (mMsgEnabled & CAMERA_MSG_RAW_IMAGE)) {
         if(native_get_picture(mCameraControlFd, &mCrop) == false) {
-            ALOGV("getPicture failed!");
-            return false;
+            LOGE("getPicture failed!");
+            return;
         }
-        mSnapshotDone = FALSE;
         mCrop.in1_w &= ~1;
         mCrop.in1_h &= ~1;
         mCrop.in2_w &= ~1;
@@ -4779,35 +3681,17 @@ bool QualcommCameraHardware::receiveRawPicture()
             // By the time native_get_picture returns, picture is taken. Call
             // shutter callback if cam config thread has not done that.
             notifyShutter(&mCrop);
-            {
-                Mutex::Autolock l(&mRawPictureHeapLock);
-                if(mRawHeap != NULL){
-                  crop_yuv420(mCrop.out2_w, mCrop.out2_h, (mCrop.in2_w + jpegPadding), (mCrop.in2_h + jpegPadding),
-                            (uint8_t *)mRawHeap->mHeap->base(), mRawHeap->mName);
-                }
-                if( (mThumbnailHeap != NULL) &&
-                    (mCurrentTarget != TARGET_MSM7630) &&
-                    (mCurrentTarget != TARGET_MSM8660) ) {
-                    //Don't crop the mThumbnailHeap for 7630. As this heap
-                    //is used for postview rather than for thumbnail. (thumbnail is generated from main image).
-                    //overlay's setCrop will take of cropping while displaying postview.
+                    crop_yuv420(mCrop.out2_w, mCrop.out2_h, (mCrop.in2_w + jpegPadding), (mCrop.in2_h + jpegPadding),
+                            (uint8_t *)mRawHeap->mHeap->base());
                     crop_yuv420(mCrop.out1_w, mCrop.out1_h, (mCrop.in1_w + jpegPadding), (mCrop.in1_h + jpegPadding),
-                            (uint8_t *)mThumbnailHeap->mHeap->base(), mThumbnailHeap->mName);
-                }
-            }
+                            (uint8_t *)mThumbnailHeap->mHeap->base());
 
             // We do not need jpeg encoder to upscale the image. Set the new
             // dimension for encoder.
             mDimension.orig_picture_dx = mCrop.in2_w + jpegPadding;
             mDimension.orig_picture_dy = mCrop.in2_h + jpegPadding;
-            /* Don't update the thumbnail_width/height, if jpeg downscaling
-             * is used to generate thumbnail. These parameters should contain
-             * the original thumbnail dimensions.
-             */
-            if(strTexturesOn != true) {
-                mDimension.thumbnail_width = mCrop.in1_w + jpegPadding;
-                mDimension.thumbnail_height = mCrop.in1_h + jpegPadding;
-            }
+            mDimension.thumbnail_width = mCrop.in1_w + jpegPadding;
+            mDimension.thumbnail_height = mCrop.in1_h + jpegPadding;
         }else {
             memset(&mCrop, 0 ,sizeof(mCrop));
             // By the time native_get_picture returns, picture is taken. Call
@@ -4815,75 +3699,33 @@ bool QualcommCameraHardware::receiveRawPicture()
             notifyShutter(&mCrop);
         }
 
-   if( mUseOverlay && (mOverlay != NULL) ) {
-            mOverlay->setFd(mDisplayHeap->mHeap->getHeapID());
-            int cropX = 0;
-            int cropY = 0;
-            int cropW = 0;
-            int cropH = 0;
-            //Caculate the crop dimensions from mCrop.
-            //mCrop will have the crop dimensions for VFE's
-            //postview output.
-            if (mCrop.in1_w != 0 && mCrop.in1_h != 0) {
-                cropX = (mCrop.out1_w - mCrop.in1_w + 1) / 2 - 1;
-                cropY = (mCrop.out1_h - mCrop.in1_h + 1) / 2 - 1;
-                if(cropX < 0) cropX = 0;
-                if(cropY < 0) cropY = 0;
-                cropW = mCrop.in1_w;
-                cropH = mCrop.in1_h;
-                mOverlay->setCrop(cropX, cropY, cropW, cropH);
-                mResetOverlayCrop = true;
-            } else {
-                /* as the VFE second output is being used for postView,
-                 * VPE is doing the necessary cropping. Clear the
-                 * preview cropping information with overlay, so that
-                 * the same  won't be applied to postview.
-                 */
-                 mOverlay->setCrop(0, 0, mDimension.ui_thumbnail_width,
-                                    mDimension.ui_thumbnail_height);
-            }
-
-            ALOGV(" Queueing Postview for display ");
-            mOverlay->queueBuffer((void *)0);
-        }
-        if (mDataCallback && (mMsgEnabled & CAMERA_MSG_RAW_IMAGE))
-            mDataCallback(CAMERA_MSG_RAW_IMAGE, mDisplayHeap->mBuffers[0],
+   if (mDataCallback && (mMsgEnabled & CAMERA_MSG_RAW_IMAGE))
+       mDataCallback(CAMERA_MSG_RAW_IMAGE, mDisplayHeap->mBuffers[0],
                             mCallbackCookie);
-        if(strTexturesOn == true) {
-            ALOGI("Raw Data given to app for processing...will wait for jpeg encode call");
-            mEncodePendingWaitLock.lock();
-            mEncodePending = true;
-            mEncodePendingWaitLock.unlock();
-        }
     }
-    else ALOGV("Raw-picture callback was canceled--skipping.");
+    else LOGV("Raw-picture callback was canceled--skipping.");
 
-    if(strTexturesOn != true) {
-        if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
-            mJpegSize = 0;
-            mJpegThreadWaitLock.lock();
-            if (LINK_jpeg_encoder_init()) {
-                mJpegThreadRunning = true;
-                mJpegThreadWaitLock.unlock();
-                if(native_jpeg_encode()) {
-                    ALOGV("receiveRawPicture: X (success)");
-                    return true;
-                }
-                ALOGE("jpeg encoding failed");
+    if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
+        mJpegSize = 0;
+        mJpegThreadWaitLock.lock();
+        if (LINK_jpeg_encoder_init()) {
+            mJpegThreadRunning = true;
+            mJpegThreadWaitLock.unlock();
+            if(native_jpeg_encode()) {
+                LOGV("receiveRawPicture: X (success)");
+                return;
             }
-            else {
-                ALOGE("receiveRawPicture X: jpeg_encoder_init failed.");
-                mJpegThreadWaitLock.unlock();
-            }
+            LOGE("jpeg encoding failed");
         }
-        else ALOGV("JPEG callback is NULL, not encoding image.");
-        deinitRaw();
-        return false;
+        else {
+            LOGE("receiveRawPicture X: jpeg_encoder_init failed.");
+            mJpegThreadWaitLock.unlock();
+        }
     }
-    ALOGV("receiveRawPicture: X");
-    return true;
+    else LOGV("JPEG callback is NULL, not encoding image.");
+    deinitRaw();
+    LOGV("receiveRawPicture: X");
 }
-
 
 void QualcommCameraHardware::receiveJpegPictureFragment(
     uint8_t *buff_ptr, uint32_t buff_size)
@@ -4892,9 +3734,9 @@ void QualcommCameraHardware::receiveJpegPictureFragment(
     remaining -= mJpegSize;
     uint8_t *base = (uint8_t *)mJpegHeap->mHeap->base();
 
-    ALOGV("receiveJpegPictureFragment size %d", buff_size);
+    LOGV("receiveJpegPictureFragment size %d", buff_size);
     if (buff_size > remaining) {
-        ALOGV("receiveJpegPictureFragment: size %d exceeds what "
+        LOGE("receiveJpegPictureFragment: size %d exceeds what "
              "remains in JPEG heap (%d), truncating",
              buff_size,
              remaining);
@@ -4906,11 +3748,11 @@ void QualcommCameraHardware::receiveJpegPictureFragment(
 
 void QualcommCameraHardware::receiveJpegPicture(void)
 {
-    ALOGV("receiveJpegPicture: E image (%d uint8_ts out of %d)",
+    LOGV("receiveJpegPicture: E image (%d uint8_ts out of %d)",
          mJpegSize, mJpegHeap->mBufferSize);
     Mutex::Autolock cbLock(&mCallbackLock);
 
-    int index = 0;
+    int index = 0, rc;
 
     if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
         // The reason we do not allocate into mJpegHeap->mBuffers[offset] is
@@ -4924,33 +3766,26 @@ void QualcommCameraHardware::receiveJpegPicture(void)
         mDataCallback(CAMERA_MSG_COMPRESSED_IMAGE, buffer, mCallbackCookie);
         buffer = NULL;
     }
-    else ALOGV("JPEG callback was cancelled--not delivering image.");
+    else LOGV("JPEG callback was cancelled--not delivering image.");
 
     mJpegThreadWaitLock.lock();
     mJpegThreadRunning = false;
     mJpegThreadWait.signal();
     mJpegThreadWaitLock.unlock();
 
-    ALOGV("receiveJpegPicture: X callback done.");
+    LOGV("receiveJpegPicture: X callback done.");
 }
 
 bool QualcommCameraHardware::previewEnabled()
 {
-    /* If overlay is used the message CAMERA_MSG_PREVIEW_FRAME would
-     * be disabled at CameraService layer. Hence previewEnabled would
-     * return FALSE even though preview is running. Hence check for
-     * mOverlay not being NULL to ensure that previewEnabled returns
-     * accurate information.
-     */
-    return mCameraRunning && mDataCallback &&
-           ((mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME) || (mOverlay != NULL));
+    return mCameraRunning && mDataCallback && (mMsgEnabled & CAMERA_MSG_PREVIEW_FRAME);
 }
 
 status_t QualcommCameraHardware::setPreviewSize(const CameraParameters& params)
 {
     int width, height;
     params.getPreviewSize(&width, &height);
-    ALOGV("requested preview size %d x %d", width, height);
+    LOGV("requested preview size %d x %d", width, height);
 
     // Validate the preview size
     for (size_t i = 0; i < previewSizeCount; ++i) {
@@ -4960,7 +3795,7 @@ status_t QualcommCameraHardware::setPreviewSize(const CameraParameters& params)
             // targets)
             if(width == 1280 && height == 720 &&
              ((mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_QSD8250))){
-                ALOGD("change preview resolution to 768X432 since recording is in 720p");
+                LOGD("change preview resolution to 768X432 since recording is in 720p");
                 mDimension.display_width = preview_sizes[2].width;
                 mDimension.display_height= preview_sizes[2].height;
             }else {
@@ -4971,38 +3806,24 @@ status_t QualcommCameraHardware::setPreviewSize(const CameraParameters& params)
             return NO_ERROR;
         }
     }
-    ALOGV("Invalid preview size requested: %dx%d", width, height);
-    return BAD_VALUE;
-}
-status_t QualcommCameraHardware::setPreviewFpsRange(const CameraParameters& params)
-{
-    int minFps,maxFps;
-    params.getPreviewFpsRange(&minFps,&maxFps);
-    ALOGE("FPS Range Values: %dx%d", minFps, maxFps);
-
-    for(size_t i=0;i<FPS_RANGES_SUPPORTED_COUNT;i++)
-    {
-        if(minFps==FpsRangesSupported[i].minFPS && maxFps == FpsRangesSupported[i].maxFPS){
-            mParameters.setPreviewFpsRange(minFps,maxFps);
-            return NO_ERROR;
-        }
-    }
+    LOGE("Invalid preview size requested: %dx%d", width, height);
     return BAD_VALUE;
 }
 
 status_t QualcommCameraHardware::setPreviewFrameRate(const CameraParameters& params)
 {
-    if((!strcmp(sensorType->name, "2mp")) ||
-        (!strcmp(sensorType->name, "ov7692"))){
-        ALOGI("set fps is not supported for this sensor");
+    if((!strcmp(mSensorInfo.name, "vx6953")) ||
+        (!strcmp(mSensorInfo.name, "VX6953")) ||
+        (!strcmp(sensorType->name, "2mp"))){
+        LOGI("set fps is not supported for this sensor");
         return NO_ERROR;
     }
     uint16_t previousFps = (uint16_t)mParameters.getPreviewFrameRate();
     uint16_t fps = (uint16_t)params.getPreviewFrameRate();
-    ALOGV("requested preview frame rate  is %u", fps);
+    LOGV("requested preview frame rate  is %u", fps);
 
     if(mInitialized && (fps == previousFps)){
-        ALOGV("fps same as previous fps");
+        LOGV("fps same as previous fps");
         return NO_ERROR;
     }
 
@@ -5013,69 +3834,20 @@ status_t QualcommCameraHardware::setPreviewFrameRate(const CameraParameters& par
         return ret ? NO_ERROR : UNKNOWN_ERROR;
     }
     return BAD_VALUE;
-}
 
-status_t QualcommCameraHardware::setPreviewFrameRateMode(const CameraParameters& params) {
-     if((!strcmp(sensorType->name, "2mp")) ||
-        (!strcmp(sensorType->name, "ov7692"))){
-        ALOGI("set fps mode is not supported for this sensor");
-        return NO_ERROR;
-    }
-    const char *previousMode = mParameters.getPreviewFrameRateMode();
-    const char *str = params.getPreviewFrameRateMode();
-    if( mInitialized && !strcmp(previousMode, str)) {
-        ALOGV("frame rate mode same as previous mode %s", previousMode);
-        return NO_ERROR;
-    }
-    int32_t frameRateMode = attr_lookup(frame_rate_modes, sizeof(frame_rate_modes) / sizeof(str_map),str);
-    if(frameRateMode != NOT_FOUND) {
-        ALOGV("setPreviewFrameRateMode: %s ", str);
-        mParameters.setPreviewFrameRateMode(str);
-        bool ret = native_set_parm(CAMERA_SET_FPS_MODE, sizeof(frameRateMode), (void *)&frameRateMode);
-        if(!ret) return ret;
-        //set the fps value when chaging modes
-        int16_t fps = (uint16_t)params.getPreviewFrameRate();
-        if(MINIMUM_FPS <= fps && fps <=MAXIMUM_FPS){
-            mParameters.setPreviewFrameRate(fps);
-            ret = native_set_parm(CAMERA_SET_PARM_FPS,
-                                        sizeof(fps), (void *)&fps);
-            return ret ? NO_ERROR : UNKNOWN_ERROR;
-        }
-        ALOGI("Invalid preview frame rate value: %d", fps);
-        return BAD_VALUE;
-    }
-    ALOGI("Invalid preview frame rate mode value: %s", (str == NULL) ? "NULL" : str);
-    return BAD_VALUE;
-}
-
-status_t QualcommCameraHardware::setJpegThumbnailSize(const CameraParameters& params){
-    int width = params.getInt(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH);
-    int height = params.getInt(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT);
-    ALOGV("requested jpeg thumbnail size %d x %d", width, height);
-
-    // Validate the picture size
-    for (unsigned int i = 0; i < JPEG_THUMBNAIL_SIZE_COUNT; ++i) {
-       if (width == jpeg_thumbnail_sizes[i].width
-         && height == jpeg_thumbnail_sizes[i].height) {
-           mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_WIDTH, width);
-           mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_HEIGHT, height);
-           return NO_ERROR;
-       }
-    }
-    return BAD_VALUE;
 }
 
 status_t QualcommCameraHardware::setPictureSize(const CameraParameters& params)
 {
     int width, height;
     params.getPictureSize(&width, &height);
-    ALOGV("requested picture size %d x %d", width, height);
+    LOGV("requested picture size %d x %d", width, height);
 
     // Validate the picture size
     for (int i = 0; i < supportedPictureSizesCount; ++i) {
         if (width == picture_sizes_ptr[i].width
                 && height == picture_sizes_ptr[i].height) {
-            if (!strcmp(mSensorInfo.name, "ov5642")
+            if (!strcmp(mSensorInfo.name, "ov5642") 
 					&& width == 2592) {
 				/* WTF... The max this "5MPx" sensor supports is 4.75 */
                 width = 2560 ; height = 1920;
@@ -5096,7 +3868,7 @@ status_t QualcommCameraHardware::setPictureSize(const CameraParameters& params)
         mDimension.picture_height = height;
         return NO_ERROR;
     } else
-        ALOGV("Invalid picture size requested: %dx%d", width, height);
+        LOGE("Invalid picture size requested: %dx%d", width, height);
     return BAD_VALUE;
 }
 
@@ -5106,7 +3878,7 @@ status_t QualcommCameraHardware::setJpegQuality(const CameraParameters& params) 
     if (quality > 0 && quality <= 100) {
         mParameters.set(CameraParameters::KEY_JPEG_QUALITY, quality);
     } else {
-        ALOGV("Invalid jpeg quality=%d", quality);
+        LOGE("Invalid jpeg quality=%d", quality);
         rc = BAD_VALUE;
     }
 
@@ -5114,7 +3886,7 @@ status_t QualcommCameraHardware::setJpegQuality(const CameraParameters& params) 
     if (quality > 0 && quality <= 100) {
         mParameters.set(CameraParameters::KEY_JPEG_THUMBNAIL_QUALITY, quality);
     } else {
-        ALOGV("Invalid jpeg thumbnail quality=%d", quality);
+        LOGE("Invalid jpeg thumbnail quality=%d", quality);
         rc = BAD_VALUE;
     }
     return rc;
@@ -5130,17 +3902,17 @@ status_t QualcommCameraHardware::setEffect(const CameraParameters& params)
     if (str != NULL) {
         int32_t value = attr_lookup(effects, sizeof(effects) / sizeof(str_map), str);
         if (value != NOT_FOUND) {
-            if((!strcmp(sensorType->name, "2mp") || !strcmp(sensorType->name, "ov7692")) && (value != CAMERA_EFFECT_OFF)
+            if(!strcmp(sensorType->name, "2mp") && (value != CAMERA_EFFECT_OFF)
                &&(value != CAMERA_EFFECT_MONO) && (value != CAMERA_EFFECT_NEGATIVE)
                &&(value != CAMERA_EFFECT_SOLARIZE) && (value != CAMERA_EFFECT_SEPIA)) {
-                ALOGV("Special effect parameter is not supported for this sensor");
+                LOGE("Special effect parameter is not supported for this sensor");
                 return NO_ERROR;
             }
 
            if(((value == CAMERA_EFFECT_MONO) || (value == CAMERA_EFFECT_NEGATIVE)
            || (value == CAMERA_EFFECT_AQUA) || (value == CAMERA_EFFECT_SEPIA))
                && (value_wb != CAMERA_WB_AUTO)) {
-               ALOGV("Color Effect value will not be set " \
+               LOGE("Color Effect value will not be set " \
                "when the whitebalance selected is %s", str_wb);
                return NO_ERROR;
            }
@@ -5148,19 +3920,18 @@ status_t QualcommCameraHardware::setEffect(const CameraParameters& params)
                mParameters.set(CameraParameters::KEY_EFFECT, str);
                bool ret = native_set_parm(CAMERA_SET_PARM_EFFECT, sizeof(value),
                                            (void *)&value);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_EFFECT");
                return ret ? NO_ERROR : UNKNOWN_ERROR;
           }
         }
     }
-    ALOGV("Invalid effect value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid effect value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
 status_t QualcommCameraHardware::setAutoExposure(const CameraParameters& params)
 {
-    if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-        ALOGE("Auto Exposure not supported for this sensor");
+    if(!strcmp(sensorType->name, "2mp")) {
+        LOGE("Auto Exposure not supported for this sensor");
         return NO_ERROR;
     }
     const char *str = params.get(CameraParameters::KEY_AUTO_EXPOSURE);
@@ -5170,18 +3941,17 @@ status_t QualcommCameraHardware::setAutoExposure(const CameraParameters& params)
             mParameters.set(CameraParameters::KEY_AUTO_EXPOSURE, str);
             bool ret = native_set_parm(CAMERA_SET_PARM_EXPOSURE, sizeof(value),
                                        (void *)&value);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_EXPOSURE");
             return ret ? NO_ERROR : UNKNOWN_ERROR;
         }
     }
-    ALOGV("Invalid auto exposure value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid auto exposure value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
-/*status_t QualcommCameraHardware::setSharpness(const CameraParameters& params)
+status_t QualcommCameraHardware::setSharpness(const CameraParameters& params)
 {
-    if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-        ALOGE("Sharpness not supported for this sensor");
+    if(!strcmp(sensorType->name, "2mp")) {
+        LOGE("Sharpness not supported for this sensor");
         return NO_ERROR;
     }
     int sharpness = params.getInt(CameraParameters::KEY_SHARPNESS);
@@ -5189,45 +3959,35 @@ status_t QualcommCameraHardware::setAutoExposure(const CameraParameters& params)
             || sharpness > CAMERA_MAX_SHARPNESS))
         return UNKNOWN_ERROR;
 
-    ALOGV("setting sharpness %d", sharpness);
+    LOGV("setting sharpness %d", sharpness);
     mParameters.set(CameraParameters::KEY_SHARPNESS, sharpness);
     bool ret = native_set_parm(CAMERA_SET_PARM_SHARPNESS, sizeof(sharpness),
                                (void *)&sharpness);
-    ALOGV("native_set_parm(CAMERA_SET_PARM_SHARPNESS");
     return ret ? NO_ERROR : UNKNOWN_ERROR;
-}*/
+}
 
 status_t QualcommCameraHardware::setContrast(const CameraParameters& params)
 {
-    if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-        ALOGE("Contrast not supported for this sensor");
+    if(!strcmp(sensorType->name, "2mp")) {
+        LOGE("Contrast not supported for this sensor");
         return NO_ERROR;
     }
-    const char *str = params.get(CameraParameters::KEY_SCENE_MODE);
-    int32_t value = attr_lookup(scenemode, sizeof(scenemode) / sizeof(str_map), str);
+    int contrast = params.getInt(CameraParameters::KEY_CONTRAST);
+    if((contrast < CAMERA_MIN_CONTRAST)
+            || (contrast > CAMERA_MAX_CONTRAST))
+        return UNKNOWN_ERROR;
 
-    if(value == CAMERA_BESTSHOT_OFF) {
-        int contrast = params.getInt(CameraParameters::KEY_CONTRAST);
-        if((contrast < CAMERA_MIN_CONTRAST)
-                || (contrast > CAMERA_MAX_CONTRAST))
-            return UNKNOWN_ERROR;
-
-        ALOGV("setting contrast %d", contrast);
-        mParameters.set(CameraParameters::KEY_CONTRAST, contrast);
-        bool ret = native_set_parm(CAMERA_SET_PARM_CONTRAST, sizeof(contrast),
-                                   (void *)&contrast);
-        return ret ? NO_ERROR : UNKNOWN_ERROR;
-    } else {
-          ALOGE(" Contrast value will not be set " \
-          "when the scenemode selected is %s", str);
-    return NO_ERROR;
-    }
+    LOGV("setting contrast %d", contrast);
+    mParameters.set(CameraParameters::KEY_CONTRAST, contrast);
+    bool ret = native_set_parm(CAMERA_SET_PARM_CONTRAST, sizeof(contrast),
+                               (void *)&contrast);
+    return ret ? NO_ERROR : UNKNOWN_ERROR;
 }
 
 status_t QualcommCameraHardware::setSaturation(const CameraParameters& params)
 {
-    if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-        ALOGE("Saturation not supported for this sensor");
+    if(!strcmp(sensorType->name, "2mp")) {
+        LOGE("Saturation not supported for this sensor");
         return NO_ERROR;
     }
 
@@ -5242,58 +4002,26 @@ status_t QualcommCameraHardware::setSaturation(const CameraParameters& params)
 		|| (saturation > CAMERA_MAX_SATURATION))
 	    return UNKNOWN_ERROR;
 
-	ALOGV("setting saturation %d", saturation);
+	LOGV("setting saturation %d", saturation);
 	mParameters.set(CameraParameters::KEY_SATURATION, saturation);
 	bool ret = native_set_parm(CAMERA_SET_PARM_SATURATION, sizeof(saturation),
 		(void *)&saturation);
-	ALOGV("native_set_parm(CAMERA_SET_PARM_SATURATION");
 	return ret ? NO_ERROR : UNKNOWN_ERROR;
     } else {
-	ALOGV(" Saturation value will not be set " \
+	LOGE(" Saturation value will not be set " \
 		"when the effect selected is %s", str);
 	return NO_ERROR;
     }
 }
 
-status_t QualcommCameraHardware::setPreviewFormat(const CameraParameters& params) {
-    const char *str = params.getPreviewFormat();
-    int32_t previewFormat = attr_lookup(preview_formats, sizeof(preview_formats) / sizeof(str_map), str);
-    if(previewFormat != NOT_FOUND) {
-        mParameters.set(CameraParameters::KEY_PREVIEW_FORMAT, str);
-        mPreviewFormat = previewFormat;
-        return NO_ERROR;
-    }
-    ALOGI("Invalid preview format value: %s", (str == NULL) ? "NULL" : str);
-    return BAD_VALUE;
-}
-
-status_t QualcommCameraHardware::setStrTextures(const CameraParameters& params) {
-    const char *str = params.get("strtextures");
-    if(str != NULL) {
-        ALOGV("strtextures = %s", str);
-        mParameters.set("strtextures", str);
-        if(!strncmp(str, "on", 2) || !strncmp(str, "ON", 2)) {
-            ALOGI("Resetting mUseOverlay to false");
-            strTexturesOn = true;
-            mUseOverlay = false;
-        } else if (!strncmp(str, "off", 3) || !strncmp(str, "OFF", 3)) {
-            strTexturesOn = false;
-            if((mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660))
-                mUseOverlay = true;
-        }
-    }
-    return NO_ERROR;
-}
-
 status_t QualcommCameraHardware::setBrightness(const CameraParameters& params) {
         int brightness = params.getInt("luma-adaptation");
         if (mBrightness !=  brightness) {
-            ALOGV(" new brightness value : %d ", brightness);
+            LOGV(" new brightness value : %d ", brightness);
             mBrightness =  brightness;
 
             bool ret = native_set_parm(CAMERA_SET_PARM_BRIGHTNESS, sizeof(mBrightness),
                                        (void *)&mBrightness);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_BRIGHTNESS");
             return ret ? NO_ERROR : UNKNOWN_ERROR;
         } else {
             return NO_ERROR;
@@ -5304,31 +4032,11 @@ status_t QualcommCameraHardware::setExposureCompensation(const CameraParameters&
         int expcomp = params.getInt("exposure-compensation");
 
 	mParameters.set(CameraParameters::KEY_EXPOSURE_COMPENSATION, expcomp);
-
-	if(!strcmp(sensorType->name, "3mp"))
-	  expcomp+=4;
-	else
-	  expcomp+=2;
-
+	expcomp += 2;
         bool ret = native_set_parm(CAMERA_SET_PARM_EXPOSURE_COMPENSATION, sizeof(expcomp),
                                        (void *)&expcomp);
-	ALOGV("native_set_parm(CAMERA_SET_PARM_EXPOSURE_COMPENSATION");
+
         return ret ? NO_ERROR : UNKNOWN_ERROR;
-}
-
-status_t QualcommCameraHardware::setSkinToneEnhancement(const CameraParameters& params) {
-         int skinToneValue = params.getInt("skinToneEnhancement");
-         if (mSkinToneEnhancement != skinToneValue) {
-              ALOGV(" new skinTone correction value : %d ", skinToneValue);
-              mSkinToneEnhancement = skinToneValue;
-              mParameters.set("skinToneEnhancement", skinToneValue);
-
-              bool ret = native_set_parm(CAMERA_SET_SCE_FACTOR, sizeof(mSkinToneEnhancement),
-                             (void *)&mSkinToneEnhancement);
-              return ret ? NO_ERROR : UNKNOWN_ERROR;
-        } else {
-              return NO_ERROR;
-       }
 }
 
 status_t QualcommCameraHardware::setWhiteBalance(const CameraParameters& params)
@@ -5347,14 +4055,13 @@ status_t QualcommCameraHardware::setWhiteBalance(const CameraParameters& params)
                 mParameters.set(CameraParameters::KEY_WHITE_BALANCE, str);
                 bool ret = native_set_parm(CAMERA_SET_PARM_WB, sizeof(value),
                                            (void *)&value);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_WB");
                 return ret ? NO_ERROR : UNKNOWN_ERROR;
             }
         }
-        ALOGV("Invalid whitebalance value: %s", (str == NULL) ? "NULL" : str);
+        LOGE("Invalid whitebalance value: %s", (str == NULL) ? "NULL" : str);
         return BAD_VALUE;
     } else {
-            ALOGV("Whitebalance value will not be set " \
+            LOGE("Whitebalance value will not be set " \
             "when the effect selected is %s", str_effect);
             return NO_ERROR;
     }
@@ -5363,7 +4070,7 @@ status_t QualcommCameraHardware::setWhiteBalance(const CameraParameters& params)
 status_t QualcommCameraHardware::setFlash(const CameraParameters& params)
 {
     if (!mSensorInfo.flash_enabled) {
-        ALOGV("%s: flash not supported", __FUNCTION__);
+        LOGV("%s: flash not supported", __FUNCTION__);
         return NO_ERROR;
     }
 
@@ -5374,18 +4081,17 @@ status_t QualcommCameraHardware::setFlash(const CameraParameters& params)
             mParameters.set(CameraParameters::KEY_FLASH_MODE, str);
             bool ret = native_set_parm(CAMERA_SET_PARM_LED_MODE,
                                        sizeof(value), (void *)&value);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_LED_MODE");
             return ret ? NO_ERROR : UNKNOWN_ERROR;
         }
     }
-    ALOGV("Invalid flash mode value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid flash mode value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
 status_t QualcommCameraHardware::setAntibanding(const CameraParameters& params)
-{   int result;
+{
     if(!strcmp(sensorType->name, "2mp") || !strcmp(mSensorInfo.name, "ov5642")) {
-        ALOGE("Parameter AntiBanding is not supported for this sensor");
+        LOGE("Parameter AntiBanding is not supported for this sensor");
         return NO_ERROR;
     }
     return NO_ERROR;
@@ -5400,31 +4106,25 @@ status_t QualcommCameraHardware::setAntibanding(const CameraParameters& params)
             if (temp == CAMERA_ANTIBANDING_AUTO) {
                 ret = native_set_parm(CAMERA_ENABLE_AFD,
                             0, NULL);
-		ALOGV("native_set_parm(CAMERA_ENABLE_AFD");
             } else {
                 ret = native_set_parm(CAMERA_SET_PARM_ANTIBANDING,
-                            sizeof(camera_antibanding_type), (void *)&temp ,(int *)&result);
-                if(result == CAM_CTRL_INVALID_PARM) {
-                    ALOGE("AntiBanding Value: %s is not supported for the given BestShot Mode", str);
-                }
-		ALOGV("native_set_parm(CAMERA_SET_PARM_ANTIBANDING");
+                            sizeof(camera_antibanding_type), (void *)&temp);
             }
             return ret ? NO_ERROR : UNKNOWN_ERROR;
         }
     }
-    ALOGV("Invalid antibanding value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid antibanding value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
-/*status_t QualcommCameraHardware::setLensshadeValue(const CameraParameters& params)
+status_t QualcommCameraHardware::setLensshadeValue(const CameraParameters& params)
 {
     if( (!strcmp(sensorType->name, "2mp")) ||
-        (!strcmp(sensorType->name, "ov7692")) ||
-        (!strcmp(sensorType->name, "12mp")) ||
         (!strcmp(mSensorInfo.name, "vx6953")) ||
 		(!strcmp(mSensorInfo.name, "ov5642")) ||
+	(!strcmp(mSensorInfo.name, "isx005")) ||
 	(!strcmp(mSensorInfo.name, "VX6953")) ) {
-        ALOGI("Parameter Rolloff is not supported for this sensor");
+        LOGI("Parameter Rolloff is not supported for this sensor");
         return NO_ERROR;
     }
     const char *str = params.get(CameraParameters::KEY_LENSSHADE);
@@ -5434,51 +4134,12 @@ status_t QualcommCameraHardware::setAntibanding(const CameraParameters& params)
         if (value != NOT_FOUND) {
             int8_t temp = (int8_t)value;
             mParameters.set(CameraParameters::KEY_LENSSHADE, str);
-
             native_set_parm(CAMERA_SET_PARM_ROLLOFF, sizeof(int8_t), (void *)&temp);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_ROLLOFF");
             return NO_ERROR;
         }
     }
-    ALOGV("Invalid lensShade value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid lensShade value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
-}*/
-
-/*status_t QualcommCameraHardware::setContinuousAf(const CameraParameters& params)
-{
-    const char *str = params.get(CameraParameters::KEY_CONTINUOUS_AF);
-    if (str != NULL) {
-        int value = attr_lookup(continuous_af,
-                                    sizeof(continuous_af) / sizeof(str_map), str);
-        if (value != NOT_FOUND) {
-            int8_t temp = (int8_t)value;
-            mParameters.set(CameraParameters::KEY_CONTINUOUS_AF, str);
-
-            native_set_parm(CAMERA_SET_CAF, sizeof(int8_t), (void *)&temp);
-            return NO_ERROR;
-        }
-    }
-    ALOGE("Invalid continuous Af value: %s", (str == NULL) ? "NULL" : str);
-    return BAD_VALUE;
-}*/
-
-status_t QualcommCameraHardware::setSelectableZoneAf(const CameraParameters& params)
-{
-    if(sensorType->hasAutoFocusSupport && supportsSelectableZoneAf()) {
-        const char *str = params.get(CameraParameters::KEY_SELECTABLE_ZONE_AF);
-        if (str != NULL) {
-            int32_t value = attr_lookup(selectable_zone_af, sizeof(selectable_zone_af) / sizeof(str_map), str);
-            if (value != NOT_FOUND) {
-                mParameters.set(CameraParameters::KEY_SELECTABLE_ZONE_AF, str);
-                bool ret = native_set_parm(CAMERA_SET_PARM_FOCUS_RECT, sizeof(value),
-                        (void *)&value);
-                return ret ? NO_ERROR : UNKNOWN_ERROR;
-            }
-        }
-        ALOGE("Invalid selectable zone af value: %s", (str == NULL) ? "NULL" : str);
-        return BAD_VALUE;
-    }
-    return NO_ERROR;
 }
 
 status_t  QualcommCameraHardware::setISOValue(const CameraParameters& params) {
@@ -5501,79 +4162,17 @@ status_t  QualcommCameraHardware::setISOValue(const CameraParameters& params) {
                    mHJR = value;
                }
             }
-		ALOGV("native_set_parm(CAMERA_SET_PARM_HJR");
 
             mParameters.set(CameraParameters::KEY_ISO_MODE, str);
             native_set_parm(CAMERA_SET_PARM_ISO, sizeof(camera_iso_mode_type), (void *)&temp);
-		ALOGV("native_set_parm(CAMERA_SET_PARM_ISO");
             return NO_ERROR;
         }
     }
-    ALOGV("Invalid Iso value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid Iso value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
-status_t QualcommCameraHardware::setSceneDetect(const CameraParameters& params)
-{
 
-    bool retParm1, retParm2;
-    if (supportsSceneDetection()) {
-        if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-            ALOGI("Parameter Auto Scene Detection is not supported for this sensor");
-            return NO_ERROR;
-        }
-        const char *str = params.get(CameraParameters::KEY_SCENE_DETECT);
-        if (str != NULL) {
-            int32_t value = attr_lookup(scenedetect, sizeof(scenedetect) / sizeof(str_map), str);
-            if (value != NOT_FOUND) {
-                mParameters.set(CameraParameters::KEY_SCENE_DETECT, str);
-
-                retParm1 = native_set_parm(CAMERA_SET_PARM_BL_DETECTION_ENABLE, sizeof(value),
-                                           (void *)&value);
-
-                retParm2 = native_set_parm(CAMERA_SET_PARM_SNOW_DETECTION_ENABLE, sizeof(value),
-                                           (void *)&value);
-
-                //All Auto Scene detection modes should be all ON or all OFF.
-                if(retParm1 == false || retParm2 == false) {
-                    value = !value;
-                    retParm1 = native_set_parm(CAMERA_SET_PARM_BL_DETECTION_ENABLE, sizeof(value),
-                                               (void *)&value);
-
-                    retParm2 = native_set_parm(CAMERA_SET_PARM_SNOW_DETECTION_ENABLE, sizeof(value),
-                                               (void *)&value);
-                }
-                return (retParm1 && retParm2) ? NO_ERROR : UNKNOWN_ERROR;
-            }
-        }
-    ALOGE("Invalid auto scene detection value: %s", (str == NULL) ? "NULL" : str);
-    return BAD_VALUE;
-    }
-    return NO_ERROR;
-}
-
-status_t QualcommCameraHardware::setSceneMode(const CameraParameters& params)
-{
-
-    if((!strcmp(sensorType->name, "2mp")) || (!strcmp(sensorType->name, "ov7692"))) {
-        ALOGI("Parameter Scenemode is not supported for this sensor");
-        return NO_ERROR;
-    }
-
-    const char *str = params.get(CameraParameters::KEY_SCENE_MODE);
-
-    if (str != NULL) {
-        int32_t value = attr_lookup(scenemode, sizeof(scenemode) / sizeof(str_map), str);
-        if (value != NOT_FOUND) {
-            mParameters.set(CameraParameters::KEY_SCENE_MODE, str);
-            bool ret = native_set_parm(CAMERA_SET_PARM_BESTSHOT_MODE, sizeof(value),
-                                       (void *)&value);
-            return ret ? NO_ERROR : UNKNOWN_ERROR;
-        }
-    }
-    ALOGE("Invalid scenemode value: %s", (str == NULL) ? "NULL" : str);
-    return BAD_VALUE;
-}
 status_t QualcommCameraHardware::setGpsLocation(const CameraParameters& params)
 {
     const char *latitude = params.get(CameraParameters::KEY_GPS_LATITUDE);
@@ -5626,16 +4225,13 @@ status_t QualcommCameraHardware::setGpsLocation(const CameraParameters& params)
 status_t QualcommCameraHardware::setRotation(const CameraParameters& params)
 {
     status_t rc = NO_ERROR;
-    ALOGV("%s E", __FUNCTION__);
-    int sensor_mount_angle = HAL_cameraInfo[HAL_currentCameraId].sensor_mount_angle;
     int rotation = params.getInt(CameraParameters::KEY_ROTATION);
     if (rotation != NOT_FOUND) {
         if (rotation == 0 || rotation == 90 || rotation == 180
             || rotation == 270) {
-          rotation = (rotation + sensor_mount_angle)%360;
           mParameters.set(CameraParameters::KEY_ROTATION, rotation);
         } else {
-            ALOGV("Invalid rotation value: %d", rotation);
+            LOGE("Invalid rotation value: %d", rotation);
             rc = BAD_VALUE;
         }
     }
@@ -5657,17 +4253,15 @@ status_t QualcommCameraHardware::setZoom(const CameraParameters& params)
     static const int ZOOM_STEP = 1;
     int32_t zoom_level = params.getInt("zoom");
 
-    ALOGV("Set zoom=%d", zoom_level);
+    LOGV("Set zoom=%d", zoom_level);
     if(zoom_level >= 0 && zoom_level <= mMaxZoom) {
         mParameters.set("zoom", zoom_level);
         int32_t zoom_value = ZOOM_STEP * zoom_level;
         bool ret = native_set_parm(CAMERA_SET_PARM_ZOOM,
             sizeof(zoom_value), (void *)&zoom_value);
-	ALOGV("native_set_parm(CAMERA_SET_PARM_ZOOM");
         rc = ret ? NO_ERROR : UNKNOWN_ERROR;
     } else {
         rc = BAD_VALUE;
-	ALOGV("BAD_VALUE");
     }
 
     return rc;
@@ -5686,7 +4280,7 @@ status_t QualcommCameraHardware::setFocusMode(const CameraParameters& params)
             return NO_ERROR;
         }
     }
-    ALOGV("Invalid focus mode value: %s", (str == NULL) ? "NULL" : str);
+    LOGE("Invalid focus mode value: %s", (str == NULL) ? "NULL" : str);
     return BAD_VALUE;
 }
 
@@ -5700,7 +4294,7 @@ status_t QualcommCameraHardware::setOrientation(const CameraParameters& params)
             // pictures should be rotated.
             mParameters.set("orientation", str);
         } else {
-            ALOGV("Invalid orientation value: %s", str);
+            LOGE("Invalid orientation value: %s", str);
             return BAD_VALUE;
         }
     }
@@ -5717,49 +4311,11 @@ status_t QualcommCameraHardware::setPictureFormat(const CameraParameters& params
         if(value != NOT_FOUND){
             mParameters.set(CameraParameters::KEY_PICTURE_FORMAT, str);
         } else {
-            ALOGV("Invalid Picture Format value: %s", str);
+            LOGE("Invalid Picture Format value: %s", str);
             return BAD_VALUE;
         }
     }
     return NO_ERROR;
-}
-
-QualcommCameraHardware::MMCameraDL::MMCameraDL(){
-    ALOGV("MMCameraDL: E");
-    libmmcamera = NULL;
-#if DLOPEN_LIBMMCAMERA
-    libmmcamera = ::dlopen("liboemcamera.so", RTLD_NOW);
-#endif
-    ALOGV("Open MM camera DL libeomcamera loaded at %p ", libmmcamera);
-    ALOGV("MMCameraDL: X");
-}
-
-void * QualcommCameraHardware::MMCameraDL::pointer(){
-    return libmmcamera;
-}
-
-QualcommCameraHardware::MMCameraDL::~MMCameraDL(){
-    ALOGV("~MMCameraDL: E");
-    if (libmmcamera != NULL) {
-        ::dlclose(libmmcamera);
-        ALOGV("closed MM Camera DL ");
-    }
-    libmmcamera = NULL;
-    ALOGV("~MMCameraDL: X");
-}
-
-wp<QualcommCameraHardware::MMCameraDL> QualcommCameraHardware::MMCameraDL::instance;
-Mutex QualcommCameraHardware::MMCameraDL::singletonLock;
-
-
-sp<QualcommCameraHardware::MMCameraDL> QualcommCameraHardware::MMCameraDL::getInstance(){
-    Mutex::Autolock instanceLock(singletonLock);
-    sp<MMCameraDL> mmCamera = instance.promote();
-    if(mmCamera == NULL){
-        mmCamera = new MMCameraDL();
-        instance = mmCamera;
-    }
-    return mmCamera;
 }
 
 QualcommCameraHardware::MemPool::MemPool(int buffer_size, int num_buffers,
@@ -5799,7 +4355,7 @@ QualcommCameraHardware::AshmemPool::AshmemPool(int buffer_size, int num_buffers,
                                     frame_size,
                                     name)
 {
-    ALOGV("constructing MemPool %s backed by ashmem: "
+    LOGV("constructing MemPool %s backed by ashmem: "
          "%d frames @ %d uint8_ts, "
          "buffer size %d",
          mName,
@@ -5818,8 +4374,6 @@ QualcommCameraHardware::AshmemPool::AshmemPool(int buffer_size, int num_buffers,
 static bool register_buf(int camfd,
                          int size,
                          int frame_size,
-                         int cbcr_offset,
-                         int yoffset,
                          int pmempreviewfd,
                          uint32_t offset,
                          uint8_t *buf,
@@ -5832,28 +4386,24 @@ QualcommCameraHardware::PmemPool::PmemPool(const char *pmem_pool,
                                            int camera_control_fd,
                                            int pmem_type,
                                            int buffer_size, int num_buffers,
-                                           int frame_size, int cbcr_offset,
-                                           int yOffset, const char *name) :
+                                           int frame_size,
+                                           const char *name) :
     QualcommCameraHardware::MemPool(buffer_size,
                                     num_buffers,
                                     frame_size,
                                     name),
     mPmemType(pmem_type),
-    mCbCrOffset(cbcr_offset),
-    myOffset(yOffset),
     mCameraControlFd(dup(camera_control_fd))
 {
-    ALOGI("constructing MemPool %s backed by pmem pool %s: "
+    LOGV("constructing MemPool %s backed by pmem pool %s: "
          "%d frames @ %d bytes, buffer size %d",
          mName,
          pmem_pool, num_buffers, frame_size,
          buffer_size);
 
-    ALOGV("%s: duplicating control fd %d --> %d",
+    LOGV("%s: duplicating control fd %d --> %d",
          __FUNCTION__,
          camera_control_fd, mCameraControlFd);
-
-    mMMCameraDLRef = QualcommCameraHardware::MMCameraDL::getInstance();
 
     // Make a new mmap'ed heap that can be shared across processes.
     // mAlignedBufferSize is already in 4k aligned. (do we need total size necessary to be in power of 2??)
@@ -5863,7 +4413,7 @@ QualcommCameraHardware::PmemPool::PmemPool(const char *pmem_pool,
         new MemoryHeapBase(pmem_pool, mAlignedSize, flags);
 
     if (masterHeap->getHeapID() < 0) {
-        ALOGV("failed to construct master heap for pmem pool %s", pmem_pool);
+        LOGE("failed to construct master heap for pmem pool %s", pmem_pool);
         masterHeap.clear();
         return;
     }
@@ -5877,37 +4427,37 @@ QualcommCameraHardware::PmemPool::PmemPool(const char *pmem_pool,
 
         mFd = mHeap->getHeapID();
         if (::ioctl(mFd, PMEM_GET_SIZE, &mSize)) {
-            ALOGV("pmem pool %s ioctl(PMEM_GET_SIZE) error %s (%d)",
+            LOGE("pmem pool %s ioctl(PMEM_GET_SIZE) error %s (%d)",
                  pmem_pool,
                  ::strerror(errno), errno);
             mHeap.clear();
             return;
         }
 
-        ALOGV("pmem pool %s ioctl(fd = %d, PMEM_GET_SIZE) is %ld",
+        LOGV("pmem pool %s ioctl(fd = %d, PMEM_GET_SIZE) is %ld",
              pmem_pool,
              mFd,
              mSize.len);
-        ALOGD("mBufferSize=%d, mAlignedBufferSize=%d\n", mBufferSize, mAlignedBufferSize);
+        LOGD("mBufferSize=%d, mAlignedBufferSize=%d\n", mBufferSize, mAlignedBufferSize);
         // Unregister preview buffers with the camera drivers.  Allow the VFE to write
         // to all preview buffers except for the last one.
         // Only Register the preview, snapshot and thumbnail buffers with the kernel.
         if( (strcmp("postview", mName) != 0) ){
             int num_buf = num_buffers;
             if(!strcmp("preview", mName)) num_buf = kPreviewBufferCount;
-            ALOGD("num_buffers = %d", num_buf);
+            LOGD("num_buffers = %d", num_buf);
             for (int cnt = 0; cnt < num_buf; ++cnt) {
                 int active = 1;
                 if(pmem_type == MSM_PMEM_VIDEO){
                      active = (cnt<ACTIVE_VIDEO_BUFFERS);
-                     ALOGV(" pmempool creating video buffers : active %d ", active);
+                     LOGV(" pmempool creating video buffers : active %d ", active);
                 }
                 else if (pmem_type == MSM_PMEM_PREVIEW){
                      active = (cnt < (num_buf-1));
                 }
                 register_buf(mCameraControlFd,
                          mBufferSize,
-                         mFrameSize, mCbCrOffset, myOffset,
+                         mFrameSize,
                          mHeap->getHeapID(),
                          mAlignedBufferSize * cnt,
                          (uint8_t *)mHeap->base() + mAlignedBufferSize * cnt,
@@ -5918,14 +4468,13 @@ QualcommCameraHardware::PmemPool::PmemPool(const char *pmem_pool,
 
         completeInitialization();
     }
-    else ALOGV("pmem pool %s error: could not create master heap!",
+    else LOGE("pmem pool %s error: could not create master heap!",
               pmem_pool);
-    ALOGI("%s: (%s) X ", __FUNCTION__, mName);
 }
 
 QualcommCameraHardware::PmemPool::~PmemPool()
 {
-    ALOGI("%s: %s E", __FUNCTION__, mName);
+    LOGV("%s: %s E", __FUNCTION__, mName);
     if (mHeap != NULL) {
         // Unregister preview buffers with the camera drivers.
         //  Only Unregister the preview, snapshot and thumbnail
@@ -5937,8 +4486,6 @@ QualcommCameraHardware::PmemPool::~PmemPool()
                 register_buf(mCameraControlFd,
                          mBufferSize,
                          mFrameSize,
-                         mCbCrOffset,
-                         myOffset,
                          mHeap->getHeapID(),
                          mAlignedBufferSize * cnt,
                          (uint8_t *)mHeap->base() + mAlignedBufferSize * cnt,
@@ -5948,28 +4495,25 @@ QualcommCameraHardware::PmemPool::~PmemPool()
             }
         }
     }
-    ALOGV("destroying PmemPool %s: closing control fd %d",
+    LOGV("destroying PmemPool %s: closing control fd %d",
          mName,
          mCameraControlFd);
     close(mCameraControlFd);
-    mMMCameraDLRef.clear();
-    ALOGI("%s: %s X", __FUNCTION__, mName);
+    LOGV("%s: %s X", __FUNCTION__, mName);
 }
 
 QualcommCameraHardware::MemPool::~MemPool()
 {
-    ALOGV("destroying MemPool %s", mName);
+    LOGV("destroying MemPool %s", mName);
     if (mFrameSize > 0)
         delete [] mBuffers;
     mHeap.clear();
-    ALOGV("destroying MemPool %s completed", mName);
+    LOGV("destroying MemPool %s completed", mName);
 }
 
 static bool register_buf(int camfd,
                          int size,
                          int frame_size,
-                         int cbcr_offset,
-                         int yoffset,
                          int pmempreviewfd,
                          uint32_t offset,
                          uint8_t *buf,
@@ -5978,26 +4522,29 @@ static bool register_buf(int camfd,
                          bool register_buffer)
 {
     struct msm_pmem_info pmemBuf;
-    CAMERA_HAL_UNUSED(frame_size);
 
     pmemBuf.type     = pmem_type;
     pmemBuf.fd       = pmempreviewfd;
     pmemBuf.offset   = offset;
     pmemBuf.len      = size;
     pmemBuf.vaddr    = buf;
-    pmemBuf.y_off    = yoffset;
-    pmemBuf.cbcr_off = cbcr_offset;
+    pmemBuf.y_off    = 0;
+
+    if(pmem_type == MSM_PMEM_RAW_MAINIMG)
+        pmemBuf.cbcr_off = 0;
+    else
+        pmemBuf.cbcr_off = PAD_TO_WORD(frame_size * 2 / 3);
 
     pmemBuf.active   = vfe_can_write;
 
-    ALOGV("register_buf: camfd = %d, reg = %d buffer = %p can_write = %d",
+    LOGV("register_buf: camfd = %d, reg = %d buffer = %p can_write = %d",
          camfd, !register_buffer, buf, pmemBuf.active);
     if (ioctl(camfd,
               register_buffer ?
               MSM_CAM_IOCTL_REGISTER_PMEM :
               MSM_CAM_IOCTL_UNREGISTER_PMEM,
               &pmemBuf) < 0) {
-        ALOGV("register_buf: MSM_CAM_IOCTL_(UN)REGISTER_PMEM fd %d error %s",
+        LOGE("register_buf: MSM_CAM_IOCTL_(UN)REGISTER_PMEM fd %d error %s",
              camfd,
              strerror(errno));
         return false;
@@ -6010,7 +4557,6 @@ status_t QualcommCameraHardware::MemPool::dump(int fd, const Vector<String16>& a
     const size_t SIZE = 256;
     char buffer[SIZE];
     String8 result;
-    CAMERA_HAL_UNUSED(args);
     snprintf(buffer, 255, "QualcommCameraHardware::AshmemPool::dump\n");
     result.append(buffer);
     if (mName) {
@@ -6039,44 +4585,36 @@ static void receive_camframe_callback(struct msm_frame *frame)
     }
 }
 
-/*static void receive_camstats_callback(camstats_type stype, camera_preview_histogram_info* histinfo)
-{
-    sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
-    if (obj != 0) {
-        obj->receiveCameraStats(stype,histinfo);
-    }
-}*/
-
 static void receive_jpeg_fragment_callback(uint8_t *buff_ptr, uint32_t buff_size)
 {
-    ALOGV("receive_jpeg_fragment_callback E");
+    LOGV("receive_jpeg_fragment_callback E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
         obj->receiveJpegPictureFragment(buff_ptr, buff_size);
     }
-    ALOGV("receive_jpeg_fragment_callback X");
+    LOGV("receive_jpeg_fragment_callback X");
 }
 
 static void receive_jpeg_callback(jpeg_event_t status)
 {
-    ALOGV("receive_jpeg_callback E (completion status %d)", status);
+    LOGV("receive_jpeg_callback E (completion status %d)", status);
     if (status == JPEG_EVENT_DONE) {
         sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
         if (obj != 0) {
             obj->receiveJpegPicture();
         }
     }
-    ALOGV("receive_jpeg_callback X");
+    LOGV("receive_jpeg_callback X");
 }
 // 720p : video frame calbback from camframe
 static void receive_camframe_video_callback(struct msm_frame *frame)
 {
-    ALOGV("receive_camframe_video_callback E");
+    LOGV("receive_camframe_video_callback E");
     sp<QualcommCameraHardware> obj = QualcommCameraHardware::getInstance();
     if (obj != 0) {
 			obj->receiveRecordingFrame(frame);
 		 }
-    ALOGV("receive_camframe_video_callback X");
+    LOGV("receive_camframe_video_callback X");
 }
 
 void QualcommCameraHardware::setCallbacks(notify_callback notify_cb,
@@ -6110,25 +4648,25 @@ bool QualcommCameraHardware::msgTypeEnabled(int32_t msgType)
 
 bool QualcommCameraHardware::useOverlay(void)
 {
-    if((mCurrentTarget == TARGET_MSM7630) || (mCurrentTarget == TARGET_MSM8660)) {
-        /* 7x30 and 8x60 supports Overlay */
+    if( mCurrentTarget == TARGET_MSM7630 ) {
+        /* Only 7x30 supports Overlay */
         mUseOverlay = TRUE;
     } else
         mUseOverlay = FALSE;
 
-    ALOGV(" Using Overlay : %s ", mUseOverlay ? "YES" : "NO" );
+    LOGV(" Using Overlay : %s ", mUseOverlay ? "YES" : "NO" );
     return mUseOverlay;
 }
 
 status_t QualcommCameraHardware::setOverlay(const sp<Overlay> &Overlay)
 {
     if( Overlay != NULL) {
-        ALOGV(" Valid overlay object ");
+        LOGV(" Valid overlay object ");
         mOverlayLock.lock();
         mOverlay = Overlay;
         mOverlayLock.unlock();
     } else {
-        ALOGV(" Overlay object NULL. returning ");
+        LOGV(" Overlay object NULL. returning ");
         mOverlay = NULL;
         return UNKNOWN_ERROR;
     }
@@ -6136,13 +4674,13 @@ status_t QualcommCameraHardware::setOverlay(const sp<Overlay> &Overlay)
 }
 
 void QualcommCameraHardware::receive_camframetimeout(void) {
-    ALOGV("receive_camframetimeout: E");
+    LOGV("receive_camframetimeout: E");
     Mutex::Autolock l(&mCamframeTimeoutLock);
-    ALOGD(" Camframe timed out. Not receiving any frames from camera driver ");
+    LOGD(" Camframe timed out. Not receiving any frames from camera driver ");
     camframe_timeout_flag = TRUE;
-//    mNotifyCallback(CAMERA_MSG_ERROR, CAMERA_ERROR_UKNOWN, 0,
-//                    mCallbackCookie);
-    ALOGV("receive_camframetimeout: X");
+    mNotifyCallback(CAMERA_MSG_ERROR, 1 /*CAMERA_ERROR_UKNOWN*/, 0,
+                    mCallbackCookie);
+    LOGV("receive_camframetimeout: X");
 }
 
 static void receive_camframetimeout_callback(void) {
@@ -6152,53 +4690,21 @@ static void receive_camframetimeout_callback(void) {
     }
 }
 
-bool QualcommCameraHardware::storePreviewFrameForPostview(void) {
-    ALOGV("storePreviewFrameForPostview : E ");
+void QualcommCameraHardware::storePreviewFrameForPostview(void) {
+    LOGV(" storePreviewFrameForPostview : E ");
 
     /* Since there is restriction on the maximum overlay dimensions
      * that can be created, we use the last preview frame as postview
      * for 7x30. */
-    ALOGV("Copying the preview buffer to postview buffer %d  ",
+    LOGV(" Copying the preview buffer to postview buffer %d  ", 
          mPreviewFrameSize);
-    if(mPostViewHeap == NULL) {
-        int CbCrOffset = PAD_TO_WORD(mPreviewFrameSize * 2/3);
-        mPostViewHeap =
-           new PmemPool("/dev/pmem_adsp",
-           MemoryHeapBase::READ_ONLY | MemoryHeapBase::NO_CACHING,
-           mCameraControlFd,
-           MSM_PMEM_PREVIEW, //MSM_PMEM_OUTPUT2,
-           mPreviewFrameSize,
-           1,
-           mPreviewFrameSize,
-           CbCrOffset,
-           0,
-           "postview");
-
-           if (!mPostViewHeap->initialized()) {
-               mPostViewHeap.clear();
-               ALOGE(" Failed to initialize Postview Heap");
-               return false;
-            }
-    }
-
     if( mPostViewHeap != NULL && mLastQueuedFrame != NULL) {
-        memcpy(mPostViewHeap->mHeap->base(),
-               (uint8_t *)mLastQueuedFrame, mPreviewFrameSize );
-
-        if( mUseOverlay && (mOverlay != NULL)){
-             mOverlay->setFd(mPostViewHeap->mHeap->getHeapID());
-             if( zoomCropInfo.w !=0 && zoomCropInfo.h !=0) {
-                 ALOGD("zoomCropInfo non-zero, setting crop ");
-                 mOverlay->setCrop(zoomCropInfo.x, zoomCropInfo.y,
-                               zoomCropInfo.w, zoomCropInfo.h);
-              }
-            ALOGV("Queueing Postview with last frame till the snapshot is done ");
-            mOverlay->queueBuffer((void *)0);
-        }
+	memcpy(mPostViewHeap->mHeap->base(),
+		(uint8_t *)mLastQueuedFrame, mPreviewFrameSize );
     } else
-        ALOGE("Failed to store Preview frame. No Postview ");
-    ALOGV("storePreviewFrameForPostview : X ");
-    return true;
+        LOGE(" Failed to store Preview frame. No Postview ");
+
+    LOGV(" storePreviewFrameForPostview : X ");
 }
 
 bool QualcommCameraHardware::isValidDimension(int width, int height) {
@@ -6219,7 +4725,7 @@ bool QualcommCameraHardware::isValidDimension(int width, int height) {
      && (height <= sensorType->max_supported_snapshot_height) )
     {
         uint32_t pictureAspectRatio = (uint32_t)((width * Q12)/height);
-        for(uint32_t i = 0; i < THUMBNAIL_SIZE_COUNT; i++ ) {
+        for(int i = 0; i < THUMBNAIL_SIZE_COUNT; i++ ) {
             if(thumbnail_sizes[i].aspect_ratio == pictureAspectRatio) {
                 retVal = TRUE;
                 break;
@@ -6230,88 +4736,45 @@ bool QualcommCameraHardware::isValidDimension(int width, int height) {
 }
 status_t QualcommCameraHardware::getBufferInfo(sp<IMemory>& Frame, size_t *alignedSize) {
     status_t ret;
-    ALOGV(" getBufferInfo : E ");
+    LOGV(" getBufferInfo : E ");
     if( ( mCurrentTarget == TARGET_MSM7630 ) || (mCurrentTarget == TARGET_QSD8250) )
     {
 	if( mRecordHeap != NULL){
-		ALOGV(" Setting valid buffer information ");
+		LOGV(" Setting valid buffer information ");
 		Frame = mRecordHeap->mBuffers[0];
 		if( alignedSize != NULL) {
 			*alignedSize = mRecordHeap->mAlignedBufferSize;
-			ALOGV(" HAL : alignedSize = %d ", *alignedSize);
+			LOGV(" HAL : alignedSize = %d ", *alignedSize);
 			ret = NO_ERROR;
 		} else {
-                     ALOGV(" HAL : alignedSize is NULL. Cannot update alignedSize ");
+	        	LOGE(" HAL : alignedSize is NULL. Cannot update alignedSize ");
 	        	ret = UNKNOWN_ERROR;
 		}
         } else {
-		ALOGV(" RecordHeap is null. Buffer information wont be updated ");
+		LOGE(" RecordHeap is null. Buffer information wont be updated ");
 		Frame = NULL;
 		ret = UNKNOWN_ERROR;
 	}
     } else {
 	if(mPreviewHeap != NULL) {
-		ALOGV(" Setting valid buffer information ");
+		LOGV(" Setting valid buffer information ");
 		Frame = mPreviewHeap->mBuffers[0];
 		if( alignedSize != NULL) {
 			*alignedSize = mPreviewHeap->mAlignedBufferSize;
-		        ALOGV(" HAL : alignedSize = %d ", *alignedSize);
+		        LOGV(" HAL : alignedSize = %d ", *alignedSize);
 		        ret = NO_ERROR;
 	        } else {
-		        ALOGV(" HAL : alignedSize is NULL. Cannot update alignedSize ");
+		        LOGE(" HAL : alignedSize is NULL. Cannot update alignedSize ");
 		        ret = UNKNOWN_ERROR;
 	        }
 	} else {
-	        ALOGV(" PreviewHeap is null. Buffer information wont be updated ");
+	        LOGE(" PreviewHeap is null. Buffer information wont be updated ");
 	        Frame = NULL;
 	        ret = UNKNOWN_ERROR;
 	}
     }
-    ALOGV(" getBufferInfo : X ");
+    LOGV(" getBufferInfo : X ");
     return ret;
 }
 
-void QualcommCameraHardware::encodeData() {
-    ALOGV("encodeData: E");
-
-    if (mDataCallback && (mMsgEnabled & CAMERA_MSG_COMPRESSED_IMAGE)) {
-        mJpegSize = 0;
-        mJpegThreadWaitLock.lock();
-        if (LINK_jpeg_encoder_init()) {
-            mJpegThreadRunning = true;
-            mJpegThreadWaitLock.unlock();
-            if(native_jpeg_encode()) {
-                ALOGV("encodeData: X (success)");
-                //Wait until jpeg encoding is done and call jpeg join
-                //in this context. Also clear the resources.
-                mJpegThreadWaitLock.lock();
-                while (mJpegThreadRunning) {
-                    ALOGV("encodeData: waiting for jpeg thread to complete.");
-                    mJpegThreadWait.wait(mJpegThreadWaitLock);
-                    ALOGV("encodeData: jpeg thread completed.");
-                }
-                mJpegThreadWaitLock.unlock();
-                //Call jpeg join in this thread context
-                LINK_jpeg_encoder_join();
-            }
-            ALOGE("encodeData: jpeg encoding failed");
-        }
-        else {
-            ALOGE("encodeData X: jpeg_encoder_init failed.");
-            mJpegThreadWaitLock.unlock();
-        }
-    }
-    else ALOGV("encodeData: JPEG callback is NULL, not encoding image.");
-    //clear the resources
-    deinitRaw();
-    //Encoding is done.
-    mEncodePendingWaitLock.lock();
-    mEncodePending = false;
-    mEncodePendingWait.signal();
-    mEncodePendingWaitLock.unlock();
-
-    ALOGV("encodeData: X");
-}
-
 }; // namespace android
-

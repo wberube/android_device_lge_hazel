@@ -1,6 +1,6 @@
 /*
 ** Copyright 2008, Google Inc.
-** Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
+** Copyright (c) 2009, Code Aurora Forum. All rights reserved.
 ** Copyright (c) 2010, Ricardo Cerqueira
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@
 **
 ** All alterations done to this file to add support for the Z71 terminal
 ** are intended for use with CyanogenMod. This includes all the support
-** for ov5642, and the reverse engineered bits like ioctls and EXIF
+** for ov5642, and the reverse engineered bits like ioctls and EXIF 
 ** referred to below as "Values originally from proprietary headers")
 ** Please do not change the EXIF header without asking me first.
 */
@@ -27,18 +27,22 @@
 #ifndef ANDROID_HARDWARE_QUALCOMM_CAMERA_HARDWARE_H
 #define ANDROID_HARDWARE_QUALCOMM_CAMERA_HARDWARE_H
 
-#include <camera/CameraHardwareInterface.h>
+#include "CameraHardwareInterface.h"
 #include <binder/MemoryBase.h>
 #include <binder/MemoryHeapBase.h>
 #include <stdint.h>
-#include <ui/legacy/Overlay.h>
+#include "Overlay.h"
 
 extern "C" {
 #include <linux/android_pmem.h>
 #include <media/msm_camera.h>
-#include <camera/camera.h>
-//#include <mm_camera_interface.h>
 }
+
+#define LOGD ALOGD
+#define LOGE ALOGE
+#define LOGI ALOGI
+#define LOGW ALOGW
+#define LOGV ALOGV
 
 struct str_map {
     const char *const desc;
@@ -46,22 +50,11 @@ struct str_map {
 };
 
 typedef enum {
-    AUTO,
-    SPOT,
-    CENTER_WEIGHTED,
-    AVERAGE
-} select_zone_af_t;
-
-typedef enum{
-    TARGET_MSM7227,
     TARGET_MSM7625,
-    TARGET_MSM7625A,
     TARGET_MSM7627,
-    TARGET_MSM7627A,
     TARGET_QSD8250,
     TARGET_MSM7630,
-    TARGET_MSM8660,
-    TARGET_MAX,
+    TARGET_MAX
 }targetType;
 
 struct target_map {
@@ -72,55 +65,7 @@ struct target_map {
 struct board_property{
     targetType target;
     unsigned int previewSizeMask;
-    bool hasSceneDetect;
-    bool hasSelectableZoneAf;
 };
-
-typedef enum {
-    CAMERA_BESTSHOT_OFF,
-    CAMERA_BESTSHOT_ACTION,
-    CAMERA_BESTSHOT_PORTRAIT,
-    CAMERA_BESTSHOT_LANDSCAPE,
-    CAMERA_BESTSHOT_NIGHT,
-    CAMERA_BESTSHOT_NIGHT_PORTRAIT,
-    CAMERA_BESTSHOT_THEATRE,
-    CAMERA_BESTSHOT_BEACH,
-    CAMERA_BESTSHOT_SNOW,
-    CAMERA_BESTSHOT_SUNSET,
-    CAMERA_BESTSHOT_ANTISHAKE,
-    CAMERA_BESTSHOT_FIREWORKS,
-    CAMERA_BESTSHOT_SPORTS,
-    CAMERA_BESTSHOT_PARTY,
-    CAMERA_BESTSHOT_CANDLELIGHT,
-    CAMERA_BESTSHOT_BACKLIGHT,
-    CAMERA_BESTSHOT_FLOWERS,
-    CAMERA_BESTSHOT_AR,
-} camera_scene_mode_t;
-
-typedef enum {
-  CAM_CTRL_INVALID_PARM,
-} cam_ctrl_status_t;
-
-typedef enum {
-  CAMERA_YUV_420_NV12,
-  CAMERA_YUV_420_NV21,
-  CAMERA_YUV_420_NV21_ADRENO,
-  CAMERA_BAYER_SBGGR10,
-  CAMERA_RDI,
-  CAMERA_YUV_420_YV12,
-  CAMERA_YUV_422_NV16,
-  CAMERA_YUV_422_NV61
-} cam_format_t;
-
-typedef struct {
-  int  modes_supported;
-  int8_t camera_id;
-  int position;
-  int orientation;
-  uint32_t sensor_mount_angle;
-  //uint32_t sensor_Orientation;
-  //struct fih_parameters_data parameters_data;
-} camera_info_t;
 
 /* Values originally in proprietary headers */
 
@@ -132,21 +77,19 @@ typedef struct {
 #define CAMERA_MIN_CONTRAST 0
 #define CAMERA_MAX_CONTRAST 4
 #define CAMERA_MIN_SHARPNESS 0
-#define CAMERA_MIN_EXPOSURE_COMPENSATION -2
+#define CAMERA_MIN_EXPOSURE_COMPENSATION 1
 #define CAMERA_MAX_SHARPNESS 4
 #define CAMERA_MIN_SATURATION 0
 #define CAMERA_MAX_SATURATION 4
-#define CAMERA_MAX_EXPOSURE_COMPENSATION 2
+#define CAMERA_MAX_EXPOSURE_COMPENSATION 5
 #define CAMERA_DEF_SHARPNESS 2
 #define CAMERA_DEF_CONTRAST 2
 #define CAMERA_DEF_SATURATION 2
-#define CAMERA_DEF_EXPOSURE_COMPENSATION "0"
+#define CAMERA_DEF_EXPOSURE_COMPENSATION "2"
 #define CAMERA_EXPOSURE_COMPENSATION_STEP 1
 
 #define CEILING16(x) (x&0xfffffff0)
-#define CEILING32(X) (((X) + 0x0001F) & 0xFFFFFFE0)
 #define PAD_TO_WORD(x) ((x&1) ? x+1 : x)
-#define PAD_TO_4K(a)                 (((a)+4095)&~4095)
 
 #define JPEG_EVENT_DONE 0
 #define CAM_CTRL_SUCCESS 1
@@ -164,7 +107,7 @@ typedef struct {
 	unsigned int in2_h;
 	unsigned int out2_w;
 	unsigned int out2_h;
-	uint8_t update_flag;
+	uint8_t update_flag; 
 } common_crop_t;
 
 typedef uint8_t cam_ctrl_type;
@@ -186,14 +129,6 @@ typedef struct {
 	unsigned short raw_picture_width;
 	unsigned short filler7;
 	unsigned short filler8;
-        unsigned short prev_format;
-        unsigned short enc_format;
-        unsigned short thumb_format;
-        unsigned short main_img_format;
-        unsigned short display_luma_width;
-        unsigned short display_luma_height;
-        unsigned short display_chroma_width;
-        unsigned short display_chroma_height;
 } cam_ctrl_dimension_t;
 
 typedef struct {
@@ -246,32 +181,12 @@ enum {
 typedef enum {
 	CAMERA_ISO_AUTO,
 	CAMERA_ISO_DEBLUR,
-#ifdef ADDITIONAL_ISO_MODES
-        CAMERA_ISO_SPORTS,
-        CAMERA_ISO_NIGHT,
-        CAMERA_ISO_MOVIE,
-#endif
 	CAMERA_ISO_100,
 	CAMERA_ISO_200,
 	CAMERA_ISO_400,
 	CAMERA_ISO_800,
 	CAMERA_ISO_1600,
 } camera_iso_mode_type;
-
-typedef enum {
-  FPS_MODE_AUTO,
-  FPS_MODE_FIXED,
-} fps_mode_t;
-
-typedef enum {
-  CAM_STATS_TYPE_HIST,
-  CAM_STATS_TYPE_MAX
-} camstats_type;
-
-typedef struct {
-  int32_t  buffer[256];       /* buffer to hold data */
-  int32_t  max_value;
-} camera_preview_histogram_info;
 
 struct fifo_queue {
 	int num_of_frames;
@@ -289,7 +204,7 @@ struct fifo_node {
 void enqueue(struct fifo_queue *queue, struct fifo_node *node) {
 	struct fifo_node *cur_node=queue->node;
 	int i;
-	ALOGE("enqueue:%p(%d)\n", node, queue->num_of_frames);
+	LOGE("enqueue:%p(%d)\n", node, queue->num_of_frames);
 	node->next=NULL;
 	if(queue->num_of_frames==0) {
 		queue->num_of_frames++;
@@ -310,7 +225,7 @@ struct fifo_node *dequeue(struct fifo_queue *queue) {
 	if(queue->num_of_frames==0)
 		return NULL;
 	struct fifo_node *node=queue->node;
-	ALOGE("dequeue:%p(%d)\n", node, queue->num_of_frames);
+	LOGE("dequeue:%p(%d)\n", node, queue->num_of_frames);
 	queue->num_of_frames--;
 	queue->front=!!queue->num_of_frames;
 	queue->node=queue->node->next;
@@ -376,43 +291,7 @@ enum camera_ops {
     CAMERA_PREPARE_SNAPSHOT,
     CAMERA_SET_FPS_MODE,
     CAMERA_SET_PARM_SCENE_MODE,
-    CAMERA_SET_PARM_BL_DETECTION_ENABLE,
-    CAMERA_SET_PARM_SNOW_DETECTION_ENABLE,
-    CAMERA_SET_SCE_FACTOR,
-    CAMERA_GET_PARM_ZOOMRATIOS,
 };
-
-typedef enum {
-  CAMERA_PARM_PICT_SIZE,
-  CAMERA_PARM_HISTOGRAM,
-  MM_CAMERA_STATUS_SUCCESS,
-}mm_camera_parm_type_t;
-
-typedef enum {
-  MM_CAMERA_SUCCESS,
-  MM_CAMERA_ERR_GENERAL,
-  MM_CAMERA_ERR_NO_MEMORY,
-  MM_CAMERA_ERR_NOT_SUPPORTED,
-  MM_CAMERA_ERR_INVALID_INPUT,
-  MM_CAMERA_ERR_INVALID_OPERATION,
-  MM_CAMERA_ERR_ENCODE,
-  MM_CAMERA_ERR_BUFFER_REG,
-  MM_CAMERA_ERR_PMEM_ALLOC,
-  MM_CAMERA_ERR_CAPTURE_FAILED,
-  MM_CAMERA_ERR_CAPTURE_TIMEOUT,
-} mm_camera_status_t;
-
-typedef struct {
-  mm_camera_status_t (*mm_camera_query_parms) (mm_camera_parm_type_t parm_type,
-    void** pp_values, uint32_t* p_count);
-  mm_camera_status_t (*mm_camera_set_parm) (mm_camera_parm_type_t parm_type,
-    void* p_value);
-  mm_camera_status_t(*mm_camera_get_parm) (mm_camera_parm_type_t parm_type,
-    void* p_value);
-  int8_t (*mm_camera_is_supported) (mm_camera_parm_type_t parm_type);
-  int8_t (*mm_camera_is_parm_supported) (mm_camera_parm_type_t parm_type,
-   void* sub_parm);
-} mm_camera_config;
 
 typedef enum {
 	CAMERA_RSP_CB_SUCCESS,
@@ -448,10 +327,6 @@ typedef struct {
 	int otherval;
 } rat_t;
 
-typedef enum {
-  BACK_CAMERA,
-  FRONT_CAMERA,
-} cam_position_t;
 
 typedef union {
         char * _ascii; /* At byte 16 relative to exif_tag_entry_t */
@@ -519,7 +394,6 @@ public:
     virtual CameraParameters getParameters() const;
     virtual status_t sendCommand(int32_t command, int32_t arg1, int32_t arg2);
     virtual status_t getBufferInfo( sp<IMemory>& Frame, size_t *alignedSize);
-    virtual void encodeData( );
 
     virtual void release();
     virtual bool useOverlay();
@@ -529,21 +403,17 @@ public:
     static sp<QualcommCameraHardware> getInstance();
 
     void receivePreviewFrame(struct msm_frame *frame);
-    void receiveCameraStats(camstats_type stype, camera_preview_histogram_info* histinfo);
     void receiveRecordingFrame(struct msm_frame *frame);
     void receiveJpegPicture(void);
     void jpeg_set_location();
     void receiveJpegPictureFragment(uint8_t *buf, uint32_t size);
     void notifyShutter(common_crop_t *crop);
     void receive_camframetimeout();
-    static void getCameraInfo();
 
 private:
     QualcommCameraHardware();
     virtual ~QualcommCameraHardware();
     status_t startPreviewInternal();
-    status_t setHistogramOn();
-    status_t setHistogramOff();
     void stopPreviewInternal();
     friend void *auto_focus_thread(void *user);
     void runAutoFocus();
@@ -551,7 +421,6 @@ private:
     bool native_set_dimension (int camfd);
     bool native_jpeg_encode (void);
     bool native_set_parm(cam_ctrl_type type, uint16_t length, void *value);
-    bool native_set_parm(cam_ctrl_type type, uint16_t length, void *value, int *result);
     bool native_zoom_image(int fd, int srcOffset, int dstOffset, common_crop_t *crop);
 
     static wp<QualcommCameraHardware> singleton;
@@ -571,19 +440,6 @@ private:
     bool mCameraRunning;
     Mutex mCameraRunningLock;
     bool mPreviewInitialized;
-
-
-    class MMCameraDL : public RefBase{
-    private:
-        static wp<MMCameraDL> instance;
-        MMCameraDL();
-        virtual ~MMCameraDL();
-        void *libmmcamera;
-        static Mutex singletonLock;
-    public:
-        static sp<MMCameraDL> getInstance();
-        void * pointer();
-    };
 
     // This class represents a heap which maintains several contiguous
     // buffers.  The heap may be backed by pmem (when pmem_pool contains
@@ -623,17 +479,14 @@ private:
         PmemPool(const char *pmem_pool,
                  int control_camera_fd, int flags, int pmem_type,
                  int buffer_size, int num_buffers,
-                 int frame_size, int cbcr_offset,
-                 int yoffset, const char *name);
+                 int frame_size,
+                 const char *name);
         virtual ~PmemPool();
         int mFd;
         int mPmemType;
-        int mCbCrOffset;
-        int myOffset;
         int mCameraControlFd;
         uint32_t mAlignedSize;
         struct pmem_region mSize;
-        sp<QualcommCameraHardware::MMCameraDL> mMMCameraDLRef;
     };
 
     sp<PmemPool> mPreviewHeap;
@@ -642,12 +495,9 @@ private:
     sp<PmemPool> mRawHeap;
     sp<PmemPool> mDisplayHeap;
     sp<AshmemPool> mJpegHeap;
-    sp<AshmemPool> mStatHeap;
     sp<PmemPool> mRawSnapShotPmemHeap;
     sp<PmemPool> mPostViewHeap;
 
-
-    sp<MMCameraDL> mMMCameraDLRef;
 
     bool startCamera();
     bool initPreview();
@@ -672,14 +522,6 @@ private:
     friend void *video_thread(void *user);
     void runVideoThread(void *data);
 
-    // For Histogram
-    int mStatsOn;
-    int mCurrent;
-    bool mSendData;
-    Mutex mStatsWaitLock;
-    Condition mStatsWait;
-
-
 
     bool mShutterPending;
     Mutex mShutterLock;
@@ -696,29 +538,20 @@ private:
     bool mInSnapshotMode;
     Mutex mInSnapshotModeWaitLock;
     Condition mInSnapshotModeWait;
-    bool mEncodePending;
-    Mutex mEncodePendingWaitLock;
-    Condition mEncodePendingWait;
 
     void debugShowPreviewFPS() const;
     void debugShowVideoFPS() const;
 
     int mSnapshotFormat;
-    bool mFirstFrame;
     void filterPictureSizes();
     void filterPreviewSizes();
     void storeTargetType();
-    bool supportsSceneDetection();
-    bool supportsSelectableZoneAf();
 
     void initDefaultParameters();
     void findSensorType();
 
     status_t setPreviewSize(const CameraParameters& params);
-    status_t setJpegThumbnailSize(const CameraParameters& params);
-    status_t setPreviewFpsRange(const CameraParameters& params);
     status_t setPreviewFrameRate(const CameraParameters& params);
-    status_t setPreviewFrameRateMode(const CameraParameters& params);
     status_t setPictureSize(const CameraParameters& params);
     status_t setJpegQuality(const CameraParameters& params);
     status_t setAntibanding(const CameraParameters& params);
@@ -731,7 +564,6 @@ private:
     status_t setZoom(const CameraParameters& params);
     status_t setFocusMode(const CameraParameters& params);
     status_t setBrightness(const CameraParameters& params);
-    status_t setSkinToneEnhancement(const CameraParameters& params);
     status_t setExposureCompensation(const CameraParameters& params);
     status_t setOrientation(const CameraParameters& params);
     status_t setLensshadeValue(const CameraParameters& params);
@@ -740,14 +572,8 @@ private:
     status_t setSharpness(const CameraParameters& params);
     status_t setContrast(const CameraParameters& params);
     status_t setSaturation(const CameraParameters& params);
-    status_t setSceneMode(const CameraParameters& params);
-    status_t setContinuousAf(const CameraParameters& params);
-    status_t setSceneDetect(const CameraParameters& params);
-    status_t setStrTextures(const CameraParameters& params);
-    status_t setPreviewFormat(const CameraParameters& params);
-    status_t setSelectableZoneAf(const CameraParameters& params);
     void setGpsParameters();
-    bool storePreviewFrameForPostview();
+    void storePreviewFrameForPostview();
     bool isValidDimension(int w, int h);
 
     Mutex mLock;
@@ -755,8 +581,8 @@ private:
     bool camframe_timeout_flag;
     bool mReleasedRecordingFrame;
 
-    bool receiveRawPicture(void);
-    bool receiveRawSnapshot(void);
+    void receiveRawPicture(void);
+    void receiveRawSnapshot(void);
 
     Mutex mCallbackLock;
     Mutex mOverlayLock;
@@ -773,9 +599,7 @@ private:
     unsigned int        mPreviewFrameSize;
     unsigned int        mRecordFrameSize;
     int                 mRawSize;
-    int                 mCbCrOffsetRaw;
     int                 mJpegMaxSize;
-    int32_t                 mStatSize;
 
 #if DLOPEN_LIBMMCAMERA
     void *libmmcamera;
@@ -793,14 +617,12 @@ private:
     pthread_t mFrameThread;
     pthread_t mVideoThread;
     pthread_t mSnapshotThread;
-    pthread_t mCamConfigThread;
 
     common_crop_t mCrop;
 
     bool mInitialized;
 
     int mBrightness;
-    int mSkinToneEnhancement;
     int mHJR;
     struct msm_frame frames[kPreviewBufferCount];
     struct msm_frame *recordframes;
@@ -816,12 +638,6 @@ private:
     int mDebugFps;
     int kPreviewBufferCountActual;
     int previewWidth, previewHeight;
-    bool mSnapshotDone;
-    bool mSnapshotPrepare;
-    mm_camera_config mCfgControl;
-    bool mResetOverlayCrop;
-    int mThumbnailWidth, mThumbnailHeight;
-    bool strTexturesOn;
 };
 
 }; // namespace android
