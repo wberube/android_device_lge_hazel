@@ -63,26 +63,6 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/init.qcom.post_boot.sh:system/etc/init.qcom.post_boot.sh
 
-# off-mode charging
-PRODUCT_COPY_FILES += $(LOCAL_PATH)/checkbootreason:root/sbin/checkbootreason
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_ani_01.rle:root/chargerimages/battery_ani_01.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_ani_02.rle:root/chargerimages/battery_ani_02.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_ani_03.rle:root/chargerimages/battery_ani_03.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_ani_04.rle:root/chargerimages/battery_ani_04.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_ani_05.rle:root/chargerimages/battery_ani_05.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_bg.rle:root/chargerimages/battery_bg.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_01.rle:root/chargerimages/battery_charging_01.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_02.rle:root/chargerimages/battery_charging_02.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_03.rle:root/chargerimages/battery_charging_03.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_04.rle:root/chargerimages/battery_charging_04.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_05.rle:root/chargerimages/battery_charging_05.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_charging_06.rle:root/chargerimages/battery_charging_06.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_wait_ani_01.rle:root/chargerimages/battery_wait_ani_01.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/battery_wait_ani_02.rle:root/chargerimages/battery_wait_ani_02.rle \
-    $(LOCAL_PATH)/chargemode/chargerimages/black_bg.rle:root/chargerimages/black_bg.rle \
-    $(LOCAL_PATH)/chargemode/chargerlogo:root/sbin/chargerlogo
-
 # Display 
 PRODUCT_PACKAGES += \
    hwcomposer.msm7x27 \
@@ -155,6 +135,15 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
 
+# SELinux - we're not ready for enforcing mode yet
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.boot.selinux=permissive
+
+BOARD_SEPOLICY_DIRS += device/lge/p350/sepolicy
+BOARD_SEPOLICY_UNION += \
+    file_contexts \
+    genfs_contexts
+
 # Battery life hacks
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.ril.disable.power.collapse=1 \
@@ -185,6 +174,15 @@ PRODUCT_PROPERTY_OVERRIDES += \
     media.stagefright.enable-http=true \
     media.stagefright.enable-aac=true \
     media.stagefright.enable-qcp=true
+
+# Development settings
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    ro.debuggable=1 \
+    ro.secure=0 \
+    ro.allow.mock.location=0
+    
+# Install/Uninstall google apps
+$(call inherit-product, vendor/google/gapps_armv6_tiny.mk)
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
