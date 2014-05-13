@@ -3,12 +3,13 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 $(call inherit-product, device/common/gps/gps_us_supl.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
-$(call inherit-product, device/ldpi-common/ldpi.mk)
 
 $(call inherit-product-if-exists, vendor/lge/p350/p350-vendor.mk)
 $(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendor-blobs.mk)
 
 DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
+DEVICE_PACKAGE_OVERLAYS += device/lge/p350/blank-overlay
+
 
 PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
@@ -40,9 +41,13 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/touch_mcs7000.kl:system/usr/keylayout/touch_mcs7000.kl \
     $(LOCAL_PATH)/configs/sysctl.conf:system/etc/sysctl.conf
 
-# BT startup
+# Bluedroid: rc
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/bluetooth/bt_vendor.conf:system/etc/bluetooth/bt_vendor.conf
+     $(LOCAL_PATH)/bluetooth/init.qcom.bluedroid.rc:root/init.qcom.bluetooth.rc
+
+# USBMS for recovery
+PRODUCT_COPY_FILES += \
+    device/lge/p350/recovery/init.recovery.msm7x27.rc:root/init.recovery.$(CM_BUILD).rc
 
 # Wifi
 PRODUCT_COPY_FILES += \
@@ -135,6 +140,11 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.setupwizard.enable_bypass=1 \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
+    persist.service.adb.enable=1
+
+PRODUCT_PROPERTY_OVERRIDES += \
+    wifi.ap.interface=wl0.1
+
 
 # Dalvik
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -195,8 +205,6 @@ $(call inherit-product, vendor/google/gapps_armv6_tiny.mk)
 PRODUCT_COPY_FILES += \
     system/bluetooth/data/main.le.conf:system/etc/bluetooth/main.conf
 
-# Inherit QCOM vendor
-$(call inherit-product, vendor/qcom/msm7x27/qcom-vendor.mk)    
     
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 

@@ -46,6 +46,7 @@ BOARD_FLASH_BLOCK_SIZE := 131072
 
 # BOOTANIMATION
 TARGET_BOOTANIMATION_PRELOAD := true
+TARGET_BOOTANIMATION_HALF_RES := true
 TARGET_BOOTANIMATION_USE_RGB565 := true
 TARGET_BOOTANIMATION_TEXTURE_CACHE := true
 
@@ -86,6 +87,9 @@ SMALLER_FONT_FOOTPRINT := true
 # sensors
 TARGET_USES_OLD_LIBSENSORS_HAL:=true
 
+## RIL
+BOARD_PROVIDES_LIBRIL := true
+
 # Recovery
 BOARD_LDPI_RECOVERY := true
 BOARD_HAS_JANKY_BACKBUFFER := true
@@ -104,7 +108,8 @@ BOARD_COMBO_DEVICE_SUPPORTED := true
 BOARD_HAVE_BLUETOOTH := true
 BOARD_HAVE_BLUETOOTH_BCM := true
 BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR := device/lge/p350/bluetooth
-BOARD_BLUEDROID_VENDOR_CONF := device/lge/p350/bluetooth/vnd_p350.txt
+BOARD_BLUEDROID_VENDOR_CONF := device/lge/p350/bluetooth/libbt_lge.txt
+
 
 # Enable the GPS HAL & AMSS version to use for GPS
 BOARD_GPS_LIBRARIES := libgps librpc
@@ -137,6 +142,9 @@ BOARD_UMS_LUNFILE := /sys/class/android_usb/android0/f_mass_storage/lun/file
 # Squisher
 TARGET_SYSTEMIMAGE_USE_SQUISHER := true
 
+## Minimal fonts
+SMALLER_FONT_FOOTPRINT := true
+
 # Wi-Fi & Wi-Fi HotSpot
 WPA_SUPPLICANT_VERSION          := VER_0_8_X
 BOARD_WLAN_DEVICE               := bcm4329
@@ -157,9 +165,6 @@ WITH_JIT := true
 ENABLE_JSC_JIT := true
 ENABLE_WEBGL := true
 TARGET_FORCE_CPU_UPLOAD := true
-
-## Radio fixes
-BOARD_RIL_CLASS := ../../../device/lge/p350/ril/
 
 # Touch screen compatibility for jellybean
 BOARD_USE_LEGACY_TOUCHSCREEN := true

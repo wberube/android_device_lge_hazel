@@ -1,0 +1,1 @@
+Do not remove this empty directory - it is needed for aapt to resolve the overlay in external/koush properly.
