@@ -28,7 +28,6 @@ TARGET_NO_INITLOGO := true
 TARGET_SPECIFIC_HEADER_PATH := device/lge/p350/include
 
 # Kernel
-TARGET_PREBUILT_RECOVERY_KERNEL := device/lge/p350/recovery/recovery_kernel
 TARGET_KERNEL_SOURCE := kernel/lge/p350
 TARGET_KERNEL_CONFIG := cyanogenmod_p350_defconfig
 BOARD_KERNEL_CMDLINE := mem=215M console=ttyMSM2,115200n8 androidboot.hardware=p350
@@ -96,7 +95,6 @@ BOARD_HAS_JANKY_BACKBUFFER := true
 BOARD_USE_CUSTOM_RECOVERY_FONT := '"font_7x16.h"'
 BOARD_HAS_NO_SELECT_BUTTON := true
 TARGET_RECOVERY_PIXEL_FORMAT := "RGB_565"
-BOARD_CUSTOM_GRAPHICS := ../../../device/lge/p350/recovery/graphics.c
 TARGET_RECOVERY_FSTAB := device/lge/p350/root/fstab.p350
 
 # Audio
