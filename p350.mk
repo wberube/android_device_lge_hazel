@@ -43,7 +43,7 @@ PRODUCT_COPY_FILES += \
     
 # fstab    
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/root/fstab.p350:root/fstab.p350 
+    $(LOCAL_PATH)/fstab.p350:root/fstab.p350 
 
 # Bluedroid: rc
 PRODUCT_COPY_FILES += \
