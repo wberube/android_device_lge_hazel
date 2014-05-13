@@ -1,6 +1,6 @@
 PecanCM Project
 ========================
-Here LGE Optimus Me device folder for build Cyanogenmod 10.1, Android 4.2.2
+Here LGE Optimus Me device folder for build Cyanogenmod 10.2, Android 4.3.1
 
 1. Operating System:
 --------------------------------
@@ -27,33 +27,33 @@ Repo is the program that handles synchronization between our pc and the reposito
 
 4. Download source codes:
 --------------------------------
-- mkdir cm10.1
+- mkdir cm10.2
 - cd cm10.1
-- repo init -u git://github.com/PecanCM/android.git -b cm-10.1
+- repo init -u git://github.com/PecanCM/android.git -b cm-10.2
 - repo sync
 
 5. Download Prebuilt files:
 --------------------------------
 There are some others files needed.
-- . ~/cm10.1/vendor/cm/get-prebuilts
+- . ~/cm10.2/vendor/cm/get-prebuilts
 
 Another small wait time and we're ready!
 
 6. Build ROM:
 -------------
-- cd cm10.1
+- cd cm10.2
 - . build/envsetup.sh && brunch p350
 
 7. Installing:
 --------------
-- Grab new file named cm-10.1-(DATE)-UNOFFICIAL-p350 from cm10.1/out/target/product/p350
+- Grab new file named cm-10.1-(DATE)-UNOFFICIAL-p350 from cm10.2/out/target/product/p350
 - Push ZIP to SD Card and install
 - Install Google Apps
 
 8. Update Source:
 --------------------------------
 If you want to update your build, you have to do only this:
-- cd cm10.1
+- cd cm10.2
 - repo sync
 
 and build again :D
