@@ -42,6 +42,8 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/sysctl.conf:system/etc/sysctl.conf
     
 # fstab    
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/root/fstab.p350:root/fstab.p350 
 
 # Bluedroid: rc
 PRODUCT_COPY_FILES += \
