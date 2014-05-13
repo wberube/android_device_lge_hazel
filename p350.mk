@@ -40,6 +40,8 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/Generic.kl:system/usr/keylayout/Generic.kl \
     $(LOCAL_PATH)/configs/touch_mcs7000.kl:system/usr/keylayout/touch_mcs7000.kl \
     $(LOCAL_PATH)/configs/sysctl.conf:system/etc/sysctl.conf
+    
+# fstab    
 
 # Bluedroid: rc
 PRODUCT_COPY_FILES += \
