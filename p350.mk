@@ -135,6 +135,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.setupwizard.enable_bypass=1 \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
+    
 
 # SELinux - we're not ready for enforcing mode yet
 PRODUCT_PROPERTY_OVERRIDES += \
