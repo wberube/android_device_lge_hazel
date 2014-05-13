@@ -133,6 +133,9 @@ BOARD_USE_USB_MASS_STORAGE_SWITCH := true
 TARGET_USE_CUSTOM_LUN_FILE_PATH := /sys/class/android_usb/android0/f_mass_storage/lun/file
 BOARD_UMS_LUNFILE := /sys/class/android_usb/android0/f_mass_storage/lun/file
 
+# Squisher
+TARGET_SYSTEMIMAGE_USE_SQUISHER := true
+
 # Wi-Fi & Wi-Fi HotSpot
 WPA_SUPPLICANT_VERSION          := VER_0_8_X
 BOARD_WLAN_DEVICE               := bcm4329
