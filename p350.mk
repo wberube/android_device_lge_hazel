@@ -135,8 +135,13 @@ PRODUCT_PROPERTY_OVERRIDES += \
     ro.setupwizard.enable_bypass=1 \
     ro.telephony.call_ring.multiple=false \
     ro.vold.umsdirtyratio=20
-    
 
+# Dalvik
+PRODUCT_PROPERTY_OVERRIDES += \
+    dalvik.vm.heaptargetutilization=0.25 \
+    dalvik.vm.execution-mode=int:fast
+
+    
 # SELinux - we're not ready for enforcing mode yet
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.boot.selinux=permissive
