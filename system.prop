@@ -10,6 +10,7 @@ persist.rild.nitz_short_ons_1=
 persist.rild.nitz_short_ons_2=
 persist.rild.nitz_short_ons_3=
 
+
 ro.telephony.call_ring.multiple=false
 ro.telephony.call_ring.delay=3000
 
