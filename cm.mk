@@ -33,5 +33,6 @@ PRODUCT_VERSION_DEVICE_SPECIFIC :=
 ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.secure=0 \
     ro.allow.mock.location=1 \
+    ro.adb.secure=0 \
     ro.debuggable=1
 
