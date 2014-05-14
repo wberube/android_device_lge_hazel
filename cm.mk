@@ -29,4 +29,10 @@ PRODUCT_CHARACTERISTICS := phone
 PRODUCT_RELEASE_NAME := OptimusMe
 PRODUCT_VERSION_DEVICE_SPECIFIC :=
 
+# Development settings
+ADDITIONAL_DEFAULT_PROPERTIES += \
+    ro.debuggable=1 \
+    ro.adb.secure=0 \
+    ro.secure=0 \
+    ro.allow.mock.location=0
 
