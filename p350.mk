@@ -133,6 +133,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     init.p350.rc \
     init.p350.usb.rc \
+    init.qcom.rc \
+    init.qcom.usb.rc \
+    ueventd.qcom.rc \
     ueventd.p350.rc
 
 
