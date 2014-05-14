@@ -352,9 +352,9 @@ camera_memory_t * internal_generate_client_data(const sp<IMemory> &dataPtr,
 void internal_fixup_settings(CameraParameters &settings)
 {
    const char *preview_sizes =
-      "1280x720,800x480,768x432,720x480,640x480,576x432,480x320,384x288,352x288,320x240,240x160,176x144";
+      "640x480,576x432,480x320,384x288,352x288,320x240,240x160,176x144";
    const char *video_sizes =
-      "1280x720,800x480,768x432,720x480,640x480,576x432,480x320,384x288,352x288,320x240,240x160,176x144";
+      "640x480,352x288,320x240,176x144";
 #if (SENSOR_SIZE > 3)
    const char *preferred_size       = "640x480";
 #elif (SENSOR_SIZE > 2)
@@ -362,7 +362,7 @@ void internal_fixup_settings(CameraParameters &settings)
 #else /* SENSOR_SIZE=2 */
    const char *preferred_size       = "320x240";
 #endif
-   const char *preview_frame_rates  = "25,24,15";
+   const char *preview_frame_rates  = "10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30";
    const char *preferred_frame_rate = "15";
    const char *frame_rate_range     = "(10,25)";
    const char *preferred_horizontal_viewing_angle = "51.2";
