@@ -199,8 +199,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 # Development settings
 ADDITIONAL_DEFAULT_PROPERTIES += \
     ro.debuggable=1 \
+    ro.adb.secure=0 \
     ro.secure=0 \
-    ro.adb.secure=0 \    
     ro.allow.mock.location=0
     
 # Install/Uninstall google apps
