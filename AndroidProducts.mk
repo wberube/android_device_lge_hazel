@@ -1,2 +1,2 @@
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/p350.mk
+    $(LOCAL_DIR)/hazel.mk

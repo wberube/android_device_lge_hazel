@@ -4,18 +4,18 @@ $(call inherit-product, device/common/gps/gps_us_supl.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
 
-$(call inherit-product-if-exists, vendor/lge/p350/p350-vendor.mk)
+$(call inherit-product-if-exists, vendor/lge/hazel/hazel-vendor.mk)
 $(call inherit-product-if-exists, vendor/lge/msm7x27-common/msm7x27-common-vendor-blobs.mk)
 
-DEVICE_PACKAGE_OVERLAYS += device/lge/p350/overlay
-DEVICE_PACKAGE_OVERLAYS += device/lge/p350/blank-overlay
+DEVICE_PACKAGE_OVERLAYS += device/lge/hazel/overlay
+DEVICE_PACKAGE_OVERLAYS += device/lge/hazel/blank-overlay
 
 
 PRODUCT_AAPT_CONFIG := normal mdpi ldpi
 PRODUCT_AAPT_PREF_CONFIG := ldpi
 
 PRODUCT_LOCALES := \
-	en_GB \
+	en_US \
 
 # Permission files
 PRODUCT_COPY_FILES += \
@@ -35,15 +35,15 @@ PRODUCT_COPY_FILES += \
 # Configs
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/synaptics-rmi-touchscreen.idc:system/usr/idc/synaptics-rmi-touchscreen.idc \
-    $(LOCAL_PATH)/configs/touch_mcs7000.idc:system/usr/idc/touch_mcs7000.idc \
+    $(LOCAL_PATH)/configs/touch_mcs6000.idc:system/usr/idc/touch_mcs6000.idc \
     $(LOCAL_PATH)/configs/7k_handset.kl:system/usr/keylayout/7k_handset.kl \
     $(LOCAL_PATH)/configs/Generic.kl:system/usr/keylayout/Generic.kl \
-    $(LOCAL_PATH)/configs/touch_mcs7000.kl:system/usr/keylayout/touch_mcs7000.kl \
+    $(LOCAL_PATH)/configs/touch_mcs6000.kl:system/usr/keylayout/touch_mcs6000.kl \
     $(LOCAL_PATH)/configs/sysctl.conf:system/etc/sysctl.conf
     
 # fstab    
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/fstab.p350:root/fstab.p350 
+    $(LOCAL_PATH)/fstab.hazel:root/fstab.hazel 
 
 # Bluedroid: rc
 PRODUCT_COPY_FILES += \
@@ -51,7 +51,7 @@ PRODUCT_COPY_FILES += \
 
 # USBMS for recovery
 PRODUCT_COPY_FILES += \
-    device/lge/p350/recovery/init.recovery.msm7x27.rc:root/init.recovery.$(CM_BUILD).rc
+    device/lge/hazel/recovery/init.recovery.msm7x27.rc:root/init.recovery.$(CM_BUILD).rc
 
 # Wifi
 PRODUCT_COPY_FILES += \
@@ -89,8 +89,8 @@ PRODUCT_PACKAGES += \
     audio.a2dp.default \
     libaudioutils \
     audio_policy.conf \
-    audio_policy.p350 \
-    audio.primary.p350
+    audio_policy.hazel \
+    audio.primary.hazel
 
 # Filesystem management tools
 PRODUCT_PACKAGES += \
@@ -113,15 +113,15 @@ PRODUCT_PACKAGES += \
 
 # Camera
 PRODUCT_PACKAGES += \
-     camera.p350
+     camera.hazel
 
 # Other
 PRODUCT_PACKAGES += \
     librs_jni \
-    lights.p350 \
-    gps.p350 \
+    lights.hazel \
+    gps.hazel \
     gps.msm7x27 \
-    power.p350 \
+    power.hazel \
     lgapversion \
 
 # Misc
@@ -131,16 +131,16 @@ PRODUCT_PACKAGES += \
     hwaddrs
 
 PRODUCT_PACKAGES += \
-    init.p350.rc \
-    init.p350.usb.rc \
+    init.hazel.rc \
+    init.hazel.usb.rc \
     init.qcom.rc \
     init.qcom.usb.rc \
     ueventd.qcom.rc \
-    ueventd.p350.rc
+    ueventd.hazel.rc
 
 
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.product.camera=p350 \
+    ro.product.camera=hazel \
     ro.com.google.locationfeatures=1 \
     ro.com.google.networklocation=1 \
     ro.com.google.gmsversion=2.3_r6 \
@@ -163,7 +163,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.boot.selinux=permissive
 
-BOARD_SEPOLICY_DIRS += device/lge/p350/sepolicy
+BOARD_SEPOLICY_DIRS += device/lge/hazel/sepolicy
 BOARD_SEPOLICY_UNION += \
     file_contexts \
     genfs_contexts
@@ -216,6 +216,6 @@ PRODUCT_COPY_FILES += \
     
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
 
-PRODUCT_NAME := cm_p350
-PRODUCT_DEVICE := cm_p350
-PRODUCT_MODEL := LG-P350
+PRODUCT_NAME := cm_hazel
+PRODUCT_DEVICE := cm_hazel
+PRODUCT_MODEL := LG-C550

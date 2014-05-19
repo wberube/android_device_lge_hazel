@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VENDOR=lge
-DEVICE=p350
+DEVICE=hazel
 OUTDIR=vendor/$VENDOR/$DEVICE
 MAKEFILE=../../../$OUTDIR/$DEVICE-vendor-blobs.mk
 

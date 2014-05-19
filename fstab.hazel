@@ -12,7 +12,7 @@ recovery /recovery mtd defaults recoveryonly
 /devices/platform/msm_sdcc.1/mmc_host/mmc0 /storage/sdcard0 vfat defaults voldmanaged=sdcard0:auto
 
 #mtd0: 00440000 00020000 "boot" 
-#mtd1: 0c800000 00020000 "system" 
+#mtd1: 0dc00000 00020000 "system" 
 #mtd2: 00500000 00020000 "recovery" 
 #mtd3: 002c0000 00020000 "lgdrm" 
 #mtd4: 00100000 00020000 "splash" 
@@ -20,4 +20,4 @@ recovery /recovery mtd defaults recoveryonly
 #mtd6: 00640000 00020000 "FOTA" 
 #mtd7: 00040000 00020000 "misc" 
 #mtd8: 04000000 00020000 "cache" 
-#mtd9: 0bd80000 00020000 "userdata" 
+#mtd9: 0a980000 00020000 "userdata" 

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 VENDOR=lge
-DEVICE=p350
+DEVICE=hazel
 
 BASE=../../../vendor/$VENDOR/$DEVICE/proprietary
 rm -rf $BASE/*
